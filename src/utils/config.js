@@ -1,6 +1,5 @@
 // API Configuration
-// Update this URL when you deploy your backend
-export const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://your-backend.onrender.com';
+export const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://brynsa-leads-api.onrender.com';
 
 // Extension communication key (for localStorage sync)
 export const AUTH_STORAGE_KEY = 'brynsa_auth';

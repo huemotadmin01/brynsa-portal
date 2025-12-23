@@ -89,15 +89,15 @@ export function AuthProvider({ children }) {
       const response = await api.verifyOtp(email, otp);
       
       if (response.success) {
-        const { accessToken, user: userData } = response;
+        const { token: authToken, user: userData } = response;
         
-        setToken(accessToken);
+        setToken(authToken);
         setUser(userData);
         
-        localStorage.setItem('brynsa_token', accessToken);
+        localStorage.setItem('brynsa_token', authToken);
         localStorage.setItem('brynsa_user', JSON.stringify(userData));
         
-        broadcastAuthChange(userData, accessToken);
+        broadcastAuthChange(userData, authToken);
         
         return { success: true, user: userData };
       }
@@ -116,15 +116,15 @@ export function AuthProvider({ children }) {
       const response = await api.googleAuth(googleData);
       
       if (response.success) {
-        const { accessToken, user: userData } = response;
+        const { token: authToken, user: userData } = response;
         
-        setToken(accessToken);
+        setToken(authToken);
         setUser(userData);
         
-        localStorage.setItem('brynsa_token', accessToken);
+        localStorage.setItem('brynsa_token', authToken);
         localStorage.setItem('brynsa_user', JSON.stringify(userData));
         
-        broadcastAuthChange(userData, accessToken);
+        broadcastAuthChange(userData, authToken);
         
         return { success: true, user: userData };
       }

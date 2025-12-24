@@ -136,6 +136,60 @@ export function AuthProvider({ children }) {
     }
   }, [broadcastAuthChange]);
 
+  // Signup with password (after OTP verification)
+  const signupWithPassword = useCallback(async (email, otp, name, password) => {
+    setError(null);
+    try {
+      const response = await api.signupWithPassword(email, otp, name, password);
+      
+      if (response.success) {
+        const { token: authToken, user: userData } = response;
+        
+        setToken(authToken);
+        setUser(userData);
+        
+        localStorage.setItem('brynsa_token', authToken);
+        localStorage.setItem('brynsa_user', JSON.stringify(userData));
+        
+        broadcastAuthChange(userData, authToken);
+        
+        return { success: true, user: userData };
+      }
+      
+      throw new Error(response.error || 'Signup failed');
+    } catch (err) {
+      setError(err.message);
+      return { success: false, error: err.message };
+    }
+  }, [broadcastAuthChange]);
+
+  // Login with email and password
+  const loginWithPassword = useCallback(async (email, password) => {
+    setError(null);
+    try {
+      const response = await api.loginWithPassword(email, password);
+      
+      if (response.success) {
+        const { token: authToken, user: userData } = response;
+        
+        setToken(authToken);
+        setUser(userData);
+        
+        localStorage.setItem('brynsa_token', authToken);
+        localStorage.setItem('brynsa_user', JSON.stringify(userData));
+        
+        broadcastAuthChange(userData, authToken);
+        
+        return { success: true, user: userData };
+      }
+      
+      throw new Error(response.error || 'Login failed');
+    } catch (err) {
+      setError(err.message);
+      return { success: false, error: err.message };
+    }
+  }, [broadcastAuthChange]);
+
   // Clear auth state
   const clearAuth = useCallback(() => {
     setToken(null);
@@ -170,6 +224,8 @@ export function AuthProvider({ children }) {
     isAuthenticated: !!token && !!user,
     loginWithOtp,
     loginWithGoogle,
+    signupWithPassword,
+    loginWithPassword,
     logout,
     updateUser,
     clearError: () => setError(null),

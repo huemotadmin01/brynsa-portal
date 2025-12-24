@@ -52,6 +52,27 @@ class ApiClient {
     });
   }
 
+  async verifyOtpOnly(email, otp) {
+    return this.request('/api/auth/verify-otp-only', {
+      method: 'POST',
+      body: JSON.stringify({ email, otp }),
+    });
+  }
+
+  async signupWithPassword(email, otp, name, password) {
+    return this.request('/api/auth/signup', {
+      method: 'POST',
+      body: JSON.stringify({ email, otp, name, password }),
+    });
+  }
+
+  async loginWithPassword(email, password) {
+    return this.request('/api/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    });
+  }
+
   async googleAuth(userData) {
     return this.request('/api/auth/google', {
       method: 'POST',

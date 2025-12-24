@@ -70,13 +70,19 @@ useEffect(() => {
   }
 }, [isAuthenticated, currentStep]);
 
-  // OTP countdown timer
+// Only redirect if authenticated AND onboarding is already completed
+  // (don't redirect during signup flow)
   useEffect(() => {
-    if (countdown > 0) {
-      const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
-      return () => clearTimeout(timer);
+    if (isAuthenticated && currentStep === STEPS.AUTH) {
+      // Check if user already completed onboarding
+      const user = JSON.parse(localStorage.getItem('brynsa_user') || '{}');
+      if (user.onboarding?.completed) {
+        navigate('/dashboard');
+      } else {
+        setCurrentStep(STEPS.COMPANY);
+      }
     }
-  }, [countdown]);
+  }, [isAuthenticated]);
 
   // Handle email submission
   const handleEmailSubmit = async (e) => {

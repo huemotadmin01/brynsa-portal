@@ -62,12 +62,13 @@ function SignupPage() {
     useCase: '',
   });
 
-  // Redirect if already authenticated
-  useEffect(() => {
-    if (isAuthenticated) {
-      navigate('/dashboard');
-    }
-  }, [isAuthenticated, navigate]);
+// Redirect if already authenticated AND on auth/otp step (not in questionnaire)
+useEffect(() => {
+  if (isAuthenticated && (currentStep === STEPS.AUTH || currentStep === STEPS.OTP)) {
+    // User is authenticated but just verified OTP, show questionnaire
+    setCurrentStep(STEPS.COMPANY);
+  }
+}, [isAuthenticated, currentStep]);
 
   // OTP countdown timer
   useEffect(() => {

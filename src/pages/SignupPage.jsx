@@ -45,7 +45,7 @@ const USE_CASES = [
 
 function SignupPage() {
   const navigate = useNavigate();
-  const { loginWithOtp, loginWithGoogle, isAuthenticated } = useAuth();
+  const { loginWithOtp, loginWithGoogle, isAuthenticated, token } = useAuth();
   
   const [currentStep, setCurrentStep] = useState(STEPS.AUTH);
   const [email, setEmail] = useState('');
@@ -211,8 +211,17 @@ function SignupPage() {
   const handleComplete = async () => {
     setLoading(true);
     try {
-      // Save onboarding data to backend
-      await api.updateOnboarding(formData);
+      // Save onboarding data to backend using token from context
+      const response = await fetch('https://brynsa-leads-api.onrender.com/api/user/onboarding', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(formData)
+      });
+      const data = await response.json();
+      console.log('Onboarding saved:', data);
       navigate('/dashboard');
     } catch (err) {
       // Even if save fails, redirect to dashboard

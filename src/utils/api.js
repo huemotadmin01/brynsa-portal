@@ -118,6 +118,35 @@ class ApiClient {
   async getCompany(id) {
     return this.request(`/api/companies/${id}`);
   }
+
+  // Leads endpoints
+  async getLeads() {
+    return this.request('/api/leads');
+  }
+
+  async getLead(id) {
+    return this.request(`/api/leads/${id}`);
+  }
+
+  async saveLead(data) {
+    return this.request('/api/leads', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteLead(id) {
+    return this.request(`/api/leads/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Account management
+  async deleteAccount() {
+    return this.request('/api/user/delete-account', {
+      method: 'DELETE',
+    });
+  }
 }
 
 export const api = new ApiClient();

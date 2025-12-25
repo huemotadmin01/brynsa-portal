@@ -5,38 +5,52 @@ import {
   Linkedin, LogOut, User, Settings, BarChart3, 
   Zap, Users, Mail, Target, Chrome, ExternalLink,
   Crown, Lock, Check, ChevronRight, Download,
-  FileText, MessageSquare, Building2, TrendingUp
+  FileText, MessageSquare, Building2, TrendingUp, Bookmark
 } from 'lucide-react';
 import api from '../utils/api';
+import ComingSoonModal from '../components/ComingSoonModal';
 
 function DashboardPage() {
   const navigate = useNavigate();
   const { user, logout, isAuthenticated } = useAuth();
   const [features, setFeatures] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showComingSoon, setShowComingSoon] = useState(false);
+  const [comingSoonFeature, setComingSoonFeature] = useState('');
+  const [savedLeadsCount, setSavedLeadsCount] = useState(0);
 
   useEffect(() => {
-    const loadFeatures = async () => {
+    const loadData = async () => {
       try {
-        const response = await api.getFeatures();
-        if (response.success) {
-          setFeatures(response);
+        const [featuresRes, leadsRes] = await Promise.all([
+          api.getFeatures(),
+          api.getLeads().catch(() => ({ leads: [] }))
+        ]);
+        
+        if (featuresRes.success) {
+          setFeatures(featuresRes);
         }
+        setSavedLeadsCount(leadsRes.leads?.length || 0);
       } catch (err) {
-        console.error('Failed to load features:', err);
+        console.error('Failed to load data:', err);
       } finally {
         setLoading(false);
       }
     };
 
     if (isAuthenticated) {
-      loadFeatures();
+      loadData();
     }
   }, [isAuthenticated]);
 
   const handleLogout = () => {
     logout();
     navigate('/login');
+  };
+
+  const handleFeatureClick = (feature) => {
+    setComingSoonFeature(feature);
+    setShowComingSoon(true);
   };
 
   const isPro = user?.plan === 'pro' || user?.plan === 'premium';
@@ -58,15 +72,28 @@ function DashboardPage() {
             {/* Nav */}
             <nav className="hidden md:flex items-center gap-6">
               <Link to="/dashboard" className="text-white font-medium">Dashboard</Link>
-              <a href="#" className="text-dark-400 hover:text-white transition-colors">Leads</a>
-              <a href="#" className="text-dark-400 hover:text-white transition-colors">Campaigns</a>
-              <a href="#" className="text-dark-400 hover:text-white transition-colors">Analytics</a>
+              <Link to="/leads" className="text-dark-400 hover:text-white transition-colors">Leads</Link>
+              <button 
+                onClick={() => handleFeatureClick('Campaigns')}
+                className="text-dark-400 hover:text-white transition-colors"
+              >
+                Campaigns
+              </button>
+              <button 
+                onClick={() => handleFeatureClick('Analytics')}
+                className="text-dark-400 hover:text-white transition-colors"
+              >
+                Analytics
+              </button>
             </nav>
 
             {/* User Menu */}
             <div className="flex items-center gap-4">
               {!isPro && (
-                <button className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 text-dark-950 font-semibold text-sm hover:from-amber-400 hover:to-orange-400 transition-all">
+                <button 
+                  onClick={() => handleFeatureClick('Pro Plan')}
+                  className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 text-dark-950 font-semibold text-sm hover:from-amber-400 hover:to-orange-400 transition-all"
+                >
                   <Crown className="w-4 h-4" />
                   Upgrade to Pro
                 </button>
@@ -93,14 +120,14 @@ function DashboardPage() {
                         {isPro ? 'Pro' : 'Free'} Plan
                       </span>
                     </div>
-                    <a href="#" className="flex items-center gap-2 px-3 py-2 text-dark-300 hover:text-white hover:bg-dark-800/50 rounded-lg transition-colors">
+                    <Link to="/settings" className="flex items-center gap-2 px-3 py-2 text-dark-300 hover:text-white hover:bg-dark-800/50 rounded-lg transition-colors">
                       <User className="w-4 h-4" />
                       Profile
-                    </a>
-                    <a href="#" className="flex items-center gap-2 px-3 py-2 text-dark-300 hover:text-white hover:bg-dark-800/50 rounded-lg transition-colors">
+                    </Link>
+                    <Link to="/settings" className="flex items-center gap-2 px-3 py-2 text-dark-300 hover:text-white hover:bg-dark-800/50 rounded-lg transition-colors">
                       <Settings className="w-4 h-4" />
                       Settings
-                    </a>
+                    </Link>
                     <button
                       onClick={handleLogout}
                       className="w-full flex items-center gap-2 px-3 py-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors"
@@ -169,8 +196,16 @@ function DashboardPage() {
                   <Lock className="w-4 h-4 text-dark-500" />
                 </div>
               )}
-              <div className={`w-10 h-10 rounded-lg bg-${stat.color === 'brynsa' ? 'brynsa' : stat.color}-500/10 flex items-center justify-center mb-3`}>
-                <stat.icon className={`w-5 h-5 ${stat.color === 'brynsa' ? 'text-brynsa-400' : `text-${stat.color}-400`}`} />
+              <div className={`w-10 h-10 rounded-lg flex items-center justify-center mb-3 ${
+                stat.color === 'brynsa' ? 'bg-brynsa-500/10' :
+                stat.color === 'blue' ? 'bg-blue-500/10' :
+                stat.color === 'purple' ? 'bg-purple-500/10' : 'bg-orange-500/10'
+              }`}>
+                <stat.icon className={`w-5 h-5 ${
+                  stat.color === 'brynsa' ? 'text-brynsa-400' :
+                  stat.color === 'blue' ? 'text-blue-400' :
+                  stat.color === 'purple' ? 'text-purple-400' : 'text-orange-400'
+                }`} />
               </div>
               <p className="text-sm text-dark-400 mb-1">{stat.label}</p>
               <div className="flex items-end gap-2">
@@ -182,38 +217,79 @@ function DashboardPage() {
         </div>
 
         <div className="grid lg:grid-cols-3 gap-6">
-          {/* Main Content Area */}
+          {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Get Started Card */}
+            {/* Saved Leads Card */}
+            <div className="card p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-brynsa-500/10 flex items-center justify-center">
+                    <Bookmark className="w-5 h-5 text-brynsa-400" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold text-white">Saved Leads</h2>
+                    <p className="text-sm text-dark-400">{savedLeadsCount} leads saved for later</p>
+                  </div>
+                </div>
+                <Link 
+                  to="/leads"
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-brynsa-500/10 text-brynsa-400 hover:bg-brynsa-500/20 transition-colors"
+                >
+                  View All
+                  <ChevronRight className="w-4 h-4" />
+                </Link>
+              </div>
+              
+              {savedLeadsCount === 0 ? (
+                <div className="text-center py-8 bg-dark-800/30 rounded-xl">
+                  <Bookmark className="w-12 h-12 text-dark-600 mx-auto mb-3" />
+                  <p className="text-dark-400 mb-2">No saved leads yet</p>
+                  <p className="text-sm text-dark-500">Start extracting leads from LinkedIn using the extension</p>
+                </div>
+              ) : (
+                <Link 
+                  to="/leads" 
+                  className="block text-center py-8 bg-dark-800/30 rounded-xl hover:bg-dark-800/50 transition-colors"
+                >
+                  <p className="text-2xl font-bold text-white mb-1">{savedLeadsCount}</p>
+                  <p className="text-dark-400">leads ready for outreach</p>
+                </Link>
+              )}
+            </div>
+
+            {/* Get Started */}
             <div className="card p-6">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-lg font-semibold text-white">Get Started</h2>
                 <span className="text-sm text-dark-400">2 of 4 complete</span>
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {[
                   { 
                     title: 'Install Chrome Extension', 
                     description: 'Start extracting leads from LinkedIn', 
                     icon: Chrome,
                     completed: true,
-                    action: 'Installed'
+                    action: 'Installed',
+                    link: '#'
                   },
                   { 
                     title: 'Extract your first lead', 
                     description: 'Visit any LinkedIn profile and click extract', 
                     icon: Users,
-                    completed: true,
-                    action: 'Done'
+                    completed: features?.usage?.leadsScraped > 0,
+                    action: features?.usage?.leadsScraped > 0 ? 'Done' : 'Start',
+                    link: 'https://linkedin.com'
                   },
                   { 
                     title: 'Generate AI email', 
                     description: 'Create personalized outreach emails', 
                     icon: Mail,
                     completed: false,
-                    action: isPro ? 'Try now' : 'Upgrade',
-                    locked: !isPro
+                    action: isPro ? 'Start' : 'Upgrade',
+                    locked: !isPro,
+                    feature: 'AI Email Generation'
                   },
                   { 
                     title: 'Export to CRM', 
@@ -221,7 +297,8 @@ function DashboardPage() {
                     icon: Building2,
                     completed: false,
                     action: isPro ? 'Connect' : 'Upgrade',
-                    locked: !isPro
+                    locked: !isPro,
+                    feature: 'CRM Integration'
                   },
                 ].map((item, i) => (
                   <div 
@@ -251,15 +328,35 @@ function DashboardPage() {
                       </h3>
                       <p className="text-sm text-dark-400">{item.description}</p>
                     </div>
-                    <button className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                      item.completed 
-                        ? 'bg-brynsa-500/10 text-brynsa-400'
-                        : item.locked
-                          ? 'bg-amber-500/10 text-amber-400 hover:bg-amber-500/20'
+                    {item.locked ? (
+                      <button 
+                        onClick={() => handleFeatureClick(item.feature)}
+                        className="px-4 py-2 rounded-lg text-sm font-medium bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 transition-colors"
+                      >
+                        {item.action}
+                      </button>
+                    ) : item.link ? (
+                      <a 
+                        href={item.link}
+                        target={item.link.startsWith('http') ? '_blank' : undefined}
+                        rel="noopener noreferrer"
+                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                          item.completed 
+                            ? 'bg-brynsa-500/10 text-brynsa-400'
+                            : 'bg-dark-700 text-white hover:bg-dark-600'
+                        }`}
+                      >
+                        {item.action}
+                      </a>
+                    ) : (
+                      <button className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        item.completed 
+                          ? 'bg-brynsa-500/10 text-brynsa-400'
                           : 'bg-dark-700 text-white hover:bg-dark-600'
-                    }`}>
-                      {item.action}
-                    </button>
+                      }`}>
+                        {item.action}
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>
@@ -269,32 +366,30 @@ function DashboardPage() {
             <div className="card p-6">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-lg font-semibold text-white">Recent Activity</h2>
-                <a href="#" className="text-sm text-brynsa-400 hover:underline">View all</a>
+                <Link to="/leads" className="text-sm text-brynsa-400 hover:underline">View all</Link>
               </div>
 
               <div className="space-y-4">
-                {[
-                  { type: 'extract', name: 'Sarah Johnson', company: 'TechCorp', time: '2 min ago' },
-                  { type: 'extract', name: 'Mike Chen', company: 'StartupXYZ', time: '15 min ago' },
-                  { type: 'email', name: 'Email generated', company: 'for David Park', time: '1 hour ago' },
-                  { type: 'export', name: 'Exported to CRM', company: '5 leads', time: '2 hours ago' },
-                ].map((activity, i) => (
-                  <div key={i} className="flex items-center gap-4 p-3 rounded-lg hover:bg-dark-800/30 transition-colors">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                      activity.type === 'extract' ? 'bg-brynsa-500/20' :
-                      activity.type === 'email' ? 'bg-blue-500/20' : 'bg-purple-500/20'
-                    }`}>
-                      {activity.type === 'extract' && <Users className="w-4 h-4 text-brynsa-400" />}
-                      {activity.type === 'email' && <Mail className="w-4 h-4 text-blue-400" />}
-                      {activity.type === 'export' && <Building2 className="w-4 h-4 text-purple-400" />}
+                {features?.usage?.leadsScraped > 0 ? (
+                  [
+                    { type: 'extract', name: 'New lead extracted', company: 'via Chrome Extension', time: 'Recently' },
+                  ].map((activity, i) => (
+                    <div key={i} className="flex items-center gap-4 p-3 rounded-lg hover:bg-dark-800/30 transition-colors">
+                      <div className="w-8 h-8 rounded-full flex items-center justify-center bg-brynsa-500/20">
+                        <Users className="w-4 h-4 text-brynsa-400" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-white text-sm">{activity.name}</p>
+                        <p className="text-dark-500 text-xs">{activity.company}</p>
+                      </div>
+                      <span className="text-dark-500 text-xs">{activity.time}</span>
                     </div>
-                    <div className="flex-1">
-                      <p className="text-white text-sm">{activity.name}</p>
-                      <p className="text-dark-500 text-xs">{activity.company}</p>
-                    </div>
-                    <span className="text-dark-500 text-xs">{activity.time}</span>
+                  ))
+                ) : (
+                  <div className="text-center py-6">
+                    <p className="text-dark-500">No activity yet. Start by extracting your first lead!</p>
                   </div>
-                ))}
+                )}
               </div>
             </div>
           </div>
@@ -341,7 +436,10 @@ function DashboardPage() {
                     ))}
                   </div>
 
-                  <button className="w-full btn-primary flex items-center justify-center gap-2">
+                  <button 
+                    onClick={() => handleFeatureClick('Pro Plan')}
+                    className="w-full btn-primary flex items-center justify-center gap-2"
+                  >
                     <Crown className="w-4 h-4" />
                     Upgrade to Pro
                   </button>
@@ -390,6 +488,12 @@ function DashboardPage() {
           </div>
         </div>
       </main>
+
+      <ComingSoonModal 
+        isOpen={showComingSoon} 
+        onClose={() => setShowComingSoon(false)}
+        feature={comingSoonFeature}
+      />
     </div>
   );
 }

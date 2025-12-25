@@ -98,6 +98,11 @@ function SignupPage() {
     useCase: '',
   });
 
+  // Company autocomplete
+  const [companySuggestions, setCompanySuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [searchingCompanies, setSearchingCompanies] = useState(false);
+
   // Only redirect if authenticated AND onboarding is already completed
   useEffect(() => {
     if (isAuthenticated && currentStep === STEPS.AUTH) {
@@ -319,6 +324,41 @@ function SignupPage() {
 
     loadGoogleScript();
   }, [currentStep, handleGoogleCredential]);
+
+  // Handle company name change with autocomplete
+  const handleCompanyNameChange = async (value) => {
+    setFormData({ ...formData, companyName: value });
+    
+    if (value.length < 2) {
+      setCompanySuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+
+    setSearchingCompanies(true);
+    try {
+      const response = await api.searchCompanies(value);
+      if (response.success && response.companies.length > 0) {
+        setCompanySuggestions(response.companies);
+        setShowSuggestions(true);
+      } else {
+        setCompanySuggestions([]);
+        setShowSuggestions(false);
+      }
+    } catch (err) {
+      console.error('Company search error:', err);
+      setCompanySuggestions([]);
+    } finally {
+      setSearchingCompanies(false);
+    }
+  };
+
+  // Select company from suggestions
+  const selectCompany = (company) => {
+    setFormData({ ...formData, companyName: company.name });
+    setShowSuggestions(false);
+    setCompanySuggestions([]);
+  };
 
   // Handle questionnaire navigation
   const handleQuestionnaireNext = () => {
@@ -719,7 +759,7 @@ function SignupPage() {
                 </p>
               </div>
 
-              <div>
+              <div className="relative">
                 <label className="block text-sm font-medium text-dark-300 mb-2">
                   Company Name
                 </label>
@@ -728,11 +768,47 @@ function SignupPage() {
                   <input
                     type="text"
                     value={formData.companyName}
-                    onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
+                    onChange={(e) => handleCompanyNameChange(e.target.value)}
+                    onFocus={() => companySuggestions.length > 0 && setShowSuggestions(true)}
+                    onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
                     placeholder="Acme Inc."
                     className="input-field pl-12"
+                    autoComplete="off"
                   />
+                  {searchingCompanies && (
+                    <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-dark-500 animate-spin" />
+                  )}
                 </div>
+
+                {/* Company Suggestions Dropdown */}
+                {showSuggestions && companySuggestions.length > 0 && (
+                  <div className="absolute z-50 w-full mt-1 bg-dark-800 border border-dark-700 rounded-xl shadow-xl overflow-hidden">
+                    {companySuggestions.map((company) => (
+                      <button
+                        key={company._id}
+                        type="button"
+                        onClick={() => selectCompany(company)}
+                        className="w-full px-4 py-3 text-left hover:bg-dark-700 transition-colors flex items-center gap-3"
+                      >
+                        {company.logo ? (
+                          <img src={company.logo} alt="" className="w-8 h-8 rounded object-cover" />
+                        ) : (
+                          <div className="w-8 h-8 rounded bg-dark-600 flex items-center justify-center">
+                            <Building2 className="w-4 h-4 text-dark-400" />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <div className="text-white font-medium truncate">{company.name}</div>
+                          {(company.industry || company.domain) && (
+                            <div className="text-sm text-dark-400 truncate">
+                              {company.industry || company.domain}
+                            </div>
+                          )}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div className="flex gap-3">

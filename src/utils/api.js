@@ -102,6 +102,22 @@ class ApiClient {
       body: JSON.stringify(data),
     });
   }
+
+  // Company endpoints
+  async searchCompanies(query) {
+    return this.request(`/api/companies/search?q=${encodeURIComponent(query)}`);
+  }
+
+  async createOrUpdateCompany(data) {
+    return this.request('/api/companies', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getCompany(id) {
+    return this.request(`/api/companies/${id}`);
+  }
 }
 
 export const api = new ApiClient();

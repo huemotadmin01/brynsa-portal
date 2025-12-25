@@ -128,7 +128,7 @@ function SignupPage() {
     setError('');
 
     try {
-      const response = await api.sendOtp(email);
+      const response = await api.sendOtp(email, true); // true = isSignup
       if (response.success) {
         setCurrentStep(STEPS.OTP);
         setCountdown(60);
@@ -136,7 +136,14 @@ function SignupPage() {
         setError(response.error || 'Failed to send OTP');
       }
     } catch (err) {
-      setError(err.message || 'Failed to send OTP. Please try again.');
+      // Check if user already exists
+      if (err.message === 'Account already exists') {
+        setError('An account with this email already exists. Please log in instead.');
+        // Optionally redirect after a delay
+        setTimeout(() => navigate('/login'), 3000);
+      } else {
+        setError(err.message || 'Failed to send OTP. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -912,6 +919,4 @@ function SignupPage() {
   );
 }
 
-
 export default SignupPage;
-// force rebuild

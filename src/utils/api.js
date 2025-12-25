@@ -38,10 +38,10 @@ class ApiClient {
   }
 
   // Auth endpoints
-  async sendOtp(email) {
+  async sendOtp(email, isSignup = false) {
     return this.request('/api/auth/send-otp', {
       method: 'POST',
-      body: JSON.stringify({ email }),
+      body: JSON.stringify({ email, isSignup }),
     });
   }
 

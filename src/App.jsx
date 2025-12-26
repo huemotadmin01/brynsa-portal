@@ -5,6 +5,7 @@ import SignupPage from './pages/SignupPage';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import LeadsPage from './pages/LeadsPage';
+import MyListsPage from './pages/MyListsPage';
 import SettingsPage from './pages/SettingsPage';
 import ProtectedRoute from './components/ProtectedRoute';
 
@@ -32,6 +33,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <LeadsPage />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/lists" 
+            element={
+              <ProtectedRoute>
+                <MyListsPage />
               </ProtectedRoute>
             } 
           />

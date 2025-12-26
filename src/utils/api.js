@@ -120,25 +120,48 @@ class ApiClient {
   }
 
   // Leads endpoints
-  async getLeads() {
-    return this.request('/api/leads');
+  async getLeads(listName = null) {
+    const url = listName ? `/api/portal/leads?list=${encodeURIComponent(listName)}` : '/api/portal/leads';
+    return this.request(url);
   }
 
   async getLead(id) {
-    return this.request(`/api/leads/${id}`);
+    return this.request(`/api/portal/leads/${id}`);
   }
 
   async saveLead(data) {
-    return this.request('/api/leads', {
+    return this.request('/api/portal/leads', {
       method: 'POST',
       body: JSON.stringify(data),
     });
   }
 
   async deleteLead(id) {
-    return this.request(`/api/leads/${id}`, {
+    return this.request(`/api/portal/leads/${id}`, {
       method: 'DELETE',
     });
+  }
+
+  // Lists endpoints
+  async getLists() {
+    return this.request('/api/lists');
+  }
+
+  async createList(name) {
+    return this.request('/api/lists', {
+      method: 'POST',
+      body: JSON.stringify({ name }),
+    });
+  }
+
+  async deleteList(listId) {
+    return this.request(`/api/lists/${listId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getListLeads(listName, page = 1, limit = 10) {
+    return this.request(`/api/lists/${encodeURIComponent(listName)}/leads?page=${page}&limit=${limit}`);
   }
 
   // Account management

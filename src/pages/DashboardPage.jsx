@@ -5,7 +5,7 @@ import {
   Linkedin, LogOut, User, Settings, BarChart3, 
   Zap, Users, Mail, Target, Chrome, ExternalLink,
   Crown, Lock, Check, ChevronRight, Download,
-  FileText, MessageSquare, Building2, TrendingUp, Bookmark
+  FileText, MessageSquare, Building2, TrendingUp, Bookmark, List
 } from 'lucide-react';
 import api from '../utils/api';
 import ComingSoonModal from '../components/ComingSoonModal';
@@ -18,19 +18,22 @@ function DashboardPage() {
   const [showComingSoon, setShowComingSoon] = useState(false);
   const [comingSoonFeature, setComingSoonFeature] = useState('');
   const [savedLeadsCount, setSavedLeadsCount] = useState(0);
+  const [lists, setLists] = useState([]);
 
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [featuresRes, leadsRes] = await Promise.all([
+        const [featuresRes, leadsRes, listsRes] = await Promise.all([
           api.getFeatures(),
-          api.getLeads().catch(() => ({ leads: [] }))
+          api.getLeads().catch(() => ({ leads: [] })),
+          api.getLists().catch(() => ({ lists: [] }))
         ]);
         
         if (featuresRes.success) {
           setFeatures(featuresRes);
         }
         setSavedLeadsCount(leadsRes.leads?.length || 0);
+        setLists(listsRes.lists || []);
       } catch (err) {
         console.error('Failed to load data:', err);
       } finally {
@@ -219,20 +222,20 @@ function DashboardPage() {
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Saved Leads Card */}
+            {/* My Lists Card */}
             <div className="card p-6">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-lg bg-brynsa-500/10 flex items-center justify-center">
-                    <Bookmark className="w-5 h-5 text-brynsa-400" />
+                    <List className="w-5 h-5 text-brynsa-400" />
                   </div>
                   <div>
-                    <h2 className="text-lg font-semibold text-white">Saved Leads</h2>
-                    <p className="text-sm text-dark-400">{savedLeadsCount} leads saved for later</p>
+                    <h2 className="text-lg font-semibold text-white">My Lists</h2>
+                    <p className="text-sm text-dark-400">{lists.length} lists • {savedLeadsCount} total leads</p>
                   </div>
                 </div>
                 <Link 
-                  to="/leads"
+                  to="/lists"
                   className="flex items-center gap-2 px-4 py-2 rounded-lg bg-brynsa-500/10 text-brynsa-400 hover:bg-brynsa-500/20 transition-colors"
                 >
                   View All
@@ -240,20 +243,41 @@ function DashboardPage() {
                 </Link>
               </div>
               
-              {savedLeadsCount === 0 ? (
+              {lists.length === 0 ? (
                 <div className="text-center py-8 bg-dark-800/30 rounded-xl">
-                  <Bookmark className="w-12 h-12 text-dark-600 mx-auto mb-3" />
-                  <p className="text-dark-400 mb-2">No saved leads yet</p>
-                  <p className="text-sm text-dark-500">Start extracting leads from LinkedIn using the extension</p>
+                  <List className="w-12 h-12 text-dark-600 mx-auto mb-3" />
+                  <p className="text-dark-400 mb-2">No lists yet</p>
+                  <p className="text-sm text-dark-500">Create lists from the extension to organize your leads</p>
                 </div>
               ) : (
-                <Link 
-                  to="/leads" 
-                  className="block text-center py-8 bg-dark-800/30 rounded-xl hover:bg-dark-800/50 transition-colors"
-                >
-                  <p className="text-2xl font-bold text-white mb-1">{savedLeadsCount}</p>
-                  <p className="text-dark-400">leads ready for outreach</p>
-                </Link>
+                <div className="space-y-2">
+                  {lists.slice(0, 3).map((list, idx) => (
+                    <Link 
+                      key={idx}
+                      to={`/lists?list=${encodeURIComponent(list.name)}`}
+                      className="flex items-center justify-between p-3 bg-dark-800/30 rounded-xl hover:bg-dark-800/50 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-brynsa-500/20 flex items-center justify-center">
+                          <List className="w-4 h-4 text-brynsa-400" />
+                        </div>
+                        <span className="text-white font-medium">{list.name}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-dark-400">{list.count || 0} leads</span>
+                        <ChevronRight className="w-4 h-4 text-dark-500" />
+                      </div>
+                    </Link>
+                  ))}
+                  {lists.length > 3 && (
+                    <Link 
+                      to="/lists"
+                      className="block text-center py-2 text-sm text-brynsa-400 hover:text-brynsa-300"
+                    >
+                      View all {lists.length} lists
+                    </Link>
+                  )}
+                </div>
               )}
             </div>
 

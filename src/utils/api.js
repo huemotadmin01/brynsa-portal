@@ -170,7 +170,35 @@ class ApiClient {
       method: 'DELETE',
     });
   }
+  
+  async deleteLead(id) {
+    const token = localStorage.getItem('brynsa_token');
+    const response = await fetch(`${API_BASE}/api/portal/leads/${id}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    return response.json();
+  }
+
+  // BULK DELETE leads
+  async bulkDeleteLeads(ids) {
+    const token = localStorage.getItem('brynsa_token');
+    const response = await fetch(`${API_BASE}/api/portal/leads/bulk-delete`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ ids })
+    });
+    return response.json();
+  }
+  
 }
+
+
 
 export const api = new ApiClient();
 export default api;

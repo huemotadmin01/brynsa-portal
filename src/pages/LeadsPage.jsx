@@ -5,7 +5,7 @@ import {
   Linkedin, Users, Search, Filter, Download,
   Mail, MessageSquare, ExternalLink, Building2, MapPin,
   ChevronLeft, ChevronRight, MoreHorizontal, Bookmark,
-  Crown, ArrowUpDown, RefreshCw
+  Crown, ArrowUpDown, RefreshCw, Trash2, AlertTriangle
 } from 'lucide-react';
 import api from '../utils/api';
 import ComingSoonModal from '../components/ComingSoonModal';
@@ -20,6 +20,9 @@ function LeadsPage() {
   const [showComingSoon, setShowComingSoon] = useState(false);
   const [comingSoonFeature, setComingSoonFeature] = useState('');
   const [refreshing, setRefreshing] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null); // null for bulk, or lead object for single
   
   const leadsPerPage = 10;
   const isPro = user?.plan === 'pro';
@@ -48,29 +51,20 @@ function LeadsPage() {
   const [lastSeenTimestamp, setLastSeenTimestamp] = useState(0);
 
   useEffect(() => {
-    // Handle storage event (cross-tab)
     const handleStorageChange = (e) => {
       if (e.key === 'brynsa_lead_saved') {
         console.log('Lead saved from extension (storage event), refreshing...');
-        setTimeout(() => {
-          loadLeads(true);
-        }, 500);
+        setTimeout(() => loadLeads(true), 500);
       }
     };
 
-    // Handle custom event from extension content script (same-tab, immediate)
     const handleCustomEvent = (e) => {
       console.log('Lead saved from extension (custom event), refreshing...', e.detail);
-      setTimeout(() => {
-        loadLeads(true);
-      }, 500);
+      setTimeout(() => loadLeads(true), 500);
     };
 
-    const handleFocus = () => {
-      checkForNewSaves();
-    };
+    const handleFocus = () => checkForNewSaves();
 
-    // Check localStorage for new saves
     const checkForNewSaves = () => {
       const lastSave = localStorage.getItem('brynsa_lead_saved');
       if (lastSave) {
@@ -82,13 +76,10 @@ function LeadsPage() {
             setLastSeenTimestamp(saveTime);
             loadLeads(true);
           }
-        } catch (err) {
-          // Ignore parse errors
-        }
+        } catch (err) {}
       }
     };
 
-    // Poll every 2 seconds as fallback
     const pollInterval = setInterval(checkForNewSaves, 2000);
 
     window.addEventListener('storage', handleStorageChange);
@@ -110,8 +101,37 @@ function LeadsPage() {
     }
   };
 
-  const handleManualRefresh = () => {
-    loadLeads(true);
+  const handleManualRefresh = () => loadLeads(true);
+
+  const handleDeleteLead = (lead) => {
+    setDeleteTarget(lead);
+    setShowDeleteModal(true);
+  };
+
+  const handleBulkDelete = () => {
+    if (selectedLeads.length === 0) return;
+    setDeleteTarget(null);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
+    setDeleting(true);
+    try {
+      if (deleteTarget) {
+        await api.deleteLead(deleteTarget._id);
+        setLeads(leads.filter(l => l._id !== deleteTarget._id));
+      } else {
+        await Promise.all(selectedLeads.map(id => api.deleteLead(id)));
+        setLeads(leads.filter(l => !selectedLeads.includes(l._id)));
+        setSelectedLeads([]);
+      }
+    } catch (err) {
+      console.error('Failed to delete:', err);
+    } finally {
+      setDeleting(false);
+      setShowDeleteModal(false);
+      setDeleteTarget(null);
+    }
   };
 
   const filteredLeads = leads.filter(lead => 
@@ -191,6 +211,15 @@ function LeadsPage() {
           </div>
           
           <div className="flex items-center gap-3">
+            {selectedLeads.length > 0 && (
+              <button
+                onClick={handleBulkDelete}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors"
+              >
+                <Trash2 className="w-4 h-4" />
+                Delete ({selectedLeads.length})
+              </button>
+            )}
             <button
               onClick={handleManualRefresh}
               disabled={refreshing}
@@ -355,10 +384,11 @@ function LeadsPage() {
                               <MessageSquare className="w-4 h-4 text-dark-400 hover:text-white" />
                             </button>
                             <button 
-                              className="p-2 hover:bg-dark-700 rounded-lg transition-colors" 
-                              title="More options"
+                              onClick={() => handleDeleteLead(lead)}
+                              className="p-2 hover:bg-red-500/10 rounded-lg transition-colors" 
+                              title="Delete lead"
                             >
-                              <MoreHorizontal className="w-4 h-4 text-dark-400 hover:text-white" />
+                              <Trash2 className="w-4 h-4 text-dark-400 hover:text-red-400" />
                             </button>
                           </div>
                         </td>
@@ -381,19 +411,31 @@ function LeadsPage() {
                     >
                       <ChevronLeft className="w-4 h-4 text-dark-400" />
                     </button>
-                    {Array.from({ length: totalPages }, (_, i) => (
-                      <button
-                        key={i}
-                        onClick={() => setCurrentPage(i + 1)}
-                        className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors ${
-                          currentPage === i + 1
-                            ? 'bg-brynsa-500 text-dark-950'
-                            : 'text-dark-400 hover:bg-dark-700'
-                        }`}
-                      >
-                        {i + 1}
-                      </button>
-                    ))}
+                    {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+                      let pageNum;
+                      if (totalPages <= 5) {
+                        pageNum = i + 1;
+                      } else if (currentPage <= 3) {
+                        pageNum = i + 1;
+                      } else if (currentPage >= totalPages - 2) {
+                        pageNum = totalPages - 4 + i;
+                      } else {
+                        pageNum = currentPage - 2 + i;
+                      }
+                      return (
+                        <button
+                          key={pageNum}
+                          onClick={() => setCurrentPage(pageNum)}
+                          className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors ${
+                            currentPage === pageNum
+                              ? 'bg-brynsa-500 text-dark-950'
+                              : 'text-dark-400 hover:bg-dark-700'
+                          }`}
+                        >
+                          {pageNum}
+                        </button>
+                      );
+                    })}
                     <button
                       onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                       disabled={currentPage === totalPages}
@@ -408,6 +450,61 @@ function LeadsPage() {
           )}
         </div>
       </main>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div 
+            className="absolute inset-0 bg-dark-950/80 backdrop-blur-sm"
+            onClick={() => !deleting && setShowDeleteModal(false)}
+          />
+          
+          <div className="relative bg-dark-900 border border-dark-700 rounded-2xl p-6 max-w-md w-full shadow-2xl">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 rounded-xl bg-red-500/10 flex items-center justify-center">
+                <AlertTriangle className="w-6 h-6 text-red-400" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-white">
+                  {deleteTarget ? 'Delete Lead' : `Delete ${selectedLeads.length} Leads`}
+                </h2>
+                <p className="text-dark-400 text-sm">This action cannot be undone</p>
+              </div>
+            </div>
+
+            <p className="text-dark-300 mb-6">
+              {deleteTarget 
+                ? `Are you sure you want to delete "${deleteTarget.name}"?`
+                : `Are you sure you want to delete ${selectedLeads.length} selected leads?`
+              }
+            </p>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                disabled={deleting}
+                className="flex-1 px-4 py-2.5 rounded-xl bg-dark-800 text-white font-medium hover:bg-dark-700 transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                disabled={deleting}
+                className="flex-1 px-4 py-2.5 rounded-xl bg-red-500 text-white font-semibold hover:bg-red-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {deleting ? (
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4" />
+                    Delete
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <ComingSoonModal 
         isOpen={showComingSoon} 

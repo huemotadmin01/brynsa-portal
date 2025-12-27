@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { 
@@ -20,31 +20,74 @@ function DashboardPage() {
   const [savedLeadsCount, setSavedLeadsCount] = useState(0);
   const [lists, setLists] = useState([]);
 
+  // Fetch data function - memoized for reuse
+  const fetchData = useCallback(async () => {
+    try {
+      const [featuresRes, leadsRes, listsRes] = await Promise.all([
+        api.getFeatures(),
+        api.getLeads().catch(() => ({ leads: [] })),
+        api.getLists().catch(() => ({ lists: [] }))
+      ]);
+      
+      if (featuresRes.success) {
+        setFeatures(featuresRes);
+      }
+      setSavedLeadsCount(leadsRes.leads?.length || 0);
+      setLists(listsRes.lists || []);
+    } catch (err) {
+      console.error('Failed to load data:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Initial data load
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        const [featuresRes, leadsRes, listsRes] = await Promise.all([
-          api.getFeatures(),
-          api.getLeads().catch(() => ({ leads: [] })),
-          api.getLists().catch(() => ({ lists: [] }))
-        ]);
-        
-        if (featuresRes.success) {
-          setFeatures(featuresRes);
-        }
-        setSavedLeadsCount(leadsRes.leads?.length || 0);
-        setLists(listsRes.lists || []);
-      } catch (err) {
-        console.error('Failed to load data:', err);
-      } finally {
-        setLoading(false);
+    if (isAuthenticated) {
+      fetchData();
+    }
+  }, [isAuthenticated, fetchData]);
+
+  // Listen for extension lead saves via localStorage
+  useEffect(() => {
+    const handleStorageChange = (e) => {
+      if (e.key === 'brynsa_lead_saved') {
+        console.log('Lead saved from extension, refreshing data...');
+        // Small delay to ensure backend has processed the save
+        setTimeout(() => {
+          fetchData();
+        }, 500);
       }
     };
 
-    if (isAuthenticated) {
-      loadData();
-    }
-  }, [isAuthenticated]);
+    // Listen for storage events (from extension in different context)
+    window.addEventListener('storage', handleStorageChange);
+
+    // Also check on focus (fallback if storage event doesn't fire)
+    const handleFocus = () => {
+      const lastSave = localStorage.getItem('brynsa_lead_saved');
+      if (lastSave) {
+        try {
+          const data = JSON.parse(lastSave);
+          const saveTime = data.timestamp;
+          const now = Date.now();
+          // If saved within the last 30 seconds, refresh
+          if (now - saveTime < 30000) {
+            fetchData();
+          }
+        } catch (err) {
+          // Ignore parse errors
+        }
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [fetchData]);
 
   const handleLogout = () => {
     logout();
@@ -163,7 +206,7 @@ function DashboardPage() {
           {[
             { 
               label: 'Leads Scraped', 
-              value: features?.usage?.leadsScraped || 0, 
+              value: features?.usage?.leadsScraped || savedLeadsCount || 0, 
               icon: Users, 
               change: '+12%',
               color: 'brynsa'
@@ -302,8 +345,8 @@ function DashboardPage() {
                     title: 'Extract your first lead', 
                     description: 'Visit any LinkedIn profile and click extract', 
                     icon: Users,
-                    completed: features?.usage?.leadsScraped > 0,
-                    action: features?.usage?.leadsScraped > 0 ? 'Done' : 'Start',
+                    completed: savedLeadsCount > 0 || features?.usage?.leadsScraped > 0,
+                    action: savedLeadsCount > 0 || features?.usage?.leadsScraped > 0 ? 'Done' : 'Start',
                     link: 'https://linkedin.com'
                   },
                   { 
@@ -394,7 +437,7 @@ function DashboardPage() {
               </div>
 
               <div className="space-y-4">
-                {features?.usage?.leadsScraped > 0 ? (
+                {savedLeadsCount > 0 || features?.usage?.leadsScraped > 0 ? (
                   [
                     { type: 'extract', name: 'New lead extracted', company: 'via Chrome Extension', time: 'Recently' },
                   ].map((activity, i) => (

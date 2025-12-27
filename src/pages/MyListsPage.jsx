@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { 
@@ -6,7 +6,7 @@ import {
   Users, Mail, Chrome, ExternalLink, Crown, 
   ChevronRight, ChevronLeft, Trash2, Plus, Search,
   List, FolderOpen, MoreHorizontal, Edit, Copy,
-  Briefcase, MapPin, Globe
+  Briefcase, MapPin, Globe, RefreshCw
 } from 'lucide-react';
 import api from '../utils/api';
 
@@ -25,24 +25,12 @@ function MyListsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newListName, setNewListName] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    loadLists();
-  }, [isAuthenticated]);
-
-  useEffect(() => {
-    if (selectedList) {
-      loadLeads(selectedList, page);
-      setSearchParams({ list: selectedList });
-    } else {
-      setLeads([]);
-      setSearchParams({});
-    }
-  }, [selectedList, page]);
-
-  const loadLists = async () => {
+  // Load lists function - memoized for reuse
+  const loadLists = useCallback(async (showRefreshIndicator = false) => {
+    if (showRefreshIndicator) setRefreshing(true);
     try {
-      setLoading(true);
       const res = await api.getLists();
       if (res.success) {
         setLists(res.lists || []);
@@ -60,8 +48,71 @@ function MyListsPage() {
       ]);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
-  };
+  }, [selectedList]);
+
+  // Initial load
+  useEffect(() => {
+    loadLists();
+  }, [isAuthenticated]);
+
+  // Listen for extension lead saves via localStorage
+  useEffect(() => {
+    const handleStorageChange = (e) => {
+      if (e.key === 'brynsa_lead_saved') {
+        console.log('Lead saved from extension, refreshing lists...');
+        // Small delay to ensure backend has processed the save
+        setTimeout(() => {
+          loadLists(true);
+          if (selectedList) {
+            loadLeads(selectedList, page);
+          }
+        }, 500);
+      }
+    };
+
+    // Listen for storage events (from extension in different context)
+    window.addEventListener('storage', handleStorageChange);
+
+    // Also check on focus (fallback if storage event doesn't fire)
+    const handleFocus = () => {
+      const lastSave = localStorage.getItem('brynsa_lead_saved');
+      if (lastSave) {
+        try {
+          const data = JSON.parse(lastSave);
+          const saveTime = data.timestamp;
+          const now = Date.now();
+          // If saved within the last 30 seconds, refresh
+          if (now - saveTime < 30000) {
+            loadLists(true);
+            if (selectedList) {
+              loadLeads(selectedList, page);
+            }
+          }
+        } catch (err) {
+          // Ignore parse errors
+        }
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [loadLists, selectedList, page]);
+
+  useEffect(() => {
+    if (selectedList) {
+      loadLeads(selectedList, page);
+      setSearchParams({ list: selectedList });
+    } else {
+      setLeads([]);
+      setSearchParams({});
+    }
+  }, [selectedList, page]);
 
   const loadLeads = async (listName, pageNum = 1) => {
     try {
@@ -134,6 +185,13 @@ function MyListsPage() {
     navigate('/login');
   };
 
+  const handleManualRefresh = () => {
+    loadLists(true);
+    if (selectedList) {
+      loadLeads(selectedList, page);
+    }
+  };
+
   const filteredLeads = leads.filter(lead => 
     !searchQuery || 
     lead.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -193,12 +251,22 @@ function MyListsPage() {
             <div className="card p-4">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold text-white">My Lists</h2>
-                <button 
-                  onClick={() => setShowCreateModal(true)}
-                  className="p-1.5 rounded-lg bg-brynsa-500/10 text-brynsa-400 hover:bg-brynsa-500/20 transition-colors"
-                >
-                  <Plus className="w-4 h-4" />
-                </button>
+                <div className="flex items-center gap-1">
+                  <button 
+                    onClick={handleManualRefresh}
+                    disabled={refreshing}
+                    className={`p-1.5 rounded-lg text-dark-400 hover:text-brynsa-400 hover:bg-dark-700 transition-colors ${refreshing ? 'opacity-50' : ''}`}
+                    title="Refresh"
+                  >
+                    <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+                  </button>
+                  <button 
+                    onClick={() => setShowCreateModal(true)}
+                    className="p-1.5 rounded-lg bg-brynsa-500/10 text-brynsa-400 hover:bg-brynsa-500/20 transition-colors"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
               
               {loading ? (

@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { 
-  Linkedin, Users, Search, Filter, Download, Trash2,
+  Linkedin, Users, Search, Filter, Download,
   Mail, MessageSquare, ExternalLink, Building2, MapPin,
   ChevronLeft, ChevronRight, MoreHorizontal, Bookmark,
-  Crown, ArrowUpDown, Eye
+  Crown, ArrowUpDown, RefreshCw
 } from 'lucide-react';
 import api from '../utils/api';
 import ComingSoonModal from '../components/ComingSoonModal';
@@ -19,15 +19,13 @@ function LeadsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [showComingSoon, setShowComingSoon] = useState(false);
   const [comingSoonFeature, setComingSoonFeature] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
   
   const leadsPerPage = 10;
   const isPro = user?.plan === 'pro';
 
-  useEffect(() => {
-    loadLeads();
-  }, []);
-
-  const loadLeads = async () => {
+  const loadLeads = useCallback(async (showRefreshIndicator = false) => {
+    if (showRefreshIndicator) setRefreshing(true);
     try {
       const response = await api.getLeads();
       if (response.success) {
@@ -35,18 +33,61 @@ function LeadsPage() {
       }
     } catch (err) {
       console.error('Failed to load leads:', err);
-      // Use mock data for now
       setLeads([]);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadLeads();
+  }, [loadLeads]);
+
+  useEffect(() => {
+    const handleStorageChange = (e) => {
+      if (e.key === 'brynsa_lead_saved') {
+        console.log('Lead saved from extension, refreshing leads...');
+        setTimeout(() => {
+          loadLeads(true);
+        }, 500);
+      }
+    };
+
+    const handleFocus = () => {
+      const lastSave = localStorage.getItem('brynsa_lead_saved');
+      if (lastSave) {
+        try {
+          const data = JSON.parse(lastSave);
+          const saveTime = data.timestamp;
+          const now = Date.now();
+          if (now - saveTime < 30000) {
+            loadLeads(true);
+          }
+        } catch (err) {
+          // Ignore parse errors
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [loadLeads]);
 
   const handleFeatureClick = (feature) => {
     if (!isPro) {
       setComingSoonFeature(feature);
       setShowComingSoon(true);
     }
+  };
+
+  const handleManualRefresh = () => {
+    loadLeads(true);
   };
 
   const filteredLeads = leads.filter(lead => 
@@ -79,7 +120,6 @@ function LeadsPage() {
 
   return (
     <div className="min-h-screen bg-dark-950">
-      {/* Header */}
       <header className="border-b border-dark-800/50 bg-dark-950/80 backdrop-blur-xl sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex items-center justify-between h-16">
@@ -118,7 +158,6 @@ function LeadsPage() {
       </header>
 
       <main className="max-w-7xl mx-auto px-6 py-8">
-        {/* Page Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-2xl font-bold text-white mb-1">Saved Leads</h1>
@@ -129,6 +168,14 @@ function LeadsPage() {
           
           <div className="flex items-center gap-3">
             <button
+              onClick={handleManualRefresh}
+              disabled={refreshing}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg bg-dark-800 text-white hover:bg-dark-700 transition-colors ${refreshing ? 'opacity-50' : ''}`}
+            >
+              <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+              Refresh
+            </button>
+            <button
               onClick={() => handleFeatureClick('Bulk Export')}
               className="flex items-center gap-2 px-4 py-2 rounded-lg bg-dark-800 text-white hover:bg-dark-700 transition-colors"
             >
@@ -138,7 +185,6 @@ function LeadsPage() {
           </div>
         </div>
 
-        {/* Filters */}
         <div className="flex items-center gap-4 mb-6">
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-dark-500" />
@@ -156,11 +202,10 @@ function LeadsPage() {
           </button>
         </div>
 
-        {/* Leads Table */}
         <div className="card overflow-hidden">
           {loading ? (
             <div className="p-12 text-center">
-              <div className="w-8 h-8 border-2 border-brynsa-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+              <div className="w-8 h-8 border-2 border-brynsa-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
               <p className="text-dark-400">Loading leads...</p>
             </div>
           ) : leads.length === 0 ? (
@@ -175,6 +220,7 @@ function LeadsPage() {
               <a
                 href="#"
                 target="_blank"
+                rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-brynsa-500 text-dark-950 font-medium hover:bg-brynsa-400 transition-colors"
               >
                 <ExternalLink className="w-4 h-4" />
@@ -182,7 +228,7 @@ function LeadsPage() {
               </a>
             </div>
           ) : (
-            <>
+            <React.Fragment>
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
@@ -298,7 +344,6 @@ function LeadsPage() {
                 </table>
               </div>
 
-              {/* Pagination */}
               {totalPages > 1 && (
                 <div className="flex items-center justify-between px-4 py-3 border-t border-dark-700">
                   <p className="text-sm text-dark-400">
@@ -312,7 +357,7 @@ function LeadsPage() {
                     >
                       <ChevronLeft className="w-4 h-4 text-dark-400" />
                     </button>
-                    {[...Array(totalPages)].map((_, i) => (
+                    {Array.from({ length: totalPages }, (_, i) => (
                       <button
                         key={i}
                         onClick={() => setCurrentPage(i + 1)}
@@ -335,7 +380,7 @@ function LeadsPage() {
                   </div>
                 </div>
               )}
-            </>
+            </React.Fragment>
           )}
         </div>
       </main>

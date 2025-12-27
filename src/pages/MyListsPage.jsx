@@ -73,6 +73,7 @@ function MyListsPage() {
   const [lastSeenTimestamp, setLastSeenTimestamp] = useState(0);
 
   useEffect(() => {
+    // Handle storage event (cross-tab)
     const handleStorageChange = (e) => {
       if (e.key === 'brynsa_lead_saved') {
         console.log('Lead saved from extension (storage event), refreshing...');
@@ -83,6 +84,17 @@ function MyListsPage() {
           }
         }, 500);
       }
+    };
+
+    // Handle custom event from extension content script (same-tab, immediate)
+    const handleCustomEvent = (e) => {
+      console.log('Lead saved from extension (custom event), refreshing...', e.detail);
+      setTimeout(() => {
+        loadLists(true);
+        if (selectedList) {
+          loadLeads(selectedList, page);
+        }
+      }, 500);
     };
 
     const handleFocus = () => {
@@ -110,16 +122,18 @@ function MyListsPage() {
       }
     };
 
-    // Poll every 2 seconds as fallback (extension may be in same context)
+    // Poll every 2 seconds as fallback
     const pollInterval = setInterval(checkForNewSaves, 2000);
 
     window.addEventListener('storage', handleStorageChange);
     window.addEventListener('focus', handleFocus);
+    window.addEventListener('brynsa_lead_saved', handleCustomEvent);
 
     return () => {
       clearInterval(pollInterval);
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('brynsa_lead_saved', handleCustomEvent);
     };
   }, [loadLists, loadLeads, selectedList, page, lastSeenTimestamp]);
 

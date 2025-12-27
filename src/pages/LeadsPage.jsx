@@ -44,10 +44,13 @@ function LeadsPage() {
     loadLeads();
   }, [loadLeads]);
 
+  // Track last seen timestamp to detect new saves
+  const [lastSeenTimestamp, setLastSeenTimestamp] = useState(0);
+
   useEffect(() => {
     const handleStorageChange = (e) => {
       if (e.key === 'brynsa_lead_saved') {
-        console.log('Lead saved from extension, refreshing leads...');
+        console.log('Lead saved from extension (storage event), refreshing...');
         setTimeout(() => {
           loadLeads(true);
         }, 500);
@@ -55,13 +58,19 @@ function LeadsPage() {
     };
 
     const handleFocus = () => {
+      checkForNewSaves();
+    };
+
+    // Check localStorage for new saves
+    const checkForNewSaves = () => {
       const lastSave = localStorage.getItem('brynsa_lead_saved');
       if (lastSave) {
         try {
           const data = JSON.parse(lastSave);
           const saveTime = data.timestamp;
-          const now = Date.now();
-          if (now - saveTime < 30000) {
+          if (saveTime > lastSeenTimestamp) {
+            console.log('New lead detected, refreshing...');
+            setLastSeenTimestamp(saveTime);
             loadLeads(true);
           }
         } catch (err) {
@@ -70,14 +79,18 @@ function LeadsPage() {
       }
     };
 
+    // Poll every 2 seconds as fallback (extension may be in same context)
+    const pollInterval = setInterval(checkForNewSaves, 2000);
+
     window.addEventListener('storage', handleStorageChange);
     window.addEventListener('focus', handleFocus);
 
     return () => {
+      clearInterval(pollInterval);
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('focus', handleFocus);
     };
-  }, [loadLeads]);
+  }, [loadLeads, lastSeenTimestamp]);
 
   const handleFeatureClick = (feature) => {
     if (!isPro) {
@@ -228,7 +241,7 @@ function LeadsPage() {
               </a>
             </div>
           ) : (
-            <React.Fragment>
+            <>
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
@@ -380,7 +393,7 @@ function LeadsPage() {
                   </div>
                 </div>
               )}
-            </React.Fragment>
+            </>
           )}
         </div>
       </main>

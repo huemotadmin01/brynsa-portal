@@ -2,11 +2,10 @@ import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { 
-  Linkedin, LogOut, User, Settings, BarChart3, 
-  Users, Mail, Chrome, ExternalLink, Crown, 
-  ChevronRight, ChevronLeft, Trash2, Plus, Search,
-  List, FolderOpen, MoreHorizontal, Edit, Copy,
-  Briefcase, MapPin, Globe, RefreshCw
+  Linkedin, LogOut, User, Settings, 
+  Users, Crown, ChevronRight, ChevronLeft, 
+  Trash2, Plus, Search, List, FolderOpen, 
+  Copy, RefreshCw
 } from 'lucide-react';
 import api from '../utils/api';
 
@@ -27,94 +26,8 @@ function MyListsPage() {
   const [newListName, setNewListName] = useState('');
   const [refreshing, setRefreshing] = useState(false);
 
-  // Load lists function - memoized for reuse
-  const loadLists = useCallback(async (showRefreshIndicator = false) => {
-    if (showRefreshIndicator) setRefreshing(true);
-    try {
-      const res = await api.getLists();
-      if (res.success) {
-        setLists(res.lists || []);
-        // Auto-select first list if none selected
-        if (!selectedList && res.lists?.length > 0) {
-          setSelectedList(res.lists[0].name);
-        }
-      }
-    } catch (err) {
-      console.error('Failed to load lists:', err);
-      // Fallback to local data
-      setLists([
-        { name: 'Huemot', count: 0 },
-        { name: 'Test List', count: 0 }
-      ]);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, [selectedList]);
-
-  // Initial load
-  useEffect(() => {
-    loadLists();
-  }, [isAuthenticated]);
-
-  // Listen for extension lead saves via localStorage
-  useEffect(() => {
-    const handleStorageChange = (e) => {
-      if (e.key === 'brynsa_lead_saved') {
-        console.log('Lead saved from extension, refreshing lists...');
-        // Small delay to ensure backend has processed the save
-        setTimeout(() => {
-          loadLists(true);
-          if (selectedList) {
-            loadLeads(selectedList, page);
-          }
-        }, 500);
-      }
-    };
-
-    // Listen for storage events (from extension in different context)
-    window.addEventListener('storage', handleStorageChange);
-
-    // Also check on focus (fallback if storage event doesn't fire)
-    const handleFocus = () => {
-      const lastSave = localStorage.getItem('brynsa_lead_saved');
-      if (lastSave) {
-        try {
-          const data = JSON.parse(lastSave);
-          const saveTime = data.timestamp;
-          const now = Date.now();
-          // If saved within the last 30 seconds, refresh
-          if (now - saveTime < 30000) {
-            loadLists(true);
-            if (selectedList) {
-              loadLeads(selectedList, page);
-            }
-          }
-        } catch (err) {
-          // Ignore parse errors
-        }
-      }
-    };
-
-    window.addEventListener('focus', handleFocus);
-
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('focus', handleFocus);
-    };
-  }, [loadLists, selectedList, page]);
-
-  useEffect(() => {
-    if (selectedList) {
-      loadLeads(selectedList, page);
-      setSearchParams({ list: selectedList });
-    } else {
-      setLeads([]);
-      setSearchParams({});
-    }
-  }, [selectedList, page]);
-
-  const loadLeads = async (listName, pageNum = 1) => {
+  const loadLeads = useCallback(async (listName, pageNum = 1) => {
+    if (!listName) return;
     try {
       setLeadsLoading(true);
       const res = await api.getListLeads(listName, pageNum, 10);
@@ -129,7 +42,96 @@ function MyListsPage() {
     } finally {
       setLeadsLoading(false);
     }
-  };
+  }, []);
+
+  const loadLists = useCallback(async (showRefreshIndicator = false) => {
+    if (showRefreshIndicator) setRefreshing(true);
+    try {
+      const res = await api.getLists();
+      if (res.success) {
+        setLists(res.lists || []);
+        if (!selectedList && res.lists?.length > 0) {
+          setSelectedList(res.lists[0].name);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load lists:', err);
+      setLists([]);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [selectedList]);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      loadLists();
+    }
+  }, [isAuthenticated]);
+
+  // Track last seen timestamp to detect new saves
+  const [lastSeenTimestamp, setLastSeenTimestamp] = useState(0);
+
+  useEffect(() => {
+    const handleStorageChange = (e) => {
+      if (e.key === 'brynsa_lead_saved') {
+        console.log('Lead saved from extension (storage event), refreshing...');
+        setTimeout(() => {
+          loadLists(true);
+          if (selectedList) {
+            loadLeads(selectedList, page);
+          }
+        }, 500);
+      }
+    };
+
+    const handleFocus = () => {
+      checkForNewSaves();
+    };
+
+    // Check localStorage for new saves
+    const checkForNewSaves = () => {
+      const lastSave = localStorage.getItem('brynsa_lead_saved');
+      if (lastSave) {
+        try {
+          const data = JSON.parse(lastSave);
+          const saveTime = data.timestamp;
+          if (saveTime > lastSeenTimestamp) {
+            console.log('New lead detected, refreshing...');
+            setLastSeenTimestamp(saveTime);
+            loadLists(true);
+            if (selectedList) {
+              loadLeads(selectedList, page);
+            }
+          }
+        } catch (err) {
+          // Ignore parse errors
+        }
+      }
+    };
+
+    // Poll every 2 seconds as fallback (extension may be in same context)
+    const pollInterval = setInterval(checkForNewSaves, 2000);
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      clearInterval(pollInterval);
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [loadLists, loadLeads, selectedList, page, lastSeenTimestamp]);
+
+  useEffect(() => {
+    if (selectedList) {
+      loadLeads(selectedList, page);
+      setSearchParams({ list: selectedList });
+    } else {
+      setLeads([]);
+      setSearchParams({});
+    }
+  }, [selectedList, page, loadLeads, setSearchParams]);
 
   const handleCreateList = async () => {
     if (!newListName.trim()) return;
@@ -142,7 +144,6 @@ function MyListsPage() {
       }
     } catch (err) {
       console.error('Failed to create list:', err);
-      // Add locally anyway for demo
       setLists([...lists, { name: newListName.trim(), count: 0 }]);
       setNewListName('');
       setShowCreateModal(false);
@@ -160,7 +161,6 @@ function MyListsPage() {
       }
     } catch (err) {
       console.error('Failed to delete list:', err);
-      // Delete locally anyway for demo
       const newLists = lists.filter((_, i) => i !== idx);
       setLists(newLists);
       if (selectedList === listName) {
@@ -201,7 +201,6 @@ function MyListsPage() {
 
   return (
     <div className="min-h-screen bg-dark-950 mesh-gradient">
-      {/* Header */}
       <header className="border-b border-dark-800/50 bg-dark-950/80 backdrop-blur-xl sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex items-center justify-between h-16">
@@ -246,7 +245,6 @@ function MyListsPage() {
 
       <div className="max-w-7xl mx-auto px-6 py-8">
         <div className="flex gap-6">
-          {/* Sidebar - Lists */}
           <div className="w-64 flex-shrink-0">
             <div className="card p-4">
               <div className="flex items-center justify-between mb-4">
@@ -314,10 +312,8 @@ function MyListsPage() {
             </div>
           </div>
 
-          {/* Main Content - Leads Table */}
           <div className="flex-1">
             <div className="card">
-              {/* Header */}
               <div className="flex items-center justify-between p-4 border-b border-dark-700">
                 <div>
                   <h2 className="text-lg font-semibold text-white">
@@ -342,7 +338,6 @@ function MyListsPage() {
                 )}
               </div>
 
-              {/* Table */}
               {!selectedList ? (
                 <div className="text-center py-16">
                   <FolderOpen className="w-16 h-16 text-dark-600 mx-auto mb-4" />
@@ -426,7 +421,6 @@ function MyListsPage() {
                     </table>
                   </div>
 
-                  {/* Pagination */}
                   {totalPages > 1 && (
                     <div className="flex items-center justify-between px-4 py-3 border-t border-dark-700">
                       <p className="text-sm text-dark-400">
@@ -457,7 +451,6 @@ function MyListsPage() {
         </div>
       </div>
 
-      {/* Create List Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
           <div className="bg-dark-800 rounded-xl w-full max-w-md p-6 border border-dark-700">

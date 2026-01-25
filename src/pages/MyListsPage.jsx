@@ -2,12 +2,11 @@ import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
-  LogOut, User, Settings,
-  Users, Crown, ChevronRight, ChevronLeft,
+  Users, ChevronRight, ChevronLeft,
   Trash2, Plus, Search, List, FolderOpen,
   Copy, RefreshCw
 } from 'lucide-react';
-import BrynsaLogo from '../components/BrynsaLogo';
+import Layout from '../components/Layout';
 import api from '../utils/api';
 
 function MyListsPage() {
@@ -215,50 +214,8 @@ function MyListsPage() {
   );
 
   return (
-    <div className="min-h-screen bg-dark-950 mesh-gradient">
-      <header className="border-b border-dark-800/50 bg-dark-950/80 backdrop-blur-xl sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="flex items-center justify-between h-16">
-            <Link to="/dashboard" className="flex items-center gap-2">
-              <div className="w-9 h-9 rounded-lg bg-dark-800 flex items-center justify-center">
-                <BrynsaLogo className="w-6 h-6" />
-              </div>
-              <span className="text-lg font-bold text-white">Brynsa</span>
-            </Link>
-
-            <nav className="hidden md:flex items-center gap-6">
-              <Link to="/dashboard" className="text-dark-400 hover:text-white transition-colors">Dashboard</Link>
-              <Link to="/lists" className="text-white font-medium">My Lists</Link>
-              <Link to="/leads" className="text-dark-400 hover:text-white transition-colors">All Leads</Link>
-            </nav>
-
-            <div className="flex items-center gap-4">
-              <button className="btn-primary flex items-center gap-2">
-                <Crown className="w-4 h-4" />
-                Upgrade to Pro
-              </button>
-              
-              <div className="relative group">
-                <button className="w-10 h-10 rounded-full bg-brynsa-500 flex items-center justify-center text-dark-950 font-bold">
-                  {user?.name?.[0]?.toUpperCase() || 'U'}
-                </button>
-                <div className="absolute right-0 top-full mt-2 w-48 bg-dark-800 rounded-xl shadow-xl border border-dark-700 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all py-2">
-                  <Link to="/settings" className="flex items-center gap-2 px-4 py-2 text-dark-300 hover:text-white hover:bg-dark-700">
-                    <Settings className="w-4 h-4" />
-                    Settings
-                  </Link>
-                  <button onClick={handleLogout} className="w-full flex items-center gap-2 px-4 py-2 text-red-400 hover:text-red-300 hover:bg-dark-700">
-                    <LogOut className="w-4 h-4" />
-                    Logout
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <div className="max-w-7xl mx-auto px-6 py-8">
+    <Layout>
+      <div className="p-8">
         <div className="flex gap-6">
           <div className="w-64 flex-shrink-0">
             <div className="card p-4">
@@ -497,7 +454,7 @@ function MyListsPage() {
           </div>
         </div>
       )}
-    </div>
+    </Layout>
   );
 }
 

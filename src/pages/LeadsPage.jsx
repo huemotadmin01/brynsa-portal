@@ -7,7 +7,7 @@ import {
   ChevronLeft, ChevronRight, MoreHorizontal, Bookmark,
   Crown, ArrowUpDown, RefreshCw, Trash2, AlertTriangle
 } from 'lucide-react';
-import BrynsaLogo from '../components/BrynsaLogo';
+import Layout from '../components/Layout';
 import api from '../utils/api';
 import ComingSoonModal from '../components/ComingSoonModal';
 
@@ -164,45 +164,8 @@ function LeadsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-dark-950">
-      <header className="border-b border-dark-800/50 bg-dark-950/80 backdrop-blur-xl sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="flex items-center justify-between h-16">
-            <Link to="/dashboard" className="flex items-center gap-2">
-              <div className="w-9 h-9 rounded-lg bg-dark-800 flex items-center justify-center">
-                <BrynsaLogo className="w-6 h-6" />
-              </div>
-              <span className="text-lg font-bold text-white">Brynsa</span>
-            </Link>
-
-            <nav className="hidden md:flex items-center gap-6">
-              <Link to="/dashboard" className="text-dark-400 hover:text-white transition-colors">Dashboard</Link>
-              <Link to="/leads" className="text-white font-medium">Leads</Link>
-              <button onClick={() => handleFeatureClick('Campaigns')} className="text-dark-400 hover:text-white transition-colors">Campaigns</button>
-              <button onClick={() => handleFeatureClick('Analytics')} className="text-dark-400 hover:text-white transition-colors">Analytics</button>
-            </nav>
-
-            <div className="flex items-center gap-4">
-              {!isPro && (
-                <button 
-                  onClick={() => handleFeatureClick('Pro Plan')}
-                  className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 text-dark-950 font-semibold text-sm"
-                >
-                  <Crown className="w-4 h-4" />
-                  Upgrade to Pro
-                </button>
-              )}
-              <Link to="/settings" className="w-8 h-8 rounded-full bg-gradient-to-br from-brynsa-400 to-brynsa-600 flex items-center justify-center">
-                <span className="text-sm font-bold text-dark-950">
-                  {user?.name?.charAt(0)?.toUpperCase() || 'U'}
-                </span>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <main className="max-w-7xl mx-auto px-6 py-8">
+    <Layout>
+      <div className="p-8">
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-2xl font-bold text-white mb-1">Saved Leads</h1>
@@ -450,7 +413,7 @@ function LeadsPage() {
             </>
           )}
         </div>
-      </main>
+      </div>
 
       {/* Delete Confirmation Modal */}
       {showDeleteModal && (
@@ -507,12 +470,12 @@ function LeadsPage() {
         </div>
       )}
 
-      <ComingSoonModal 
-        isOpen={showComingSoon} 
+      <ComingSoonModal
+        isOpen={showComingSoon}
         onClose={() => setShowComingSoon(false)}
         feature={comingSoonFeature}
       />
-    </div>
+    </Layout>
   );
 }
 

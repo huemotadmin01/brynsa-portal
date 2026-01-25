@@ -7,6 +7,9 @@ import DashboardPage from './pages/DashboardPage';
 import LeadsPage from './pages/LeadsPage';
 import MyListsPage from './pages/MyListsPage';
 import SettingsPage from './pages/SettingsPage';
+import OnboardingPage from './pages/OnboardingPage';
+import SearchPage from './pages/SearchPage';
+import EngagePage from './pages/EngagePage';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
@@ -18,49 +21,73 @@ function App() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/signup" element={<SignupPage />} />
           <Route path="/login" element={<LoginPage />} />
-          
+
           {/* Protected Routes */}
-          <Route 
-            path="/dashboard" 
+          <Route
+            path="/dashboard"
             element={
               <ProtectedRoute>
                 <DashboardPage />
               </ProtectedRoute>
-            } 
+            }
           />
-          <Route 
-            path="/leads" 
+          <Route
+            path="/onboarding"
+            element={
+              <ProtectedRoute>
+                <OnboardingPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/search"
+            element={
+              <ProtectedRoute>
+                <SearchPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/engage"
+            element={
+              <ProtectedRoute>
+                <EngagePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/leads"
             element={
               <ProtectedRoute>
                 <LeadsPage />
               </ProtectedRoute>
-            } 
+            }
           />
-          <Route 
-            path="/lists" 
+          <Route
+            path="/lists"
             element={
               <ProtectedRoute>
                 <MyListsPage />
               </ProtectedRoute>
-            } 
+            }
           />
-          <Route 
-            path="/settings" 
+          <Route
+            path="/settings"
             element={
               <ProtectedRoute>
                 <SettingsPage />
               </ProtectedRoute>
-            } 
+            }
           />
-          <Route 
-            path="/app/*" 
+          <Route
+            path="/app/*"
             element={
               <ProtectedRoute>
                 <DashboardPage />
               </ProtectedRoute>
-            } 
+            }
           />
-          
+
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

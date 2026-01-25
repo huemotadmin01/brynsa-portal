@@ -2,11 +2,11 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
-  ArrowLeft, User, Shield, Bell, CreditCard,
-  Trash2, AlertTriangle, Loader2, Check, X, LogOut,
+  User, Shield, Bell, CreditCard,
+  Trash2, AlertTriangle, Loader2, X, LogOut,
   Mail, Building2, Crown
 } from 'lucide-react';
-import BrynsaLogo from '../components/BrynsaLogo';
+import Layout from '../components/Layout';
 import api from '../utils/api';
 import ComingSoonModal from '../components/ComingSoonModal';
 
@@ -64,31 +64,8 @@ function SettingsPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-dark-950">
-      {/* Header */}
-      <header className="border-b border-dark-800/50 bg-dark-950/80 backdrop-blur-xl sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-4">
-              <Link to="/dashboard" className="flex items-center gap-2 text-dark-400 hover:text-white transition-colors">
-                <ArrowLeft className="w-5 h-5" />
-                <span className="hidden sm:inline">Back to Dashboard</span>
-              </Link>
-            </div>
-            
-            <Link to="/dashboard" className="flex items-center gap-2">
-              <div className="w-9 h-9 rounded-lg bg-dark-800 flex items-center justify-center">
-                <BrynsaLogo className="w-6 h-6" />
-              </div>
-              <span className="text-lg font-bold text-white">Brynsa</span>
-            </Link>
-
-            <div className="w-20" /> {/* Spacer */}
-          </div>
-        </div>
-      </header>
-
-      <main className="max-w-4xl mx-auto px-6 py-8">
+    <Layout>
+      <div className="p-8 max-w-4xl">
         <h1 className="text-2xl font-bold text-white mb-8">Settings</h1>
 
         <div className="flex flex-col md:flex-row gap-8">
@@ -250,7 +227,7 @@ function SettingsPage() {
             )}
           </div>
         </div>
-      </main>
+      </div>
 
       {/* Delete Account Modal */}
       {showDeleteModal && (
@@ -335,12 +312,12 @@ function SettingsPage() {
         </div>
       )}
 
-      <ComingSoonModal 
-        isOpen={showComingSoon} 
+      <ComingSoonModal
+        isOpen={showComingSoon}
         onClose={() => setShowComingSoon(false)}
         feature={comingSoonFeature}
       />
-    </div>
+    </Layout>
   );
 }
 

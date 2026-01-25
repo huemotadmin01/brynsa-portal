@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
-import { ArrowRight, Linkedin, Zap, Users, BarChart3, Shield, Chrome, Star } from 'lucide-react';
+import { ArrowRight, Zap, Users, BarChart3, Shield, Chrome, Star } from 'lucide-react';
+import BrynsaLogo from '../components/BrynsaLogo';
 
 function LandingPage() {
   return (
@@ -17,8 +18,8 @@ function LandingPage() {
           <div className="flex items-center justify-between">
             {/* Logo */}
             <Link to="/" className="flex items-center gap-2 group">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-brynsa-400 to-brynsa-600 flex items-center justify-center shadow-lg shadow-brynsa-500/25 group-hover:shadow-brynsa-500/40 transition-shadow">
-                <Linkedin className="w-5 h-5 text-dark-950" />
+              <div className="w-10 h-10 rounded-xl bg-dark-800 flex items-center justify-center shadow-lg shadow-brynsa-500/25 group-hover:shadow-brynsa-500/40 transition-shadow">
+                <BrynsaLogo className="w-7 h-7" />
               </div>
               <span className="text-xl font-bold text-white">Brynsa</span>
             </Link>
@@ -253,8 +254,8 @@ function LandingPage() {
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-brynsa-400 to-brynsa-600 flex items-center justify-center">
-                <Linkedin className="w-4 h-4 text-dark-950" />
+              <div className="w-8 h-8 rounded-lg bg-dark-800 flex items-center justify-center">
+                <BrynsaLogo className="w-5 h-5" />
               </div>
               <span className="font-semibold text-white">Brynsa</span>
             </div>

@@ -1,12 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { 
-  Linkedin, LogOut, User, Settings, BarChart3, 
+import {
+  LogOut, User, Settings, BarChart3,
   Zap, Users, Mail, Target, Chrome, ExternalLink,
   Crown, Lock, Check, ChevronRight, Download,
   FileText, MessageSquare, Building2, TrendingUp, Bookmark, List
 } from 'lucide-react';
+import BrynsaLogo from '../components/BrynsaLogo';
 import api from '../utils/api';
 import ComingSoonModal from '../components/ComingSoonModal';
 
@@ -109,8 +110,8 @@ function DashboardPage() {
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
             <Link to="/dashboard" className="flex items-center gap-2">
-              <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-brynsa-400 to-brynsa-600 flex items-center justify-center">
-                <Linkedin className="w-5 h-5 text-dark-950" />
+              <div className="w-9 h-9 rounded-lg bg-dark-800 flex items-center justify-center">
+                <BrynsaLogo className="w-6 h-6" />
               </div>
               <span className="text-lg font-bold text-white">Brynsa</span>
             </Link>

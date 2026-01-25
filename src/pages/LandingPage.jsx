@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ArrowRight, Zap, Users, BarChart3, Shield, Chrome, Star } from 'lucide-react';
+import { ArrowRight, Linkedin, Zap, Users, BarChart3, Shield, Chrome, Star } from 'lucide-react';
 import BrynsaLogo from '../components/BrynsaLogo';
 
 function LandingPage() {

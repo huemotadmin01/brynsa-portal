@@ -1,12 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { 
-  Linkedin, LogOut, User, Settings, 
-  Users, Crown, ChevronRight, ChevronLeft, 
-  Trash2, Plus, Search, List, FolderOpen, 
+import {
+  LogOut, User, Settings,
+  Users, Crown, ChevronRight, ChevronLeft,
+  Trash2, Plus, Search, List, FolderOpen,
   Copy, RefreshCw
 } from 'lucide-react';
+import BrynsaLogo from '../components/BrynsaLogo';
 import api from '../utils/api';
 
 function MyListsPage() {
@@ -219,8 +220,8 @@ function MyListsPage() {
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex items-center justify-between h-16">
             <Link to="/dashboard" className="flex items-center gap-2">
-              <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-brynsa-400 to-brynsa-600 flex items-center justify-center">
-                <Linkedin className="w-5 h-5 text-dark-950" />
+              <div className="w-9 h-9 rounded-lg bg-dark-800 flex items-center justify-center">
+                <BrynsaLogo className="w-6 h-6" />
               </div>
               <span className="text-lg font-bold text-white">Brynsa</span>
             </Link>

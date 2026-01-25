@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { 
-  ArrowRight, ArrowLeft, Mail, Check, 
+import {
+  ArrowRight, ArrowLeft, Mail, Check,
   Building2, Briefcase, Users, Target, Loader2,
   Chrome, Eye, EyeOff, AlertCircle
 } from 'lucide-react';
+import BrynsaLogo from '../components/BrynsaLogo';
 import api from '../utils/api';
 import { GOOGLE_CLIENT_ID } from '../utils/config';
 
@@ -417,8 +418,8 @@ function SignupPage() {
         <div className="max-w-md mx-auto w-full">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2 mb-8">
-            <div className="w-10 h-10 rounded-xl bg-brynsa-500 flex items-center justify-center">
-              <span className="text-white font-bold text-lg">in</span>
+            <div className="w-10 h-10 rounded-xl bg-dark-800 flex items-center justify-center">
+              <BrynsaLogo className="w-7 h-7" />
             </div>
             <span className="text-xl font-bold text-white">Brynsa</span>
           </Link>

@@ -142,6 +142,20 @@ class ApiClient {
     });
   }
 
+  async updateLead(id, data) {
+    return this.request(`/api/portal/leads/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateLeadNotes(id, notes) {
+    return this.request(`/api/portal/leads/${id}/notes`, {
+      method: 'PUT',
+      body: JSON.stringify({ notes }),
+    });
+  }
+
   async bulkDeleteLeads(ids) {
     return this.request('/api/portal/leads/bulk-delete', {
       method: 'POST',

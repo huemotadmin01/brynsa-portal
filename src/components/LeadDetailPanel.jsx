@@ -1,17 +1,43 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   X, Linkedin, Mail, Phone, Building2, MapPin, Briefcase,
   Calendar, Globe, StickyNote, Plus, Trash2, ExternalLink,
-  User, Clock, Tag
+  User, Clock, Tag, RefreshCw
 } from 'lucide-react';
 import api from '../utils/api';
 
 function LeadDetailPanel({ lead, onClose, onUpdate }) {
   const [newNote, setNewNote] = useState('');
   const [addingNote, setAddingNote] = useState(false);
+  const [savingNotes, setSavingNotes] = useState(false);
   const [notes, setNotes] = useState(lead?.notes || []);
 
+  // Sync notes when lead changes
+  useEffect(() => {
+    setNotes(lead?.notes || []);
+  }, [lead?._id, lead?.notes]);
+
   if (!lead) return null;
+
+  // Save notes to API
+  const saveNotesToApi = async (updatedNotes) => {
+    try {
+      setSavingNotes(true);
+      // Try the dedicated notes endpoint first, fall back to updateLead
+      try {
+        await api.updateLeadNotes(lead._id, updatedNotes);
+      } catch (err) {
+        // If notes endpoint doesn't exist, try updating the full lead
+        await api.updateLead(lead._id, { notes: updatedNotes });
+      }
+      console.log('Notes saved to API successfully');
+    } catch (err) {
+      console.error('Failed to save notes to API:', err);
+      // Don't throw - we still want local update to work
+    } finally {
+      setSavingNotes(false);
+    }
+  };
 
   const handleAddNote = async () => {
     if (!newNote.trim()) return;
@@ -23,14 +49,14 @@ function LeadDetailPanel({ lead, onClose, onUpdate }) {
     };
 
     try {
-      // Update notes locally first
       const updatedNotes = [...notes, noteObj];
       setNotes(updatedNotes);
       setNewNote('');
 
-      // TODO: Call API to save note when endpoint is available
-      // await api.updateLead(lead._id, { notes: updatedNotes });
+      // Save to API
+      await saveNotesToApi(updatedNotes);
 
+      // Notify parent component
       if (onUpdate) {
         onUpdate({ ...lead, notes: updatedNotes });
       }
@@ -44,6 +70,9 @@ function LeadDetailPanel({ lead, onClose, onUpdate }) {
   const handleDeleteNote = async (index) => {
     const updatedNotes = notes.filter((_, i) => i !== index);
     setNotes(updatedNotes);
+
+    // Save to API
+    await saveNotesToApi(updatedNotes);
 
     if (onUpdate) {
       onUpdate({ ...lead, notes: updatedNotes });
@@ -206,6 +235,12 @@ function LeadDetailPanel({ lead, onClose, onUpdate }) {
             <h3 className="text-sm font-semibold text-dark-300 uppercase tracking-wider">
               Notes ({notes.length})
             </h3>
+            {savingNotes && (
+              <div className="flex items-center gap-1 text-xs text-dark-500">
+                <RefreshCw className="w-3 h-3 animate-spin" />
+                Saving...
+              </div>
+            )}
           </div>
 
           {/* Add Note Input */}

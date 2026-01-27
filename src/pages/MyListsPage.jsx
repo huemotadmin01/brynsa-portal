@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import Layout from '../components/Layout';
 import LeadDetailPanel from '../components/LeadDetailPanel';
+import ManageDropdown from '../components/ManageDropdown';
 import api from '../utils/api';
 import ComingSoonModal from '../components/ComingSoonModal';
 
@@ -447,7 +448,7 @@ function MyListsPage() {
                   <>
                     {/* Scrollable Table Wrapper */}
                     <div className="flex-1 overflow-auto relative">
-                      <table className="w-full min-w-[900px]">
+                      <table className="w-full min-w-[1100px]">
                         <thead className="sticky top-0 z-20">
                           <tr className="border-b border-dark-700 bg-dark-800">
                             {/* Sticky Checkbox Column */}
@@ -465,13 +466,13 @@ function MyListsPage() {
                                 Contact <ArrowUpDown className="w-3 h-3" />
                               </button>
                             </th>
+                            {/* Manage Column */}
+                            <th className="px-4 py-3 text-left text-sm font-medium text-dark-400 min-w-[120px]"></th>
                             {/* Scrollable Columns */}
-                            <th className="px-4 py-3 text-left text-sm font-medium text-dark-400 min-w-[180px]">Title</th>
-                            <th className="px-4 py-3 text-left text-sm font-medium text-dark-400 min-w-[150px]">Company</th>
+                            <th className="px-4 py-3 text-left text-sm font-medium text-dark-400 min-w-[180px]">Company</th>
                             <th className="px-4 py-3 text-left text-sm font-medium text-dark-400 min-w-[150px]">Location</th>
                             <th className="px-4 py-3 text-left text-sm font-medium text-dark-400 min-w-[200px]">Email</th>
                             <th className="px-4 py-3 text-left text-sm font-medium text-dark-400 min-w-[80px]">Notes</th>
-                            <th className="px-4 py-3 text-left text-sm font-medium text-dark-400 min-w-[120px]">Actions</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -505,6 +506,7 @@ function MyListsPage() {
                                   )}
                                   <div className="min-w-0">
                                     <p className="font-medium text-white truncate">{lead.name || 'Unknown'}</p>
+                                    <p className="text-xs text-dark-400 truncate">{lead.title || '-'}</p>
                                     {lead.linkedinUrl && (
                                       <a
                                         href={lead.linkedinUrl}
@@ -520,14 +522,28 @@ function MyListsPage() {
                                   </div>
                                 </div>
                               </td>
-                              {/* Scrollable Columns */}
-                              <td className="px-4 py-3 text-dark-300 text-sm">
-                                <span className="block truncate max-w-[180px]">{lead.title || '-'}</span>
+                              {/* Manage Dropdown */}
+                              <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                                <ManageDropdown
+                                  lead={lead}
+                                  onExportCRM={() => handleFeatureClick('Export to CRM')}
+                                  onAddToSequence={() => handleFeatureClick('Add to Sequence')}
+                                  onAddToList={() => handleFeatureClick('Add to List')}
+                                  onEditContact={() => {
+                                    setSelectedLead(lead);
+                                  }}
+                                  onTagContact={() => handleFeatureClick('Tag Contact')}
+                                  onRemoveContact={() => {
+                                    setDeleteTarget(lead);
+                                    setShowDeleteModal(true);
+                                  }}
+                                />
                               </td>
+                              {/* Scrollable Columns */}
                               <td className="px-4 py-3">
                                 <div className="flex items-center gap-2 text-sm">
                                   <Building2 className="w-4 h-4 text-dark-500 flex-shrink-0" />
-                                  <span className="text-dark-300 truncate max-w-[120px]">{lead.company || '-'}</span>
+                                  <span className="text-dark-300 truncate max-w-[150px]">{lead.company || '-'}</span>
                                 </div>
                               </td>
                               <td className="px-4 py-3">
@@ -552,37 +568,6 @@ function MyListsPage() {
                                 ) : (
                                   <span className="text-dark-600">-</span>
                                 )}
-                              </td>
-                              <td className="px-4 py-3">
-                                <div className="flex items-center gap-1">
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleFeatureClick('AI Email');
-                                    }}
-                                    className="p-2 hover:bg-dark-700 rounded-lg transition-colors"
-                                    title="Generate Email"
-                                  >
-                                    <Mail className="w-4 h-4 text-dark-400 hover:text-white" />
-                                  </button>
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleFeatureClick('LinkedIn DM');
-                                    }}
-                                    className="p-2 hover:bg-dark-700 rounded-lg transition-colors"
-                                    title="Generate DM"
-                                  >
-                                    <MessageSquare className="w-4 h-4 text-dark-400 hover:text-white" />
-                                  </button>
-                                  <button
-                                    onClick={(e) => handleDeleteLead(e, lead)}
-                                    className="p-2 hover:bg-red-500/10 rounded-lg transition-colors"
-                                    title="Delete lead"
-                                  >
-                                    <Trash2 className="w-4 h-4 text-dark-400 hover:text-red-400" />
-                                  </button>
-                                </div>
                               </td>
                             </tr>
                           ))}

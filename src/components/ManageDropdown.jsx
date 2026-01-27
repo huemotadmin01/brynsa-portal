@@ -1,23 +1,56 @@
 import { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import {
   ChevronDown, Upload, ListPlus, Pencil, Tag, Trash2
 } from 'lucide-react';
 
 function ManageDropdown({ lead, onExportCRM, onAddToSequence, onAddToList, onEditContact, onTagContact, onRemoveContact }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
+  const buttonRef = useRef(null);
   const dropdownRef = useRef(null);
+
+  // Calculate dropdown position when opening
+  useEffect(() => {
+    if (isOpen && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      const dropdownWidth = 192; // w-48 = 12rem = 192px
+
+      // Position dropdown below button, aligned to right edge
+      setDropdownPosition({
+        top: rect.bottom + 4,
+        left: rect.right - dropdownWidth,
+      });
+    }
+  }, [isOpen]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(event) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+      if (
+        buttonRef.current &&
+        !buttonRef.current.contains(event.target) &&
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target)
+      ) {
         setIsOpen(false);
       }
     }
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [isOpen]);
+
+  // Close dropdown on scroll
+  useEffect(() => {
+    if (isOpen) {
+      const handleScroll = () => setIsOpen(false);
+      window.addEventListener('scroll', handleScroll, true);
+      return () => window.removeEventListener('scroll', handleScroll, true);
+    }
+  }, [isOpen]);
 
   const handleAction = (action, e) => {
     e.stopPropagation();
@@ -60,8 +93,9 @@ function ManageDropdown({ lead, onExportCRM, onAddToSequence, onAddToList, onEdi
   ];
 
   return (
-    <div className="relative" ref={dropdownRef}>
+    <>
       <button
+        ref={buttonRef}
         onClick={(e) => {
           e.stopPropagation();
           setIsOpen(!isOpen);
@@ -72,8 +106,16 @@ function ManageDropdown({ lead, onExportCRM, onAddToSequence, onAddToList, onEdi
         <ChevronDown className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
-      {isOpen && (
-        <div className="absolute right-0 mt-1 w-48 bg-dark-800 border border-dark-600 rounded-xl shadow-xl z-50 py-1 overflow-hidden">
+      {isOpen && createPortal(
+        <div
+          ref={dropdownRef}
+          className="fixed w-48 bg-dark-800 border border-dark-600 rounded-xl shadow-xl py-1 overflow-hidden"
+          style={{
+            top: dropdownPosition.top,
+            left: dropdownPosition.left,
+            zIndex: 9999,
+          }}
+        >
           {menuItems.map((item, index) => (
             <button
               key={index}
@@ -88,9 +130,10 @@ function ManageDropdown({ lead, onExportCRM, onAddToSequence, onAddToList, onEdi
               {item.label}
             </button>
           ))}
-        </div>
+        </div>,
+        document.body
       )}
-    </div>
+    </>
   );
 }
 

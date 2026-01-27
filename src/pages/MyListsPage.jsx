@@ -461,13 +461,13 @@ function MyListsPage() {
                               />
                             </th>
                             {/* Sticky Name Column */}
-                            <th className="sticky left-12 z-30 bg-dark-800 px-4 py-3 text-left min-w-[200px] shadow-[2px_0_5px_-2px_rgba(0,0,0,0.3)]">
+                            <th className="sticky left-12 z-30 bg-dark-800 px-4 py-3 text-left w-[200px] min-w-[200px]">
                               <button className="flex items-center gap-1 text-sm font-medium text-dark-400 hover:text-white">
                                 Contact <ArrowUpDown className="w-3 h-3" />
                               </button>
                             </th>
-                            {/* Manage Column */}
-                            <th className="px-4 py-3 text-left text-sm font-medium text-dark-400 min-w-[120px]"></th>
+                            {/* Sticky Manage Column */}
+                            <th className="sticky left-[260px] z-30 bg-dark-800 px-4 py-3 text-left w-[110px] min-w-[110px] shadow-[2px_0_5px_-2px_rgba(0,0,0,0.3)]"></th>
                             {/* Scrollable Columns */}
                             <th className="px-4 py-3 text-left text-sm font-medium text-dark-400 min-w-[180px]">Company</th>
                             <th className="px-4 py-3 text-left text-sm font-medium text-dark-400 min-w-[150px]">Location</th>
@@ -495,7 +495,7 @@ function MyListsPage() {
                                 />
                               </td>
                               {/* Sticky Name Column */}
-                              <td className="sticky left-12 z-10 bg-dark-900 px-4 py-3 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.3)]">
+                              <td className="sticky left-12 z-10 bg-dark-900 px-4 py-3 w-[200px] min-w-[200px]">
                                 <div className="flex items-center gap-3">
                                   {lead.profilePicture ? (
                                     <img src={lead.profilePicture} alt="" className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
@@ -522,8 +522,8 @@ function MyListsPage() {
                                   </div>
                                 </div>
                               </td>
-                              {/* Manage Dropdown */}
-                              <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                              {/* Sticky Manage Dropdown */}
+                              <td className="sticky left-[260px] z-10 bg-dark-900 px-4 py-3 w-[110px] min-w-[110px] shadow-[2px_0_5px_-2px_rgba(0,0,0,0.3)]" onClick={(e) => e.stopPropagation()}>
                                 <ManageDropdown
                                   lead={lead}
                                   onExportCRM={() => handleFeatureClick('Export to CRM')}

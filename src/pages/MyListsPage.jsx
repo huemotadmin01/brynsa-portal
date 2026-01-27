@@ -2,17 +2,21 @@ import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
-  Users, ChevronRight, ChevronLeft,
+  Users, ChevronRight, ChevronLeft, Linkedin,
   Trash2, Plus, Search, List, FolderOpen,
-  Copy, RefreshCw
+  Copy, RefreshCw, Building2, MapPin, Mail,
+  MessageSquare, ArrowUpDown, StickyNote, AlertTriangle,
+  Filter, Download
 } from 'lucide-react';
 import Layout from '../components/Layout';
+import LeadDetailPanel from '../components/LeadDetailPanel';
 import api from '../utils/api';
+import ComingSoonModal from '../components/ComingSoonModal';
 
 function MyListsPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { user, logout, isAuthenticated } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const [lists, setLists] = useState([]);
   const [selectedList, setSelectedList] = useState(searchParams.get('list') || null);
   const [leads, setLeads] = useState([]);
@@ -26,11 +30,23 @@ function MyListsPage() {
   const [newListName, setNewListName] = useState('');
   const [refreshing, setRefreshing] = useState(false);
 
+  // New states for Lusha-style UI
+  const [selectedLeads, setSelectedLeads] = useState([]);
+  const [selectedLead, setSelectedLead] = useState(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+  const [showComingSoon, setShowComingSoon] = useState(false);
+  const [comingSoonFeature, setComingSoonFeature] = useState('');
+
+  const isPro = user?.plan === 'pro';
+  const leadsPerPage = 10;
+
   const loadLeads = useCallback(async (listName, pageNum = 1) => {
     if (!listName) return;
     try {
       setLeadsLoading(true);
-      const res = await api.getListLeads(listName, pageNum, 10);
+      const res = await api.getListLeads(listName, pageNum, leadsPerPage);
       if (res.success) {
         setLeads(res.leads || []);
         setTotalPages(res.totalPages || 1);
@@ -73,7 +89,6 @@ function MyListsPage() {
   const [lastSeenTimestamp, setLastSeenTimestamp] = useState(0);
 
   useEffect(() => {
-    // Handle storage event (cross-tab)
     const handleStorageChange = (e) => {
       if (e.key === 'brynsa_lead_saved') {
         console.log('Lead saved from extension (storage event), refreshing...');
@@ -86,7 +101,6 @@ function MyListsPage() {
       }
     };
 
-    // Handle custom event from extension content script (same-tab, immediate)
     const handleCustomEvent = (e) => {
       console.log('Lead saved from extension (custom event), refreshing...', e.detail);
       setTimeout(() => {
@@ -97,11 +111,8 @@ function MyListsPage() {
       }, 500);
     };
 
-    const handleFocus = () => {
-      checkForNewSaves();
-    };
+    const handleFocus = () => checkForNewSaves();
 
-    // Check localStorage for new saves
     const checkForNewSaves = () => {
       const lastSave = localStorage.getItem('brynsa_lead_saved');
       if (lastSave) {
@@ -116,13 +127,10 @@ function MyListsPage() {
               loadLeads(selectedList, page);
             }
           }
-        } catch (err) {
-          // Ignore parse errors
-        }
+        } catch (err) {}
       }
     };
 
-    // Poll every 2 seconds as fallback
     const pollInterval = setInterval(checkForNewSaves, 2000);
 
     window.addEventListener('storage', handleStorageChange);
@@ -141,6 +149,9 @@ function MyListsPage() {
     if (selectedList) {
       loadLeads(selectedList, page);
       setSearchParams({ list: selectedList });
+      // Clear selection when switching lists
+      setSelectedLeads([]);
+      setSelectedLead(null);
     } else {
       setLeads([]);
       setSearchParams({});
@@ -183,20 +194,11 @@ function MyListsPage() {
     }
   };
 
-  const handleDeleteLead = async (leadId) => {
-    if (!confirm('Remove this lead from the list?')) return;
-    try {
-      await api.deleteLead(leadId);
-      setLeads(leads.filter(l => l._id !== leadId));
-      setTotalLeads(prev => prev - 1);
-    } catch (err) {
-      console.error('Failed to delete lead:', err);
+  const handleFeatureClick = (feature) => {
+    if (!isPro) {
+      setComingSoonFeature(feature);
+      setShowComingSoon(true);
     }
-  };
-
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
   };
 
   const handleManualRefresh = () => {
@@ -206,223 +208,510 @@ function MyListsPage() {
     }
   };
 
-  const filteredLeads = leads.filter(lead => 
-    !searchQuery || 
+  const handleDeleteLead = (e, lead) => {
+    e.stopPropagation();
+    setDeleteTarget(lead);
+    setShowDeleteModal(true);
+  };
+
+  const handleBulkDelete = () => {
+    if (selectedLeads.length === 0) return;
+    setDeleteTarget(null);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
+    setDeleting(true);
+    try {
+      if (deleteTarget) {
+        await api.deleteLead(deleteTarget._id);
+        setLeads(leads.filter(l => l._id !== deleteTarget._id));
+        setTotalLeads(prev => prev - 1);
+        if (selectedLead?._id === deleteTarget._id) {
+          setSelectedLead(null);
+        }
+        // Update list count
+        setLists(lists.map(l =>
+          l.name === selectedList ? { ...l, count: Math.max(0, (l.count || 0) - 1) } : l
+        ));
+      } else {
+        await Promise.all(selectedLeads.map(id => api.deleteLead(id)));
+        setLeads(leads.filter(l => !selectedLeads.includes(l._id)));
+        setTotalLeads(prev => prev - selectedLeads.length);
+        if (selectedLead && selectedLeads.includes(selectedLead._id)) {
+          setSelectedLead(null);
+        }
+        // Update list count
+        setLists(lists.map(l =>
+          l.name === selectedList ? { ...l, count: Math.max(0, (l.count || 0) - selectedLeads.length) } : l
+        ));
+        setSelectedLeads([]);
+      }
+    } catch (err) {
+      console.error('Failed to delete:', err);
+    } finally {
+      setDeleting(false);
+      setShowDeleteModal(false);
+      setDeleteTarget(null);
+    }
+  };
+
+  const handleRowClick = (lead) => {
+    setSelectedLead(lead);
+  };
+
+  const handleLeadUpdate = (updatedLead) => {
+    setLeads(leads.map(l => l._id === updatedLead._id ? updatedLead : l));
+    setSelectedLead(updatedLead);
+  };
+
+  const toggleSelectAll = (e) => {
+    e.stopPropagation();
+    if (selectedLeads.length === filteredLeads.length) {
+      setSelectedLeads([]);
+    } else {
+      setSelectedLeads(filteredLeads.map(l => l._id));
+    }
+  };
+
+  const toggleSelectLead = (e, id) => {
+    e.stopPropagation();
+    if (selectedLeads.includes(id)) {
+      setSelectedLeads(selectedLeads.filter(i => i !== id));
+    } else {
+      setSelectedLeads([...selectedLeads, id]);
+    }
+  };
+
+  const filteredLeads = leads.filter(lead =>
+    !searchQuery ||
     lead.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     lead.company?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    lead.email?.toLowerCase().includes(searchQuery.toLowerCase())
+    lead.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    lead.title?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
     <Layout>
-      <div className="p-8">
-        <div className="flex gap-6">
-          <div className="w-64 flex-shrink-0">
-            <div className="card p-4">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-white">My Lists</h2>
-                <div className="flex items-center gap-1">
-                  <button 
-                    onClick={handleManualRefresh}
-                    disabled={refreshing}
-                    className={`p-1.5 rounded-lg text-dark-400 hover:text-brynsa-400 hover:bg-dark-700 transition-colors ${refreshing ? 'opacity-50' : ''}`}
-                    title="Refresh"
-                  >
-                    <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-                  </button>
-                  <button 
-                    onClick={() => setShowCreateModal(true)}
-                    className="p-1.5 rounded-lg bg-brynsa-500/10 text-brynsa-400 hover:bg-brynsa-500/20 transition-colors"
-                  >
-                    <Plus className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-              
-              {loading ? (
-                <div className="text-center py-4 text-dark-400">Loading...</div>
-              ) : lists.length === 0 ? (
-                <div className="text-center py-8">
-                  <FolderOpen className="w-10 h-10 text-dark-600 mx-auto mb-2" />
-                  <p className="text-dark-400 text-sm">No lists yet</p>
-                  <button 
-                    onClick={() => setShowCreateModal(true)}
-                    className="mt-2 text-sm text-brynsa-400 hover:text-brynsa-300"
-                  >
-                    Create your first list
-                  </button>
-                </div>
-              ) : (
-                <div className="space-y-1">
-                  {lists.map((list, idx) => (
-                    <div 
-                      key={idx}
-                      className={`group flex items-center justify-between px-3 py-2.5 rounded-lg cursor-pointer transition-colors ${
-                        selectedList === list.name 
-                          ? 'bg-brynsa-500/20 text-brynsa-400' 
-                          : 'hover:bg-dark-700 text-dark-300'
-                      }`}
-                      onClick={() => { setSelectedList(list.name); setPage(1); }}
-                    >
-                      <div className="flex items-center gap-2">
-                        <List className="w-4 h-4" />
-                        <span className="text-sm font-medium truncate max-w-[120px]">{list.name}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <span className="text-xs text-dark-500">{list.count || 0}</span>
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); handleDeleteList(list.name, idx); }}
-                          className="p-1 rounded opacity-0 group-hover:opacity-100 hover:bg-dark-600 transition-opacity"
-                        >
-                          <Trash2 className="w-3.5 h-3.5 text-red-400" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+      <div className={`flex h-full transition-all duration-300 ${selectedLead ? 'mr-[420px]' : ''}`}>
+        {/* Left Sidebar - Lists */}
+        <div className="w-64 flex-shrink-0 border-r border-dark-700 p-4">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-white">My Lists</h2>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={handleManualRefresh}
+                disabled={refreshing}
+                className={`p-1.5 rounded-lg text-dark-400 hover:text-brynsa-400 hover:bg-dark-700 transition-colors ${refreshing ? 'opacity-50' : ''}`}
+                title="Refresh"
+              >
+                <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+              </button>
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="p-1.5 rounded-lg bg-brynsa-500/10 text-brynsa-400 hover:bg-brynsa-500/20 transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+              </button>
             </div>
           </div>
 
-          <div className="flex-1">
-            <div className="card">
-              <div className="flex items-center justify-between p-4 border-b border-dark-700">
-                <div>
-                  <h2 className="text-lg font-semibold text-white">
-                    {selectedList || 'Select a list'}
-                  </h2>
-                  <p className="text-sm text-dark-400">{totalLeads} leads</p>
-                </div>
-                
-                {selectedList && (
-                  <div className="flex items-center gap-3">
-                    <div className="relative">
-                      <input
-                        type="text"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        placeholder="Search leads..."
-                        className="w-64 bg-dark-800 border border-dark-600 rounded-lg px-4 py-2 pl-10 text-sm text-white placeholder-dark-400 focus:outline-none focus:border-brynsa-500"
-                      />
-                      <Search className="w-4 h-4 text-dark-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                    </div>
+          {loading ? (
+            <div className="text-center py-4 text-dark-400">Loading...</div>
+          ) : lists.length === 0 ? (
+            <div className="text-center py-8">
+              <FolderOpen className="w-10 h-10 text-dark-600 mx-auto mb-2" />
+              <p className="text-dark-400 text-sm">No lists yet</p>
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="mt-2 text-sm text-brynsa-400 hover:text-brynsa-300"
+              >
+                Create your first list
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-1">
+              {lists.map((list, idx) => (
+                <div
+                  key={idx}
+                  className={`group flex items-center justify-between px-3 py-2.5 rounded-lg cursor-pointer transition-colors ${
+                    selectedList === list.name
+                      ? 'bg-brynsa-500/20 text-brynsa-400'
+                      : 'hover:bg-dark-700 text-dark-300'
+                  }`}
+                  onClick={() => { setSelectedList(list.name); setPage(1); }}
+                >
+                  <div className="flex items-center gap-2">
+                    <List className="w-4 h-4" />
+                    <span className="text-sm font-medium truncate max-w-[120px]">{list.name}</span>
                   </div>
-                )}
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs text-dark-500">{list.count || 0}</span>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleDeleteList(list.name, idx); }}
+                      className="p-1 rounded opacity-0 group-hover:opacity-100 hover:bg-dark-600 transition-opacity"
+                    >
+                      <Trash2 className="w-3.5 h-3.5 text-red-400" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Main Content - Leads Table */}
+        <div className="flex-1 p-6 overflow-hidden flex flex-col">
+          {!selectedList ? (
+            <div className="flex-1 flex items-center justify-center">
+              <div className="text-center">
+                <FolderOpen className="w-16 h-16 text-dark-600 mx-auto mb-4" />
+                <p className="text-dark-400 text-lg">Select a list to view leads</p>
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* Header */}
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h1 className="text-2xl font-bold text-white mb-1">{selectedList}</h1>
+                  <p className="text-dark-400">
+                    {totalLeads} leads {selectedLeads.length > 0 && `• ${selectedLeads.length} selected`}
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  {selectedLeads.length > 0 && (
+                    <button
+                      onClick={handleBulkDelete}
+                      className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      Delete ({selectedLeads.length})
+                    </button>
+                  )}
+                  <button
+                    onClick={handleManualRefresh}
+                    disabled={refreshing || leadsLoading}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg bg-dark-800 text-white hover:bg-dark-700 transition-colors ${(refreshing || leadsLoading) ? 'opacity-50' : ''}`}
+                  >
+                    <RefreshCw className={`w-4 h-4 ${(refreshing || leadsLoading) ? 'animate-spin' : ''}`} />
+                    Refresh
+                  </button>
+                  <button
+                    onClick={() => handleFeatureClick('Bulk Export')}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-dark-800 text-white hover:bg-dark-700 transition-colors"
+                  >
+                    <Download className="w-4 h-4" />
+                    Export
+                  </button>
+                </div>
               </div>
 
-              {!selectedList ? (
-                <div className="text-center py-16">
-                  <FolderOpen className="w-16 h-16 text-dark-600 mx-auto mb-4" />
-                  <p className="text-dark-400">Select a list to view leads</p>
+              {/* Search Bar */}
+              <div className="flex items-center gap-4 mb-6">
+                <div className="flex-1 relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-dark-500" />
+                  <input
+                    type="text"
+                    placeholder="Search leads by name, company, or title..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2.5 bg-dark-800 border border-dark-700 rounded-xl text-white placeholder-dark-500 focus:outline-none focus:border-brynsa-500"
+                  />
                 </div>
-              ) : leadsLoading ? (
-                <div className="text-center py-16 text-dark-400">Loading leads...</div>
-              ) : filteredLeads.length === 0 ? (
-                <div className="text-center py-16">
-                  <Users className="w-16 h-16 text-dark-600 mx-auto mb-4" />
-                  <p className="text-dark-400 mb-2">No leads in this list</p>
-                  <p className="text-sm text-dark-500">Use the Chrome extension to add leads</p>
-                </div>
-              ) : (
-                <>
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="border-b border-dark-700">
-                          <th className="text-left px-4 py-3 text-xs font-medium text-dark-400 uppercase tracking-wider">Name</th>
-                          <th className="text-left px-4 py-3 text-xs font-medium text-dark-400 uppercase tracking-wider">Title</th>
-                          <th className="text-left px-4 py-3 text-xs font-medium text-dark-400 uppercase tracking-wider">Company</th>
-                          <th className="text-left px-4 py-3 text-xs font-medium text-dark-400 uppercase tracking-wider">Email</th>
-                          <th className="text-left px-4 py-3 text-xs font-medium text-dark-400 uppercase tracking-wider">Location</th>
-                          <th className="text-right px-4 py-3 text-xs font-medium text-dark-400 uppercase tracking-wider">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {filteredLeads.map((lead, idx) => (
-                          <tr key={lead._id || idx} className="border-b border-dark-700/50 hover:bg-dark-800/50 transition-colors">
-                            <td className="px-4 py-3">
-                              <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-brynsa-400 to-brynsa-600 flex items-center justify-center text-dark-950 text-xs font-bold">
-                                  {lead.name?.[0]?.toUpperCase() || '?'}
-                                </div>
-                                <div>
-                                  <p className="text-sm font-medium text-white">{lead.name || '-'}</p>
-                                  {lead.linkedinUrl && (
-                                    <a href={lead.linkedinUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-brynsa-400 hover:underline">
-                                      LinkedIn
-                                    </a>
+                <button className="flex items-center gap-2 px-4 py-2.5 bg-dark-800 border border-dark-700 rounded-xl text-dark-300 hover:text-white transition-colors">
+                  <Filter className="w-4 h-4" />
+                  Filters
+                </button>
+              </div>
+
+              {/* Table Container */}
+              <div className="card flex-1 overflow-hidden flex flex-col">
+                {leadsLoading ? (
+                  <div className="p-12 text-center flex-1 flex items-center justify-center">
+                    <div>
+                      <div className="w-8 h-8 border-2 border-brynsa-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                      <p className="text-dark-400">Loading leads...</p>
+                    </div>
+                  </div>
+                ) : filteredLeads.length === 0 ? (
+                  <div className="p-12 text-center flex-1 flex items-center justify-center">
+                    <div>
+                      <Users className="w-16 h-16 text-dark-600 mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold text-white mb-2">No Leads in This List</h3>
+                      <p className="text-dark-400">Use the Chrome extension to add leads to this list.</p>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    {/* Scrollable Table Wrapper */}
+                    <div className="flex-1 overflow-auto relative">
+                      <table className="w-full min-w-[900px]">
+                        <thead className="sticky top-0 z-20">
+                          <tr className="border-b border-dark-700 bg-dark-800">
+                            {/* Sticky Checkbox Column */}
+                            <th className="sticky left-0 z-30 bg-dark-800 px-4 py-3 text-left w-12">
+                              <input
+                                type="checkbox"
+                                checked={selectedLeads.length === filteredLeads.length && filteredLeads.length > 0}
+                                onChange={toggleSelectAll}
+                                className="w-4 h-4 rounded border-dark-600 bg-dark-700 text-brynsa-500 focus:ring-brynsa-500"
+                              />
+                            </th>
+                            {/* Sticky Name Column */}
+                            <th className="sticky left-12 z-30 bg-dark-800 px-4 py-3 text-left min-w-[200px] shadow-[2px_0_5px_-2px_rgba(0,0,0,0.3)]">
+                              <button className="flex items-center gap-1 text-sm font-medium text-dark-400 hover:text-white">
+                                Contact <ArrowUpDown className="w-3 h-3" />
+                              </button>
+                            </th>
+                            {/* Scrollable Columns */}
+                            <th className="px-4 py-3 text-left text-sm font-medium text-dark-400 min-w-[180px]">Title</th>
+                            <th className="px-4 py-3 text-left text-sm font-medium text-dark-400 min-w-[150px]">Company</th>
+                            <th className="px-4 py-3 text-left text-sm font-medium text-dark-400 min-w-[150px]">Location</th>
+                            <th className="px-4 py-3 text-left text-sm font-medium text-dark-400 min-w-[200px]">Email</th>
+                            <th className="px-4 py-3 text-left text-sm font-medium text-dark-400 min-w-[80px]">Notes</th>
+                            <th className="px-4 py-3 text-left text-sm font-medium text-dark-400 min-w-[120px]">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {filteredLeads.map((lead) => (
+                            <tr
+                              key={lead._id}
+                              onClick={() => handleRowClick(lead)}
+                              className={`border-b border-dark-800 hover:bg-dark-800/50 transition-colors cursor-pointer ${
+                                selectedLead?._id === lead._id ? 'bg-dark-800/70' : ''
+                              }`}
+                            >
+                              {/* Sticky Checkbox */}
+                              <td className="sticky left-0 z-10 bg-dark-900 px-4 py-3">
+                                <input
+                                  type="checkbox"
+                                  checked={selectedLeads.includes(lead._id)}
+                                  onChange={(e) => toggleSelectLead(e, lead._id)}
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="w-4 h-4 rounded border-dark-600 bg-dark-700 text-brynsa-500 focus:ring-brynsa-500"
+                                />
+                              </td>
+                              {/* Sticky Name Column */}
+                              <td className="sticky left-12 z-10 bg-dark-900 px-4 py-3 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.3)]">
+                                <div className="flex items-center gap-3">
+                                  {lead.profilePicture ? (
+                                    <img src={lead.profilePicture} alt="" className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
+                                  ) : (
+                                    <div className="w-10 h-10 rounded-full bg-dark-700 flex items-center justify-center flex-shrink-0">
+                                      <Users className="w-5 h-5 text-dark-500" />
+                                    </div>
                                   )}
+                                  <div className="min-w-0">
+                                    <p className="font-medium text-white truncate">{lead.name || 'Unknown'}</p>
+                                    {lead.linkedinUrl && (
+                                      <a
+                                        href={lead.linkedinUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        onClick={(e) => e.stopPropagation()}
+                                        className="text-xs text-brynsa-400 hover:underline flex items-center gap-1"
+                                      >
+                                        <Linkedin className="w-3 h-3" />
+                                        Profile
+                                      </a>
+                                    )}
+                                  </div>
                                 </div>
-                              </div>
-                            </td>
-                            <td className="px-4 py-3">
-                              <p className="text-sm text-dark-300 truncate max-w-[150px]">{lead.title || '-'}</p>
-                            </td>
-                            <td className="px-4 py-3">
-                              <p className="text-sm text-dark-300">{lead.company || '-'}</p>
-                            </td>
-                            <td className="px-4 py-3">
-                              {lead.email ? (
+                              </td>
+                              {/* Scrollable Columns */}
+                              <td className="px-4 py-3 text-dark-300 text-sm">
+                                <span className="block truncate max-w-[180px]">{lead.title || '-'}</span>
+                              </td>
+                              <td className="px-4 py-3">
+                                <div className="flex items-center gap-2 text-sm">
+                                  <Building2 className="w-4 h-4 text-dark-500 flex-shrink-0" />
+                                  <span className="text-dark-300 truncate max-w-[120px]">{lead.company || '-'}</span>
+                                </div>
+                              </td>
+                              <td className="px-4 py-3">
+                                <div className="flex items-center gap-2 text-sm">
+                                  <MapPin className="w-4 h-4 text-dark-500 flex-shrink-0" />
+                                  <span className="text-dark-300 truncate max-w-[120px]">{lead.location || '-'}</span>
+                                </div>
+                              </td>
+                              <td className="px-4 py-3 text-sm">
+                                {lead.email ? (
+                                  <span className="text-brynsa-400 truncate block max-w-[180px]">{lead.email}</span>
+                                ) : (
+                                  <span className="text-dark-500">Not found</span>
+                                )}
+                              </td>
+                              <td className="px-4 py-3">
+                                {lead.notes && lead.notes.length > 0 ? (
+                                  <div className="flex items-center gap-1 text-sm text-dark-300">
+                                    <StickyNote className="w-4 h-4 text-brynsa-400" />
+                                    <span>{lead.notes.length}</span>
+                                  </div>
+                                ) : (
+                                  <span className="text-dark-600">-</span>
+                                )}
+                              </td>
+                              <td className="px-4 py-3">
                                 <div className="flex items-center gap-1">
-                                  <span className="text-sm text-dark-300">{lead.email}</span>
-                                  <button 
-                                    onClick={() => navigator.clipboard.writeText(lead.email)}
-                                    className="p-1 hover:bg-dark-700 rounded"
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleFeatureClick('AI Email');
+                                    }}
+                                    className="p-2 hover:bg-dark-700 rounded-lg transition-colors"
+                                    title="Generate Email"
                                   >
-                                    <Copy className="w-3 h-3 text-dark-500" />
+                                    <Mail className="w-4 h-4 text-dark-400 hover:text-white" />
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleFeatureClick('LinkedIn DM');
+                                    }}
+                                    className="p-2 hover:bg-dark-700 rounded-lg transition-colors"
+                                    title="Generate DM"
+                                  >
+                                    <MessageSquare className="w-4 h-4 text-dark-400 hover:text-white" />
+                                  </button>
+                                  <button
+                                    onClick={(e) => handleDeleteLead(e, lead)}
+                                    className="p-2 hover:bg-red-500/10 rounded-lg transition-colors"
+                                    title="Delete lead"
+                                  >
+                                    <Trash2 className="w-4 h-4 text-dark-400 hover:text-red-400" />
                                   </button>
                                 </div>
-                              ) : (
-                                <span className="text-sm text-dark-500">-</span>
-                              )}
-                            </td>
-                            <td className="px-4 py-3">
-                              <p className="text-sm text-dark-300">{lead.location || '-'}</p>
-                            </td>
-                            <td className="px-4 py-3 text-right">
-                              <button 
-                                onClick={() => handleDeleteLead(lead._id)}
-                                className="p-1.5 rounded hover:bg-dark-700 text-dark-400 hover:text-red-400 transition-colors"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-
-                  {totalPages > 1 && (
-                    <div className="flex items-center justify-between px-4 py-3 border-t border-dark-700">
-                      <p className="text-sm text-dark-400">
-                        Page {page} of {totalPages}
-                      </p>
-                      <div className="flex items-center gap-2">
-                        <button 
-                          onClick={() => setPage(p => Math.max(1, p - 1))}
-                          disabled={page === 1}
-                          className="p-2 rounded-lg bg-dark-800 text-dark-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-dark-700"
-                        >
-                          <ChevronLeft className="w-4 h-4" />
-                        </button>
-                        <button 
-                          onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                          disabled={page === totalPages}
-                          className="p-2 rounded-lg bg-dark-800 text-dark-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-dark-700"
-                        >
-                          <ChevronRight className="w-4 h-4" />
-                        </button>
-                      </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
-                  )}
-                </>
-              )}
-            </div>
-          </div>
+
+                    {/* Pagination */}
+                    {totalPages > 1 && (
+                      <div className="flex items-center justify-between px-4 py-3 border-t border-dark-700 bg-dark-900">
+                        <p className="text-sm text-dark-400">
+                          Page {page} of {totalPages} ({totalLeads} total)
+                        </p>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => setPage(p => Math.max(1, p - 1))}
+                            disabled={page === 1}
+                            className="p-2 rounded-lg hover:bg-dark-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          >
+                            <ChevronLeft className="w-4 h-4 text-dark-400" />
+                          </button>
+                          {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+                            let pageNum;
+                            if (totalPages <= 5) {
+                              pageNum = i + 1;
+                            } else if (page <= 3) {
+                              pageNum = i + 1;
+                            } else if (page >= totalPages - 2) {
+                              pageNum = totalPages - 4 + i;
+                            } else {
+                              pageNum = page - 2 + i;
+                            }
+                            return (
+                              <button
+                                key={pageNum}
+                                onClick={() => setPage(pageNum)}
+                                className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors ${
+                                  page === pageNum
+                                    ? 'bg-brynsa-500 text-dark-950'
+                                    : 'text-dark-400 hover:bg-dark-700'
+                                }`}
+                              >
+                                {pageNum}
+                              </button>
+                            );
+                          })}
+                          <button
+                            onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                            disabled={page === totalPages}
+                            className="p-2 rounded-lg hover:bg-dark-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          >
+                            <ChevronRight className="w-4 h-4 text-dark-400" />
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </>
+          )}
         </div>
       </div>
 
+      {/* Lead Detail Panel */}
+      {selectedLead && (
+        <LeadDetailPanel
+          lead={selectedLead}
+          onClose={() => setSelectedLead(null)}
+          onUpdate={handleLeadUpdate}
+        />
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-dark-950/80 backdrop-blur-sm"
+            onClick={() => !deleting && setShowDeleteModal(false)}
+          />
+
+          <div className="relative bg-dark-900 border border-dark-700 rounded-2xl p-6 max-w-md w-full shadow-2xl">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 rounded-xl bg-red-500/10 flex items-center justify-center">
+                <AlertTriangle className="w-6 h-6 text-red-400" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-white">
+                  {deleteTarget ? 'Delete Lead' : `Delete ${selectedLeads.length} Leads`}
+                </h2>
+                <p className="text-dark-400 text-sm">This action cannot be undone</p>
+              </div>
+            </div>
+
+            <p className="text-dark-300 mb-6">
+              {deleteTarget
+                ? `Are you sure you want to delete "${deleteTarget.name}"?`
+                : `Are you sure you want to delete ${selectedLeads.length} selected leads?`
+              }
+            </p>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                disabled={deleting}
+                className="flex-1 px-4 py-2.5 rounded-xl bg-dark-800 text-white font-medium hover:bg-dark-700 transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                disabled={deleting}
+                className="flex-1 px-4 py-2.5 rounded-xl bg-red-500 text-white font-semibold hover:bg-red-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {deleting ? (
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4" />
+                    Delete
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Create List Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
           <div className="bg-dark-800 rounded-xl w-full max-w-md p-6 border border-dark-700">
@@ -437,13 +726,13 @@ function MyListsPage() {
               onKeyPress={(e) => e.key === 'Enter' && handleCreateList()}
             />
             <div className="flex gap-3">
-              <button 
+              <button
                 onClick={() => { setShowCreateModal(false); setNewListName(''); }}
                 className="flex-1 py-2.5 border border-dark-600 rounded-lg text-dark-300 hover:bg-dark-700 transition-colors"
               >
                 Cancel
               </button>
-              <button 
+              <button
                 onClick={handleCreateList}
                 disabled={!newListName.trim()}
                 className="flex-1 py-2.5 bg-brynsa-500 text-dark-950 rounded-lg font-medium disabled:opacity-50 hover:bg-brynsa-400 transition-colors"
@@ -454,6 +743,12 @@ function MyListsPage() {
           </div>
         </div>
       )}
+
+      <ComingSoonModal
+        isOpen={showComingSoon}
+        onClose={() => setShowComingSoon(false)}
+        feature={comingSoonFeature}
+      />
     </Layout>
   );
 }

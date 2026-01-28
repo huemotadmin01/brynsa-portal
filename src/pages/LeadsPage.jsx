@@ -36,6 +36,12 @@ function LeadsPage() {
     if (showRefreshIndicator) setRefreshing(true);
     try {
       const response = await api.getLeads();
+      console.log('📥 Loaded leads:', response.leads?.length, 'total:', response.total);
+      // Debug: Check for any leads that should be deleted
+      const deletedLeads = response.leads?.filter(l => l.deleted);
+      if (deletedLeads?.length > 0) {
+        console.warn('⚠️ Found deleted leads in response:', deletedLeads.map(l => l.name));
+      }
       if (response.success) {
         setLeads(response.leads || []);
       }
@@ -122,13 +128,17 @@ function LeadsPage() {
     setDeleting(true);
     try {
       if (deleteTarget) {
-        await api.deleteLead(deleteTarget._id);
+        console.log('🗑️ Deleting single lead:', deleteTarget._id);
+        const response = await api.deleteLead(deleteTarget._id);
+        console.log('🗑️ Delete response:', response);
         setLeads(leads.filter(l => l._id !== deleteTarget._id));
         if (selectedLead?._id === deleteTarget._id) {
           setSelectedLead(null);
         }
       } else {
-        await Promise.all(selectedLeads.map(id => api.deleteLead(id)));
+        console.log('🗑️ Deleting multiple leads:', selectedLeads);
+        const responses = await Promise.all(selectedLeads.map(id => api.deleteLead(id)));
+        console.log('🗑️ Delete responses:', responses);
         setLeads(leads.filter(l => !selectedLeads.includes(l._id)));
         setSelectedLeads([]);
         if (selectedLead && selectedLeads.includes(selectedLead._id)) {
@@ -136,7 +146,7 @@ function LeadsPage() {
         }
       }
     } catch (err) {
-      console.error('Failed to delete:', err);
+      console.error('❌ Failed to delete:', err);
     } finally {
       setDeleting(false);
       setShowDeleteModal(false);

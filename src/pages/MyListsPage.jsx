@@ -13,6 +13,7 @@ import LeadDetailPanel from '../components/LeadDetailPanel';
 import ManageDropdown from '../components/ManageDropdown';
 import api from '../utils/api';
 import ComingSoonModal from '../components/ComingSoonModal';
+import AddToListModal from '../components/AddToListModal';
 
 function MyListsPage() {
   const navigate = useNavigate();
@@ -39,6 +40,8 @@ function MyListsPage() {
   const [deleting, setDeleting] = useState(false);
   const [showComingSoon, setShowComingSoon] = useState(false);
   const [comingSoonFeature, setComingSoonFeature] = useState('');
+  const [showAddToList, setShowAddToList] = useState(false);
+  const [addToListTarget, setAddToListTarget] = useState(null);
 
   const isPro = user?.plan === 'pro';
   const leadsPerPage = 10;
@@ -528,7 +531,10 @@ function MyListsPage() {
                                   lead={lead}
                                   onExportCRM={() => handleFeatureClick('Export to CRM')}
                                   onAddToSequence={() => handleFeatureClick('Add to Sequence')}
-                                  onAddToList={() => handleFeatureClick('Add to List')}
+                                  onAddToList={() => {
+                                    setAddToListTarget(lead);
+                                    setShowAddToList(true);
+                                  }}
                                   onEditContact={() => {
                                     setSelectedLead(lead);
                                   }}
@@ -733,6 +739,19 @@ function MyListsPage() {
         isOpen={showComingSoon}
         onClose={() => setShowComingSoon(false)}
         feature={comingSoonFeature}
+      />
+
+      <AddToListModal
+        isOpen={showAddToList}
+        onClose={() => {
+          setShowAddToList(false);
+          setAddToListTarget(null);
+        }}
+        lead={addToListTarget}
+        onLeadUpdate={(updatedLead) => {
+          handleLeadUpdate(updatedLead);
+          loadLists(false);
+        }}
       />
     </Layout>
   );

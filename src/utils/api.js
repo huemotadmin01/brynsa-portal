@@ -187,6 +187,13 @@ class ApiClient {
     return this.request(`/api/lists/${encodeURIComponent(listName)}/leads?page=${page}&limit=${limit}`);
   }
 
+  async updateLeadLists(id, lists) {
+    return this.request(`/api/portal/leads/${id}/lists`, {
+      method: 'PUT',
+      body: JSON.stringify({ lists }),
+    });
+  }
+
   // Account management
   async deleteAccount() {
     return this.request('/api/user/delete-account', {

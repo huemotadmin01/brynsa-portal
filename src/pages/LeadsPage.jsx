@@ -13,6 +13,7 @@ import LeadDetailPanel from '../components/LeadDetailPanel';
 import ManageDropdown from '../components/ManageDropdown';
 import api from '../utils/api';
 import ComingSoonModal from '../components/ComingSoonModal';
+import AddToListModal from '../components/AddToListModal';
 
 function LeadsPage() {
   const { user } = useAuth();
@@ -28,6 +29,8 @@ function LeadsPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [selectedLead, setSelectedLead] = useState(null);
+  const [showAddToList, setShowAddToList] = useState(false);
+  const [addToListTarget, setAddToListTarget] = useState(null);
 
   const leadsPerPage = 10;
   const isPro = user?.plan === 'pro';
@@ -366,7 +369,10 @@ function LeadsPage() {
                               lead={lead}
                               onExportCRM={() => handleFeatureClick('Export to CRM')}
                               onAddToSequence={() => handleFeatureClick('Add to Sequence')}
-                              onAddToList={() => handleFeatureClick('Add to List')}
+                              onAddToList={() => {
+                                setAddToListTarget(lead);
+                                setShowAddToList(true);
+                              }}
                               onEditContact={() => {
                                 setSelectedLead(lead);
                               }}
@@ -533,6 +539,16 @@ function LeadsPage() {
         isOpen={showComingSoon}
         onClose={() => setShowComingSoon(false)}
         feature={comingSoonFeature}
+      />
+
+      <AddToListModal
+        isOpen={showAddToList}
+        onClose={() => {
+          setShowAddToList(false);
+          setAddToListTarget(null);
+        }}
+        lead={addToListTarget}
+        onLeadUpdate={handleLeadUpdate}
       />
     </Layout>
   );

@@ -14,6 +14,7 @@ import ManageDropdown from '../components/ManageDropdown';
 import api from '../utils/api';
 import ComingSoonModal from '../components/ComingSoonModal';
 import AddToListModal from '../components/AddToListModal';
+import ExportToCRMModal from '../components/ExportToCRMModal';
 
 function MyListsPage() {
   const navigate = useNavigate();
@@ -42,6 +43,8 @@ function MyListsPage() {
   const [comingSoonFeature, setComingSoonFeature] = useState('');
   const [showAddToList, setShowAddToList] = useState(false);
   const [addToListTarget, setAddToListTarget] = useState(null);
+  const [showExportCRM, setShowExportCRM] = useState(false);
+  const [exportCRMTarget, setExportCRMTarget] = useState(null);
 
   const isPro = user?.plan === 'pro';
   const leadsPerPage = 10;
@@ -529,7 +532,10 @@ function MyListsPage() {
                               <td className="sticky left-[260px] z-10 bg-dark-900 px-4 py-3 w-[110px] min-w-[110px] shadow-[2px_0_5px_-2px_rgba(0,0,0,0.3)]" onClick={(e) => e.stopPropagation()}>
                                 <ManageDropdown
                                   lead={lead}
-                                  onExportCRM={() => handleFeatureClick('Export to CRM')}
+                                  onExportCRM={() => {
+                                    setExportCRMTarget(lead);
+                                    setShowExportCRM(true);
+                                  }}
                                   onAddToSequence={() => handleFeatureClick('Add to Sequence')}
                                   onAddToList={() => {
                                     setAddToListTarget(lead);
@@ -752,6 +758,15 @@ function MyListsPage() {
           handleLeadUpdate(updatedLead);
           loadLists(false);
         }}
+      />
+
+      <ExportToCRMModal
+        isOpen={showExportCRM}
+        onClose={() => {
+          setShowExportCRM(false);
+          setExportCRMTarget(null);
+        }}
+        lead={exportCRMTarget}
       />
     </Layout>
   );

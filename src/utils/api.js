@@ -194,6 +194,18 @@ class ApiClient {
     });
   }
 
+  // CRM endpoints
+  async exportToOdoo({ leadData, userEmail, linkedinUrl, profileType }) {
+    return this.request('/api/crm/export-odoo', {
+      method: 'POST',
+      body: JSON.stringify({ leadData, userEmail, linkedinUrl, profileType }),
+    });
+  }
+
+  async checkCRMExport(url, userEmail) {
+    return this.request(`/api/crm/check-export?url=${encodeURIComponent(url)}&userEmail=${encodeURIComponent(userEmail)}`);
+  }
+
   // Account management
   async deleteAccount() {
     return this.request('/api/user/delete-account', {

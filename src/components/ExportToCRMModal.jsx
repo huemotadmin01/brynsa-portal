@@ -59,6 +59,23 @@ function ExportToCRMModal({ isOpen, onClose, lead }) {
   const handleConfirmExport = async () => {
     setStep('exporting');
     try {
+      // For candidates, extract skill from headline before exporting
+      let extractedSkill = null;
+      if (profileType === 'candidate') {
+        const headline = lead.headline || lead.title || lead.currentTitle || '';
+        if (headline) {
+          try {
+            const skillResult = await api.extractSkill(headline, user?.email || '');
+            if (skillResult.success && skillResult.skill) {
+              extractedSkill = skillResult.skill;
+            }
+          } catch (skillErr) {
+            // Continue without skill if extraction fails
+            console.warn('Skill extraction failed:', skillErr);
+          }
+        }
+      }
+
       const result = await api.exportToOdoo({
         leadData: {
           name: name.trim(),
@@ -72,6 +89,7 @@ function ExportToCRMModal({ isOpen, onClose, lead }) {
         userEmail: user?.email || '',
         linkedinUrl: lead.linkedinUrl || '',
         profileType,
+        extractedSkill,
       });
 
       if (result.success) {

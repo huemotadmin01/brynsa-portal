@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -22,6 +22,9 @@ function LeadsPage() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLeads, setSelectedLeads] = useState([]);
+  const [showFilters, setShowFilters] = useState(false);
+  const [profileTypeFilter, setProfileTypeFilter] = useState('all'); // 'all', 'candidate', 'client'
+  const filterRef = useRef(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [showComingSoon, setShowComingSoon] = useState(false);
   const [comingSoonFeature, setComingSoonFeature] = useState('');
@@ -110,6 +113,23 @@ function LeadsPage() {
     };
   }, [loadLeads, lastSeenTimestamp]);
 
+  // Close filter dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (filterRef.current && !filterRef.current.contains(event.target)) {
+        setShowFilters(false);
+      }
+    };
+
+    if (showFilters) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showFilters]);
+
   const handleFeatureClick = (feature) => {
     if (!isPro) {
       setComingSoonFeature(feature);
@@ -169,11 +189,21 @@ function LeadsPage() {
     setSelectedLead(updatedLead);
   };
 
-  const filteredLeads = leads.filter(lead =>
-    lead.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    lead.company?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    lead.title?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredLeads = leads.filter(lead => {
+    // Search query filter (matches name, company, or title)
+    const searchLower = searchQuery.toLowerCase();
+    const matchesSearch = !searchQuery ||
+      lead.name?.toLowerCase().includes(searchLower) ||
+      lead.company?.toLowerCase().includes(searchLower) ||
+      lead.title?.toLowerCase().includes(searchLower);
+
+    // Profile type filter
+    const matchesProfileType = profileTypeFilter === 'all' ||
+      (profileTypeFilter === 'candidate' && (!lead.profileType || lead.profileType === 'candidate')) ||
+      (profileTypeFilter === 'client' && lead.profileType === 'client');
+
+    return matchesSearch && matchesProfileType;
+  });
 
   const totalPages = Math.ceil(filteredLeads.length / leadsPerPage);
   const paginatedLeads = filteredLeads.slice(
@@ -206,9 +236,9 @@ function LeadsPage() {
           {/* Header */}
           <div className="flex items-center justify-between mb-8">
             <div>
-              <h1 className="text-2xl font-bold text-white mb-1">Saved Leads</h1>
+              <h1 className="text-2xl font-bold text-white mb-1">Saved Contacts</h1>
               <p className="text-dark-400">
-                {leads.length} leads saved {selectedLeads.length > 0 && `• ${selectedLeads.length} selected`}
+                {leads.length} contacts saved {selectedLeads.length > 0 && `• ${selectedLeads.length} selected`}
               </p>
             </div>
 
@@ -246,16 +276,68 @@ function LeadsPage() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-dark-500" />
               <input
                 type="text"
-                placeholder="Search leads by name, company, or title..."
+                placeholder="Search Contacts by name, company, title"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-4 py-2.5 bg-dark-800 border border-dark-700 rounded-xl text-white placeholder-dark-500 focus:outline-none focus:border-brynsa-500"
               />
             </div>
-            <button className="flex items-center gap-2 px-4 py-2.5 bg-dark-800 border border-dark-700 rounded-xl text-dark-300 hover:text-white transition-colors">
-              <Filter className="w-4 h-4" />
-              Filters
-            </button>
+            <div className="relative" ref={filterRef}>
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className={`flex items-center gap-2 px-4 py-2.5 bg-dark-800 border rounded-xl transition-colors ${
+                  profileTypeFilter !== 'all'
+                    ? 'border-brynsa-500 text-brynsa-400'
+                    : 'border-dark-700 text-dark-300 hover:text-white'
+                }`}
+              >
+                <Filter className="w-4 h-4" />
+                Filters
+                {profileTypeFilter !== 'all' && (
+                  <span className="ml-1 px-1.5 py-0.5 text-xs bg-brynsa-500 text-dark-950 rounded-full">1</span>
+                )}
+              </button>
+
+              {/* Filter Dropdown */}
+              {showFilters && (
+                <div className="absolute right-0 top-full mt-2 w-64 bg-dark-800 border border-dark-700 rounded-xl shadow-xl z-50">
+                  <div className="p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-sm font-medium text-white">Filters</span>
+                      {profileTypeFilter !== 'all' && (
+                        <button
+                          onClick={() => setProfileTypeFilter('all')}
+                          className="text-xs text-brynsa-400 hover:text-brynsa-300"
+                        >
+                          Clear all
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Profile Type Filter */}
+                    <div className="mb-3">
+                      <label className="block text-xs text-dark-400 mb-2">Profile Type</label>
+                      <select
+                        value={profileTypeFilter}
+                        onChange={(e) => setProfileTypeFilter(e.target.value)}
+                        className="w-full px-3 py-2 bg-dark-900 border border-dark-600 rounded-lg text-sm text-white focus:outline-none focus:border-brynsa-500"
+                      >
+                        <option value="all">All Types</option>
+                        <option value="candidate">Candidate</option>
+                        <option value="client">Client</option>
+                      </select>
+                    </div>
+
+                    <button
+                      onClick={() => setShowFilters(false)}
+                      className="w-full py-2 px-4 bg-brynsa-500 text-dark-950 font-medium rounded-lg hover:bg-brynsa-400 transition-colors text-sm"
+                    >
+                      Apply Filters
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Table Container */}
@@ -264,7 +346,7 @@ function LeadsPage() {
               <div className="p-12 text-center flex-1 flex items-center justify-center">
                 <div>
                   <div className="w-8 h-8 border-2 border-brynsa-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                  <p className="text-dark-400">Loading leads...</p>
+                  <p className="text-dark-400">Loading contacts...</p>
                 </div>
               </div>
             ) : leads.length === 0 ? (
@@ -273,9 +355,9 @@ function LeadsPage() {
                   <div className="w-16 h-16 rounded-2xl bg-dark-800 flex items-center justify-center mx-auto mb-4">
                     <Bookmark className="w-8 h-8 text-dark-500" />
                   </div>
-                  <h3 className="text-lg font-semibold text-white mb-2">No Saved Leads Yet</h3>
+                  <h3 className="text-lg font-semibold text-white mb-2">No Saved Contacts Yet</h3>
                   <p className="text-dark-400 mb-4">
-                    Start extracting leads from LinkedIn using the Chrome extension.
+                    Start extracting contacts from LinkedIn using the Chrome extension.
                   </p>
                   <a
                     href="#"
@@ -313,6 +395,7 @@ function LeadsPage() {
                         {/* Sticky Manage Column */}
                         <th className="sticky left-[260px] z-30 bg-dark-800 px-4 py-3 text-left w-[110px] min-w-[110px] shadow-[2px_0_5px_-2px_rgba(0,0,0,0.3)]"></th>
                         {/* Scrollable Columns */}
+                        <th className="px-4 py-3 text-left text-sm font-medium text-dark-400 min-w-[120px]">Profile Type</th>
                         <th className="px-4 py-3 text-left text-sm font-medium text-dark-400 min-w-[180px]">Company</th>
                         <th className="px-4 py-3 text-left text-sm font-medium text-dark-400 min-w-[150px]">Location</th>
                         <th className="px-4 py-3 text-left text-sm font-medium text-dark-400 min-w-[200px]">Email</th>
@@ -387,6 +470,15 @@ function LeadsPage() {
                             />
                           </td>
                           {/* Scrollable Columns */}
+                          <td className="px-4 py-3">
+                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                              lead.profileType === 'client'
+                                ? 'bg-blue-500/10 text-blue-400'
+                                : 'bg-purple-500/10 text-purple-400'
+                            }`}>
+                              {lead.profileType === 'client' ? 'Client' : 'Candidate'}
+                            </span>
+                          </td>
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-2 text-sm">
                               <Building2 className="w-4 h-4 text-dark-500 flex-shrink-0" />

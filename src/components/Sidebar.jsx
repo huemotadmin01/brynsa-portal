@@ -22,7 +22,7 @@ function Sidebar() {
     { path: '/dashboard', label: 'Home', icon: Home },
     { path: '/search', label: 'Search', icon: Search },
     { path: '/engage', label: 'Engage', icon: Send },
-    { path: '/leads', label: 'My Leads', icon: Users },
+    { path: '/leads', label: 'My Contacts', icon: Users },
     { path: '/lists', label: 'My Lists', icon: List },
   ];
 

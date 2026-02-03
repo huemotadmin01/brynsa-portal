@@ -23,7 +23,7 @@ function LeadsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLeads, setSelectedLeads] = useState([]);
   const [showFilters, setShowFilters] = useState(false);
-  const [profileTypeFilter, setProfileTypeFilter] = useState('all'); // 'all', 'candidate', 'client'
+  const [profileTypeFilter, setProfileTypeFilter] = useState('all');
   const filterRef = useRef(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [showComingSoon, setShowComingSoon] = useState(false);
@@ -46,7 +46,6 @@ function LeadsPage() {
     try {
       const response = await api.getLeads();
       console.log('📥 Loaded leads:', response.leads?.length, 'total:', response.total);
-      // Debug: Check for any leads that should be deleted
       const deletedLeads = response.leads?.filter(l => l.deleted);
       if (deletedLeads?.length > 0) {
         console.warn('⚠️ Found deleted leads in response:', deletedLeads.map(l => l.name));
@@ -113,7 +112,6 @@ function LeadsPage() {
     };
   }, [loadLeads, lastSeenTimestamp]);
 
-  // Close filter dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (filterRef.current && !filterRef.current.contains(event.target)) {
@@ -190,16 +188,14 @@ function LeadsPage() {
   };
 
   const filteredLeads = leads.filter(lead => {
-    // Search query filter (matches name, company, or title)
     const searchLower = searchQuery.toLowerCase();
     const matchesSearch = !searchQuery ||
       lead.name?.toLowerCase().includes(searchLower) ||
       lead.company?.toLowerCase().includes(searchLower) ||
       lead.title?.toLowerCase().includes(searchLower);
 
-    // Profile type filter
     const matchesProfileType = profileTypeFilter === 'all' ||
-      (profileTypeFilter === 'candidate' && (!lead.profileType || lead.profileType === 'candidate')) ||
+      (profileTypeFilter === 'candidate' && lead.profileType === 'candidate') ||
       (profileTypeFilter === 'client' && lead.profileType === 'client');
 
     return matchesSearch && matchesProfileType;
@@ -298,7 +294,6 @@ function LeadsPage() {
                 )}
               </button>
 
-              {/* Filter Dropdown */}
               {showFilters && (
                 <div className="absolute right-0 top-full mt-2 w-64 bg-dark-800 border border-dark-700 rounded-xl shadow-xl z-50">
                   <div className="p-4">
@@ -314,7 +309,6 @@ function LeadsPage() {
                       )}
                     </div>
 
-                    {/* Profile Type Filter */}
                     <div className="mb-3">
                       <label className="block text-xs text-dark-400 mb-2">Profile Type</label>
                       <select
@@ -372,12 +366,10 @@ function LeadsPage() {
               </div>
             ) : (
               <>
-                {/* Scrollable Table Wrapper */}
                 <div className="flex-1 overflow-auto relative">
                   <table className="w-full min-w-[1100px]">
                     <thead className="sticky top-0 z-20">
                       <tr className="border-b border-dark-700 bg-dark-800">
-                        {/* Sticky Checkbox Column */}
                         <th className="sticky left-0 z-30 bg-dark-800 px-4 py-3 text-left w-12">
                           <input
                             type="checkbox"
@@ -386,15 +378,12 @@ function LeadsPage() {
                             className="w-4 h-4 rounded border-dark-600 bg-dark-700 text-brynsa-500 focus:ring-brynsa-500"
                           />
                         </th>
-                        {/* Sticky Name Column */}
                         <th className="sticky left-12 z-30 bg-dark-800 px-4 py-3 text-left w-[200px] min-w-[200px]">
                           <button className="flex items-center gap-1 text-sm font-medium text-dark-400 hover:text-white">
                             Contact <ArrowUpDown className="w-3 h-3" />
                           </button>
                         </th>
-                        {/* Sticky Manage Column */}
                         <th className="sticky left-[260px] z-30 bg-dark-800 px-4 py-3 text-left w-[110px] min-w-[110px] shadow-[2px_0_5px_-2px_rgba(0,0,0,0.3)]"></th>
-                        {/* Scrollable Columns */}
                         <th className="px-4 py-3 text-left text-sm font-medium text-dark-400 min-w-[120px]">Profile Type</th>
                         <th className="px-4 py-3 text-left text-sm font-medium text-dark-400 min-w-[180px]">Company</th>
                         <th className="px-4 py-3 text-left text-sm font-medium text-dark-400 min-w-[150px]">Location</th>
@@ -411,7 +400,6 @@ function LeadsPage() {
                             selectedLead?._id === lead._id ? 'bg-dark-800/70' : ''
                           }`}
                         >
-                          {/* Sticky Checkbox */}
                           <td className="sticky left-0 z-10 bg-dark-900 px-4 py-3">
                             <input
                               type="checkbox"
@@ -421,7 +409,6 @@ function LeadsPage() {
                               className="w-4 h-4 rounded border-dark-600 bg-dark-700 text-brynsa-500 focus:ring-brynsa-500"
                             />
                           </td>
-                          {/* Sticky Name Column */}
                           <td className="sticky left-12 z-10 bg-dark-900 px-4 py-3 w-[200px] min-w-[200px]">
                             <div className="flex items-center gap-3">
                               {lead.profilePicture ? (
@@ -449,7 +436,6 @@ function LeadsPage() {
                               </div>
                             </div>
                           </td>
-                          {/* Sticky Manage Dropdown */}
                           <td className="sticky left-[260px] z-10 bg-dark-900 px-4 py-3 w-[110px] min-w-[110px] shadow-[2px_0_5px_-2px_rgba(0,0,0,0.3)]" onClick={(e) => e.stopPropagation()}>
                             <ManageDropdown
                               lead={lead}
@@ -469,15 +455,18 @@ function LeadsPage() {
                               onRemoveContact={() => handleDeleteLead(lead)}
                             />
                           </td>
-                          {/* Scrollable Columns */}
                           <td className="px-4 py-3">
-                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                              lead.profileType === 'client'
-                                ? 'bg-blue-500/10 text-blue-400'
-                                : 'bg-purple-500/10 text-purple-400'
-                            }`}>
-                              {lead.profileType === 'client' ? 'Client' : 'Candidate'}
-                            </span>
+                            {lead.profileType ? (
+                              <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                                lead.profileType === 'client'
+                                  ? 'bg-blue-500/10 text-blue-400'
+                                  : 'bg-purple-500/10 text-purple-400'
+                              }`}>
+                                {lead.profileType === 'client' ? 'Client' : 'Candidate'}
+                              </span>
+                            ) : (
+                              <span className="text-dark-500">-</span>
+                            )}
                           </td>
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-2 text-sm">
@@ -514,7 +503,6 @@ function LeadsPage() {
                   </table>
                 </div>
 
-                {/* Pagination */}
                 {totalPages > 1 && (
                   <div className="flex items-center justify-between px-4 py-3 border-t border-dark-700 bg-dark-900">
                     <p className="text-sm text-dark-400">
@@ -569,7 +557,6 @@ function LeadsPage() {
         </div>
       </div>
 
-      {/* Lead Detail Panel */}
       {selectedLead && (
         <LeadDetailPanel
           lead={selectedLead}
@@ -578,7 +565,6 @@ function LeadsPage() {
         />
       )}
 
-      {/* Delete Confirmation Modal */}
       {showDeleteModal && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
           <div

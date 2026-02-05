@@ -20,7 +20,7 @@ function ExportToCRMModal({ isOpen, onClose, lead }) {
   useEffect(() => {
     if (isOpen && lead) {
       setStep('form');
-      setProfileType('');
+      setProfileType(lead.profileType || '');
       setName(lead.name || '');
       setCompany(lead.company || lead.companyName || '');
       setEmail(lead.email || '');
@@ -148,27 +148,30 @@ function ExportToCRMModal({ isOpen, onClose, lead }) {
               </div>
             )}
 
-            {/* Profile Type */}
+            {/* Profile Type - Read-only, sourced from contact */}
             <div className="mb-4">
               <label className="block text-sm font-medium text-dark-300 mb-1.5">
                 Profile Type <span className="text-red-400">*</span>
               </label>
-              <select
-                value={profileType}
-                onChange={(e) => {
-                  setProfileType(e.target.value);
-                  setProfileTypeError(false);
-                }}
-                className={`w-full px-3 py-2.5 bg-dark-800 border rounded-xl text-white focus:outline-none focus:border-brynsa-500 appearance-none cursor-pointer ${
+              {profileType ? (
+                <div className="w-full px-3 py-2.5 bg-dark-800 border border-dark-600 rounded-xl">
+                  <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${
+                    profileType === 'client'
+                      ? 'bg-blue-500/10 text-blue-400'
+                      : 'bg-purple-500/10 text-purple-400'
+                  }`}>
+                    {profileType === 'client' ? 'Client' : 'Candidate'}
+                  </span>
+                </div>
+              ) : (
+                <div className={`w-full px-3 py-2.5 bg-dark-800 border rounded-xl ${
                   profileTypeError ? 'border-red-500' : 'border-dark-600'
-                }`}
-              >
-                <option value="">Select type...</option>
-                <option value="client">Client</option>
-                <option value="candidate">Candidate</option>
-              </select>
+                }`}>
+                  <span className="text-dark-500 text-sm">No profile type set</span>
+                </div>
+              )}
               {profileTypeError && (
-                <p className="text-red-400 text-xs mt-1">Profile Type is required before exporting to CRM.</p>
+                <p className="text-red-400 text-xs mt-1">Profile Type is required. Please set it from the extension or contact details before exporting.</p>
               )}
             </div>
 

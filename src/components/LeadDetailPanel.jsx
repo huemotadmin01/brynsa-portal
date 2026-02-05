@@ -11,11 +11,18 @@ function LeadDetailPanel({ lead, onClose, onUpdate }) {
   const [addingNote, setAddingNote] = useState(false);
   const [savingNotes, setSavingNotes] = useState(false);
   const [notes, setNotes] = useState(lead?.notes || []);
+  const [profileType, setProfileType] = useState(lead?.profileType || '');
+  const [savingProfileType, setSavingProfileType] = useState(false);
 
   // Sync notes when lead changes
   useEffect(() => {
     setNotes(lead?.notes || []);
   }, [lead?._id, lead?.notes]);
+
+  // Sync profileType when lead changes
+  useEffect(() => {
+    setProfileType(lead?.profileType || '');
+  }, [lead?._id, lead?.profileType]);
 
   if (!lead) return null;
 
@@ -76,6 +83,24 @@ function LeadDetailPanel({ lead, onClose, onUpdate }) {
 
     if (onUpdate) {
       onUpdate({ ...lead, notes: updatedNotes });
+    }
+  };
+
+  const handleProfileTypeChange = async (newType) => {
+    setProfileType(newType);
+    try {
+      setSavingProfileType(true);
+      await api.updateLead(lead._id, { profileType: newType });
+      console.log('Profile type saved to API successfully');
+      if (onUpdate) {
+        onUpdate({ ...lead, profileType: newType });
+      }
+    } catch (err) {
+      console.error('Failed to save profile type:', err);
+      // Revert on failure
+      setProfileType(lead?.profileType || '');
+    } finally {
+      setSavingProfileType(false);
     }
   };
 
@@ -196,10 +221,34 @@ function LeadDetailPanel({ lead, onClose, onUpdate }) {
           </div>
         </div>
 
-        {/* Lead Metadata */}
+        {/* Profile Type */}
+        <div className="p-4 border-b border-dark-700">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold text-dark-300 uppercase tracking-wider">
+              Profile Type
+            </h3>
+            {savingProfileType && (
+              <div className="flex items-center gap-1 text-xs text-dark-500">
+                <RefreshCw className="w-3 h-3 animate-spin" />
+                Saving...
+              </div>
+            )}
+          </div>
+          <select
+            value={profileType}
+            onChange={(e) => handleProfileTypeChange(e.target.value)}
+            className="w-full px-3 py-2.5 bg-dark-800 border border-dark-600 rounded-xl text-white focus:outline-none focus:border-brynsa-500 appearance-none cursor-pointer"
+          >
+            <option value="">Select type...</option>
+            <option value="candidate">Candidate</option>
+            <option value="client">Client</option>
+          </select>
+        </div>
+
+        {/* Contact Metadata */}
         <div className="p-4 border-b border-dark-700">
           <h3 className="text-sm font-semibold text-dark-300 uppercase tracking-wider mb-3">
-            Lead Information
+            Contact Details
           </h3>
           <div className="space-y-1">
             <InfoRow icon={Globe} label="Source" value={lead.leadSource || 'Extension'} />

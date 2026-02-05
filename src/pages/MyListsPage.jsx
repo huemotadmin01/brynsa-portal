@@ -183,7 +183,7 @@ function MyListsPage() {
   };
 
   const handleDeleteList = async (listName, idx) => {
-    if (!confirm(`Delete list "${listName}"? This will not delete the leads.`)) return;
+    if (!confirm(`Delete list "${listName}"? This will not delete the contacts.`)) return;
     try {
       await api.deleteList(listName);
       const newLists = lists.filter((_, i) => i !== idx);
@@ -373,7 +373,7 @@ function MyListsPage() {
             <div className="flex-1 flex items-center justify-center">
               <div className="text-center">
                 <FolderOpen className="w-16 h-16 text-dark-600 mx-auto mb-4" />
-                <p className="text-dark-400 text-lg">Select a list to view leads</p>
+                <p className="text-dark-400 text-lg">Select a list to view contacts</p>
               </div>
             </div>
           ) : (
@@ -383,7 +383,7 @@ function MyListsPage() {
                 <div>
                   <h1 className="text-2xl font-bold text-white mb-1">{selectedList}</h1>
                   <p className="text-dark-400">
-                    {totalLeads} leads {selectedLeads.length > 0 && `• ${selectedLeads.length} selected`}
+                    {totalLeads} contacts {selectedLeads.length > 0 && `• ${selectedLeads.length} selected`}
                   </p>
                 </div>
 
@@ -421,7 +421,7 @@ function MyListsPage() {
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-dark-500" />
                   <input
                     type="text"
-                    placeholder="Search leads by name, company, or title..."
+                    placeholder="Search contacts by name, company, or title..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="w-full pl-10 pr-4 py-2.5 bg-dark-800 border border-dark-700 rounded-xl text-white placeholder-dark-500 focus:outline-none focus:border-brynsa-500"
@@ -439,15 +439,15 @@ function MyListsPage() {
                   <div className="p-12 text-center flex-1 flex items-center justify-center">
                     <div>
                       <div className="w-8 h-8 border-2 border-brynsa-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                      <p className="text-dark-400">Loading leads...</p>
+                      <p className="text-dark-400">Loading contacts...</p>
                     </div>
                   </div>
                 ) : filteredLeads.length === 0 ? (
                   <div className="p-12 text-center flex-1 flex items-center justify-center">
                     <div>
                       <Users className="w-16 h-16 text-dark-600 mx-auto mb-4" />
-                      <h3 className="text-lg font-semibold text-white mb-2">No Leads in This List</h3>
-                      <p className="text-dark-400">Use the Chrome extension to add leads to this list.</p>
+                      <h3 className="text-lg font-semibold text-white mb-2">No Contacts in This List</h3>
+                      <p className="text-dark-400">Use the Chrome extension to add contacts to this list.</p>
                     </div>
                   </div>
                 ) : (
@@ -668,7 +668,7 @@ function MyListsPage() {
               </div>
               <div>
                 <h2 className="text-xl font-bold text-white">
-                  {deleteTarget ? 'Delete Lead' : `Delete ${selectedLeads.length} Leads`}
+                  {deleteTarget ? 'Delete Contact' : `Delete ${selectedLeads.length} Contacts`}
                 </h2>
                 <p className="text-dark-400 text-sm">This action cannot be undone</p>
               </div>
@@ -677,7 +677,7 @@ function MyListsPage() {
             <p className="text-dark-300 mb-6">
               {deleteTarget
                 ? `Are you sure you want to delete "${deleteTarget.name}"?`
-                : `Are you sure you want to delete ${selectedLeads.length} selected leads?`
+                : `Are you sure you want to delete ${selectedLeads.length} selected contacts?`
               }
             </p>
 

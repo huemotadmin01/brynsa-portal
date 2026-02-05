@@ -130,7 +130,7 @@ function ExportToCRMModal({ isOpen, onClose, lead }) {
               </div>
               <div>
                 <h2 className="text-xl font-bold text-white">Export to Odoo CRM</h2>
-                <p className="text-dark-400 text-sm">Send this lead to your Odoo CRM</p>
+                <p className="text-dark-400 text-sm">Send this contact to your Odoo CRM</p>
               </div>
             </div>
 
@@ -144,7 +144,7 @@ function ExportToCRMModal({ isOpen, onClose, lead }) {
             {alreadyExported && (
               <div className="flex items-center gap-2 mb-4 px-3 py-2 bg-amber-500/10 border border-amber-500/20 rounded-lg">
                 <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0" />
-                <span className="text-sm text-amber-300">This lead may have already been exported to CRM.</span>
+                <span className="text-sm text-amber-300">This contact may have already been exported to CRM.</span>
               </div>
             )}
 
@@ -254,7 +254,7 @@ function ExportToCRMModal({ isOpen, onClose, lead }) {
 
           <div className="p-6">
             <h2 className="text-xl font-bold text-white mb-2">Export to Odoo CRM</h2>
-            <p className="text-dark-400 text-sm mb-1">Are you sure you want to export this lead to Odoo CRM?</p>
+            <p className="text-dark-400 text-sm mb-1">Are you sure you want to export this contact to Odoo CRM?</p>
             <p className="text-dark-500 text-xs mb-5 border-l-2 border-dark-600 pl-3">
               Review and edit the information below before exporting:
             </p>
@@ -310,7 +310,7 @@ function ExportToCRMModal({ isOpen, onClose, lead }) {
               <RefreshCw className="w-8 h-8 text-brynsa-400 animate-spin" />
             </div>
             <h2 className="text-xl font-bold text-white mb-2">Exporting to Odoo CRM</h2>
-            <p className="text-dark-400">Please wait while we export this lead...</p>
+            <p className="text-dark-400">Please wait while we export this contact...</p>
           </div>
         </div>
       </div>
@@ -328,7 +328,7 @@ function ExportToCRMModal({ isOpen, onClose, lead }) {
               <CheckCircle className="w-8 h-8 text-green-400" />
             </div>
             <h2 className="text-xl font-bold text-white mb-2">Export Successful</h2>
-            <p className="text-dark-400 mb-2">{exportResult?.message || 'Lead exported to Odoo CRM.'}</p>
+            <p className="text-dark-400 mb-2">{exportResult?.message || 'Contact exported to Odoo CRM.'}</p>
             {exportResult?.crmId && (
               <p className="text-dark-500 text-sm mb-6">CRM ID: {exportResult.crmId}</p>
             )}
@@ -355,7 +355,7 @@ function ExportToCRMModal({ isOpen, onClose, lead }) {
               <AlertTriangle className="w-8 h-8 text-amber-400" />
             </div>
             <h2 className="text-xl font-bold text-white mb-2">Already Exported</h2>
-            <p className="text-dark-400 mb-2">{exportResult?.message || 'This lead already exists in your CRM.'}</p>
+            <p className="text-dark-400 mb-2">{exportResult?.message || 'This contact already exists in your CRM.'}</p>
             {exportResult?.crmId && (
               <p className="text-dark-500 text-sm mb-6">CRM ID: {exportResult.crmId}</p>
             )}

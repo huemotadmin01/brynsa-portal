@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -45,6 +45,9 @@ function MyListsPage() {
   const [addToListTarget, setAddToListTarget] = useState(null);
   const [showExportCRM, setShowExportCRM] = useState(false);
   const [exportCRMTarget, setExportCRMTarget] = useState(null);
+  const [showFilters, setShowFilters] = useState(false);
+  const [profileTypeFilter, setProfileTypeFilter] = useState('all');
+  const filterRef = useRef(null);
 
   const isPro = user?.plan === 'pro';
   const leadsPerPage = 10;
@@ -164,6 +167,23 @@ function MyListsPage() {
       setSearchParams({});
     }
   }, [selectedList, page, loadLeads, setSearchParams]);
+
+  // Close filter dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (filterRef.current && !filterRef.current.contains(event.target)) {
+        setShowFilters(false);
+      }
+    };
+
+    if (showFilters) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showFilters]);
 
   const handleCreateList = async () => {
     if (!newListName.trim()) return;
@@ -290,13 +310,20 @@ function MyListsPage() {
     }
   };
 
-  const filteredLeads = leads.filter(lead =>
-    !searchQuery ||
-    lead.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    lead.company?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    lead.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    lead.title?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredLeads = leads.filter(lead => {
+    const searchLower = searchQuery.toLowerCase();
+    const matchesSearch = !searchQuery ||
+      lead.name?.toLowerCase().includes(searchLower) ||
+      lead.company?.toLowerCase().includes(searchLower) ||
+      lead.email?.toLowerCase().includes(searchLower) ||
+      lead.title?.toLowerCase().includes(searchLower);
+
+    const matchesProfileType = profileTypeFilter === 'all' ||
+      (profileTypeFilter === 'candidate' && lead.profileType === 'candidate') ||
+      (profileTypeFilter === 'client' && lead.profileType === 'client');
+
+    return matchesSearch && matchesProfileType;
+  });
 
   return (
     <Layout>
@@ -427,10 +454,62 @@ function MyListsPage() {
                     className="w-full pl-10 pr-4 py-2.5 bg-dark-800 border border-dark-700 rounded-xl text-white placeholder-dark-500 focus:outline-none focus:border-brynsa-500"
                   />
                 </div>
-                <button className="flex items-center gap-2 px-4 py-2.5 bg-dark-800 border border-dark-700 rounded-xl text-dark-300 hover:text-white transition-colors">
-                  <Filter className="w-4 h-4" />
-                  Filters
-                </button>
+                <div className="relative" ref={filterRef}>
+                  <button
+                    onClick={() => setShowFilters(!showFilters)}
+                    className={`flex items-center gap-2 px-4 py-2.5 bg-dark-800 border rounded-xl transition-colors ${
+                      profileTypeFilter !== 'all'
+                        ? 'border-brynsa-500 text-brynsa-400'
+                        : 'border-dark-700 text-dark-300 hover:text-white'
+                    }`}
+                  >
+                    <Filter className="w-4 h-4" />
+                    Filters
+                    {profileTypeFilter !== 'all' && (
+                      <span className="ml-1 px-1.5 py-0.5 text-xs bg-brynsa-500 text-dark-950 rounded-full">1</span>
+                    )}
+                  </button>
+
+                  {/* Filter Dropdown */}
+                  {showFilters && (
+                    <div className="absolute right-0 top-full mt-2 w-64 bg-dark-800 border border-dark-700 rounded-xl shadow-xl z-50">
+                      <div className="p-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="text-sm font-medium text-white">Filters</span>
+                          {profileTypeFilter !== 'all' && (
+                            <button
+                              onClick={() => setProfileTypeFilter('all')}
+                              className="text-xs text-brynsa-400 hover:text-brynsa-300"
+                            >
+                              Clear all
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Profile Type Filter */}
+                        <div className="mb-3">
+                          <label className="block text-xs text-dark-400 mb-2">Profile Type</label>
+                          <select
+                            value={profileTypeFilter}
+                            onChange={(e) => setProfileTypeFilter(e.target.value)}
+                            className="w-full px-3 py-2 bg-dark-900 border border-dark-600 rounded-lg text-sm text-white focus:outline-none focus:border-brynsa-500"
+                          >
+                            <option value="all">All Types</option>
+                            <option value="candidate">Candidate</option>
+                            <option value="client">Client</option>
+                          </select>
+                        </div>
+
+                        <button
+                          onClick={() => setShowFilters(false)}
+                          className="w-full py-2 px-4 bg-brynsa-500 text-dark-950 font-medium rounded-lg hover:bg-brynsa-400 transition-colors text-sm"
+                        >
+                          Apply Filters
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Table Container */}
@@ -475,6 +554,7 @@ function MyListsPage() {
                             {/* Sticky Manage Column */}
                             <th className="sticky left-[260px] z-30 bg-dark-800 px-4 py-3 text-left w-[110px] min-w-[110px] shadow-[2px_0_5px_-2px_rgba(0,0,0,0.3)]"></th>
                             {/* Scrollable Columns */}
+                            <th className="px-4 py-3 text-left text-sm font-medium text-dark-400 min-w-[120px]">Profile Type</th>
                             <th className="px-4 py-3 text-left text-sm font-medium text-dark-400 min-w-[180px]">Company</th>
                             <th className="px-4 py-3 text-left text-sm font-medium text-dark-400 min-w-[150px]">Location</th>
                             <th className="px-4 py-3 text-left text-sm font-medium text-dark-400 min-w-[200px]">Email</th>
@@ -552,6 +632,19 @@ function MyListsPage() {
                                 />
                               </td>
                               {/* Scrollable Columns */}
+                              <td className="px-4 py-3">
+                                {lead.profileType ? (
+                                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                                    lead.profileType === 'client'
+                                      ? 'bg-blue-500/10 text-blue-400'
+                                      : 'bg-purple-500/10 text-purple-400'
+                                  }`}>
+                                    {lead.profileType === 'client' ? 'Client' : 'Candidate'}
+                                  </span>
+                                ) : (
+                                  <span className="text-dark-500">-</span>
+                                )}
+                              </td>
                               <td className="px-4 py-3">
                                 <div className="flex items-center gap-2 text-sm">
                                   <Building2 className="w-4 h-4 text-dark-500 flex-shrink-0" />

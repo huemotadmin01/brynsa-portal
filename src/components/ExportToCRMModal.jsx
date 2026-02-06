@@ -113,6 +113,7 @@ function ExportToCRMModal({ isOpen, onClose, lead }) {
           function: lead.title || lead.headline || '',
           street: lead.location || '',
           sourcedBy: user?.name || '',
+          notes: lead.notes || [],
         },
         userEmail: user?.email || '',
         linkedinUrl: lead.linkedinUrl || '',

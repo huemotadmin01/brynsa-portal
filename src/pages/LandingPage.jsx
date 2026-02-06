@@ -1,15 +1,15 @@
 import { Link } from 'react-router-dom';
 import { ArrowRight, Linkedin, Zap, Users, BarChart3, Shield, Chrome, Star } from 'lucide-react';
-import BrynsaLogo from '../components/BrynsaLogo';
+import RivvraLogo from '../components/BrynsaLogo';
 
 function LandingPage() {
   return (
     <div className="min-h-screen bg-dark-950 mesh-gradient grid-pattern relative overflow-hidden">
       {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 left-10 w-72 h-72 bg-brynsa-500/10 rounded-full blur-3xl animate-pulse-slow" />
-        <div className="absolute bottom-20 right-10 w-96 h-96 bg-brynsa-400/5 rounded-full blur-3xl animate-pulse-slow" style={{ animationDelay: '1s' }} />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-brynsa-500/5 rounded-full blur-3xl" />
+        <div className="absolute top-20 left-10 w-72 h-72 bg-rivvra-500/10 rounded-full blur-3xl animate-pulse-slow" />
+        <div className="absolute bottom-20 right-10 w-96 h-96 bg-rivvra-400/5 rounded-full blur-3xl animate-pulse-slow" style={{ animationDelay: '1s' }} />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-rivvra-500/5 rounded-full blur-3xl" />
       </div>
 
       {/* Navigation */}
@@ -18,10 +18,10 @@ function LandingPage() {
           <div className="flex items-center justify-between">
             {/* Logo */}
             <Link to="/" className="flex items-center gap-2 group">
-              <div className="w-10 h-10 rounded-xl bg-dark-800 flex items-center justify-center shadow-lg shadow-brynsa-500/25 group-hover:shadow-brynsa-500/40 transition-shadow">
-                <BrynsaLogo className="w-7 h-7" />
+              <div className="w-10 h-10 rounded-xl bg-dark-800 flex items-center justify-center shadow-lg shadow-rivvra-500/25 group-hover:shadow-rivvra-500/40 transition-shadow">
+                <RivvraLogo className="w-7 h-7" />
               </div>
-              <span className="text-xl font-bold text-white">Brynsa</span>
+              <span className="text-xl font-bold text-white">Rivvra</span>
             </Link>
 
             {/* Nav Links */}
@@ -50,9 +50,9 @@ function LandingPage() {
             {/* Left - Hero Content */}
             <div className="space-y-8">
               {/* Badge */}
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-brynsa-500/10 border border-brynsa-500/20">
-                <Zap className="w-4 h-4 text-brynsa-400" />
-                <span className="text-sm text-brynsa-300">Free LinkedIn Lead Extraction</span>
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-rivvra-500/10 border border-rivvra-500/20">
+                <Zap className="w-4 h-4 text-rivvra-400" />
+                <span className="text-sm text-rivvra-300">Free LinkedIn Lead Extraction</span>
               </div>
 
               {/* Headline */}
@@ -87,7 +87,7 @@ function LandingPage() {
               <div className="flex items-center gap-6 pt-4">
                 <div className="flex items-center gap-1">
                   {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="w-5 h-5 fill-brynsa-400 text-brynsa-400" />
+                    <Star key={i} className="w-5 h-5 fill-rivvra-400 text-rivvra-400" />
                   ))}
                 </div>
                 <span className="text-dark-400">
@@ -99,14 +99,14 @@ function LandingPage() {
             {/* Right - Product Preview Card */}
             <div className="relative">
               {/* Glow effect */}
-              <div className="absolute inset-0 bg-gradient-to-r from-brynsa-500/20 to-brynsa-400/10 rounded-3xl blur-2xl" />
+              <div className="absolute inset-0 bg-gradient-to-r from-rivvra-500/20 to-rivvra-400/10 rounded-3xl blur-2xl" />
               
               {/* Card */}
               <div className="relative card p-8 space-y-6 animate-float">
                 {/* Header */}
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-brynsa-400 uppercase tracking-wider">Lead Preview</span>
-                  <span className="px-3 py-1 rounded-full bg-brynsa-500/20 text-brynsa-300 text-xs font-medium">
+                  <span className="text-xs font-semibold text-rivvra-400 uppercase tracking-wider">Lead Preview</span>
+                  <span className="px-3 py-1 rounded-full bg-rivvra-500/20 text-rivvra-300 text-xs font-medium">
                     97% fit
                   </span>
                 </div>
@@ -132,7 +132,7 @@ function LandingPage() {
 
                 {/* Action Buttons */}
                 <div className="grid grid-cols-2 gap-3">
-                  <button className="px-4 py-2.5 rounded-lg bg-brynsa-500 text-dark-950 font-medium text-sm hover:bg-brynsa-400 transition-colors">
+                  <button className="px-4 py-2.5 rounded-lg bg-rivvra-500 text-dark-950 font-medium text-sm hover:bg-rivvra-400 transition-colors">
                     Generate Email
                   </button>
                   <button className="px-4 py-2.5 rounded-lg bg-dark-700/50 text-white font-medium text-sm border border-dark-600 hover:bg-dark-700 transition-colors">
@@ -144,7 +144,7 @@ function LandingPage() {
                 <div className="space-y-3">
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-dark-400">Email</span>
-                    <span className="text-brynsa-300">m.smith@olain.com ✓</span>
+                    <span className="text-rivvra-300">m.smith@olain.com ✓</span>
                   </div>
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-dark-400">Phone</span>
@@ -168,7 +168,7 @@ function LandingPage() {
                 Everything you need to grow your pipeline
               </h2>
               <p className="text-dark-400 text-lg max-w-2xl mx-auto">
-                From lead extraction to personalized outreach, Brynsa gives you the tools to find and convert more prospects.
+                From lead extraction to personalized outreach, Rivvra gives you the tools to find and convert more prospects.
               </p>
             </div>
 
@@ -201,15 +201,15 @@ function LandingPage() {
               ].map((feature, index) => (
                 <div 
                   key={index} 
-                  className="card p-6 hover:border-brynsa-500/30 transition-colors group"
+                  className="card p-6 hover:border-rivvra-500/30 transition-colors group"
                 >
                   <div className="flex items-start justify-between mb-4">
-                    <div className="w-12 h-12 rounded-xl bg-brynsa-500/10 flex items-center justify-center group-hover:bg-brynsa-500/20 transition-colors">
-                      <feature.icon className="w-6 h-6 text-brynsa-400" />
+                    <div className="w-12 h-12 rounded-xl bg-rivvra-500/10 flex items-center justify-center group-hover:bg-rivvra-500/20 transition-colors">
+                      <feature.icon className="w-6 h-6 text-rivvra-400" />
                     </div>
                     <span className={`px-2 py-1 rounded text-xs font-semibold ${
                       feature.highlight === 'FREE' 
-                        ? 'bg-brynsa-500/20 text-brynsa-300' 
+                        ? 'bg-rivvra-500/20 text-rivvra-300' 
                         : 'bg-dark-700 text-dark-300'
                     }`}>
                       {feature.highlight}
@@ -228,15 +228,15 @@ function LandingPage() {
           <div className="max-w-4xl mx-auto px-6 text-center">
             <div className="card p-12 relative overflow-hidden">
               {/* Background glow */}
-              <div className="absolute inset-0 bg-gradient-to-r from-brynsa-500/10 via-brynsa-400/5 to-brynsa-500/10" />
+              <div className="absolute inset-0 bg-gradient-to-r from-rivvra-500/10 via-rivvra-400/5 to-rivvra-500/10" />
               
               <div className="relative space-y-6">
-                <Shield className="w-12 h-12 text-brynsa-400 mx-auto" />
+                <Shield className="w-12 h-12 text-rivvra-400 mx-auto" />
                 <h2 className="text-3xl lg:text-4xl font-bold text-white">
                   Ready to supercharge your outreach?
                 </h2>
                 <p className="text-dark-400 text-lg max-w-xl mx-auto">
-                  Join thousands of sales professionals who use Brynsa to find and connect with their ideal customers.
+                  Join thousands of sales professionals who use Rivvra to find and connect with their ideal customers.
                 </p>
                 <Link to="/signup" className="btn-primary text-lg px-10 py-4 inline-flex items-center gap-2">
                   Get started for free
@@ -255,16 +255,16 @@ function LandingPage() {
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-lg bg-dark-800 flex items-center justify-center">
-                <BrynsaLogo className="w-5 h-5" />
+                <RivvraLogo className="w-5 h-5" />
               </div>
-              <span className="font-semibold text-white">Brynsa</span>
+              <span className="font-semibold text-white">Rivvra</span>
             </div>
             <div className="flex items-center gap-6 text-sm text-dark-400">
               <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
               <a href="#" className="hover:text-white transition-colors">Terms of Service</a>
               <a href="#" className="hover:text-white transition-colors">Contact</a>
             </div>
-            <p className="text-dark-500 text-sm">© 2024 Brynsa. All rights reserved.</p>
+            <p className="text-dark-500 text-sm">© 2024 Rivvra. All rights reserved.</p>
           </div>
         </div>
       </footer>

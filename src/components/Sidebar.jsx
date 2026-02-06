@@ -5,7 +5,7 @@ import {
   Home, Search, Send, Users, List, Settings, LogOut,
   ChevronRight, GraduationCap, Crown
 } from 'lucide-react';
-import BrynsaLogo from './BrynsaLogo';
+import RivvraLogo from './BrynsaLogo';
 import ComingSoonModal from './ComingSoonModal';
 
 function Sidebar() {
@@ -37,9 +37,9 @@ function Sidebar() {
       <div className="p-4 border-b border-dark-800">
         <Link to="/dashboard" className="flex items-center gap-2">
           <div className="w-9 h-9 rounded-lg bg-dark-800 flex items-center justify-center">
-            <BrynsaLogo className="w-6 h-6" />
+            <RivvraLogo className="w-6 h-6" />
           </div>
-          <span className="text-lg font-bold text-white">Brynsa</span>
+          <span className="text-lg font-bold text-white">Rivvra</span>
         </Link>
       </div>
 
@@ -51,14 +51,14 @@ function Sidebar() {
             to={item.path}
             className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
               isActive(item.path)
-                ? 'bg-brynsa-500/10 text-brynsa-400'
+                ? 'bg-rivvra-500/10 text-rivvra-400'
                 : 'text-dark-400 hover:text-white hover:bg-dark-800/50'
             }`}
           >
             <item.icon className="w-5 h-5" />
             <span className="flex-1">{item.label}</span>
             {item.badge && (
-              <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-brynsa-500 text-dark-950">
+              <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-rivvra-500 text-dark-950">
                 {item.badge}
               </span>
             )}
@@ -93,7 +93,7 @@ function Sidebar() {
       {/* User Menu */}
       <div className="p-4 border-t border-dark-800">
         <div className="flex items-center gap-3 mb-3">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-brynsa-400 to-brynsa-600 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-rivvra-400 to-rivvra-600 flex items-center justify-center">
             <span className="text-sm font-bold text-dark-950">
               {user?.name?.charAt(0)?.toUpperCase() || user?.email?.charAt(0)?.toUpperCase() || 'U'}
             </span>

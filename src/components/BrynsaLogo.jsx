@@ -1,10 +1,11 @@
-// Brynsa Logo Component - Turquoise layered squares/diamonds
-function BrynsaLogo({ className = "w-5 h-5" }) {
+// Rivvra Logo Component - Turquoise layered squares/diamonds
+function RivvraLogo({ className = "w-5 h-5" }) {
   return (
     <svg
-      viewBox="0 0 100 100"
+      viewBox="0 0 100 120"
       className={className}
       xmlns="http://www.w3.org/2000/svg"
+      overflow="visible"
     >
       {/* Bottom layer */}
       <path
@@ -13,7 +14,7 @@ function BrynsaLogo({ className = "w-5 h-5" }) {
         stroke="#00D9B5"
         strokeWidth="6"
         strokeLinejoin="round"
-        transform="translate(0, 8)"
+        transform="translate(0, 28)"
       />
       {/* Middle layer */}
       <path
@@ -22,7 +23,7 @@ function BrynsaLogo({ className = "w-5 h-5" }) {
         stroke="#00D9B5"
         strokeWidth="6"
         strokeLinejoin="round"
-        transform="translate(0, -8)"
+        transform="translate(0, 12)"
       />
       {/* Top layer */}
       <path
@@ -31,10 +32,10 @@ function BrynsaLogo({ className = "w-5 h-5" }) {
         stroke="#00D9B5"
         strokeWidth="6"
         strokeLinejoin="round"
-        transform="translate(0, -24)"
+        transform="translate(0, -4)"
       />
     </svg>
   );
 }
 
-export default BrynsaLogo;
+export default RivvraLogo;

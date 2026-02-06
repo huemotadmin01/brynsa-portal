@@ -6,7 +6,7 @@ import {
   Building2, Briefcase, Users, Target, Loader2,
   Chrome, Eye, EyeOff, AlertCircle
 } from 'lucide-react';
-import BrynsaLogo from '../components/BrynsaLogo';
+import RivvraLogo from '../components/BrynsaLogo';
 import api from '../utils/api';
 import { GOOGLE_CLIENT_ID } from '../utils/config';
 
@@ -107,7 +107,7 @@ function SignupPage() {
   // Only redirect if authenticated AND onboarding is already completed
   useEffect(() => {
     if (isAuthenticated && currentStep === STEPS.AUTH) {
-      const user = JSON.parse(localStorage.getItem('brynsa_user') || '{}');
+      const user = JSON.parse(localStorage.getItem('rivvra_user') || '{}');
       if (user.onboarding?.completed) {
         navigate('/dashboard');
       } else {
@@ -419,20 +419,20 @@ function SignupPage() {
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2 mb-8">
             <div className="w-10 h-10 rounded-xl bg-dark-800 flex items-center justify-center">
-              <BrynsaLogo className="w-7 h-7" />
+              <RivvraLogo className="w-7 h-7" />
             </div>
-            <span className="text-xl font-bold text-white">Brynsa</span>
+            <span className="text-xl font-bold text-white">Rivvra</span>
           </Link>
 
           {/* Progress */}
           <div className="mb-8">
             <div className="flex items-center justify-between text-sm mb-2">
               <span className="text-dark-400">Create account</span>
-              <span className="text-brynsa-400">{getProgress()}%</span>
+              <span className="text-rivvra-400">{getProgress()}%</span>
             </div>
             <div className="h-1 bg-dark-800 rounded-full overflow-hidden">
               <div 
-                className="h-full bg-gradient-to-r from-brynsa-500 to-brynsa-400 transition-all duration-500"
+                className="h-full bg-gradient-to-r from-rivvra-500 to-rivvra-400 transition-all duration-500"
                 style={{ width: `${getProgress()}%` }}
               />
             </div>
@@ -513,7 +513,7 @@ function SignupPage() {
 
               <p className="text-sm text-dark-500 text-center">
                 Already have an account?{' '}
-                <Link to="/login" className="text-brynsa-400 hover:text-brynsa-300">
+                <Link to="/login" className="text-rivvra-400 hover:text-rivvra-300">
                   Log in
                 </Link>
               </p>
@@ -558,7 +558,7 @@ function SignupPage() {
                           document.getElementById(`otp-${index - 1}`)?.focus();
                         }
                       }}
-                      className="w-12 h-14 text-center text-xl font-bold bg-dark-800 border border-dark-700 rounded-xl text-white focus:border-brynsa-500 focus:ring-1 focus:ring-brynsa-500 outline-none transition-colors"
+                      className="w-12 h-14 text-center text-xl font-bold bg-dark-800 border border-dark-700 rounded-xl text-white focus:border-rivvra-500 focus:ring-1 focus:ring-rivvra-500 outline-none transition-colors"
                       disabled={loading}
                     />
                   ))}
@@ -586,7 +586,7 @@ function SignupPage() {
                 ) : (
                   <button
                     onClick={handleEmailSubmit}
-                    className="text-brynsa-400 hover:text-brynsa-300"
+                    className="text-rivvra-400 hover:text-rivvra-300"
                   >
                     Resend code
                   </button>
@@ -847,7 +847,7 @@ function SignupPage() {
                   What's your role?
                 </h1>
                 <p className="text-dark-400">
-                  We'll customize Brynsa for your workflow.
+                  We'll customize Rivvra for your workflow.
                 </p>
               </div>
 
@@ -858,7 +858,7 @@ function SignupPage() {
                     onClick={() => setFormData({ ...formData, role: role.id })}
                     className={`p-4 rounded-xl border text-left transition-all ${
                       formData.role === role.id
-                        ? 'border-brynsa-500 bg-brynsa-500/10'
+                        ? 'border-rivvra-500 bg-rivvra-500/10'
                         : 'border-dark-700 bg-dark-800/50 hover:border-dark-600'
                     }`}
                   >
@@ -906,7 +906,7 @@ function SignupPage() {
                     onClick={() => setFormData({ ...formData, teamSize: size.id })}
                     className={`w-full p-4 rounded-xl border text-left transition-all flex items-center justify-between ${
                       formData.teamSize === size.id
-                        ? 'border-brynsa-500 bg-brynsa-500/10'
+                        ? 'border-rivvra-500 bg-rivvra-500/10'
                         : 'border-dark-700 bg-dark-800/50 hover:border-dark-600'
                     }`}
                   >
@@ -915,7 +915,7 @@ function SignupPage() {
                       <span className="text-sm text-dark-400">{size.description}</span>
                     </div>
                     {formData.teamSize === size.id && (
-                      <Check className="w-5 h-5 text-brynsa-400" />
+                      <Check className="w-5 h-5 text-rivvra-400" />
                     )}
                   </button>
                 ))}
@@ -945,7 +945,7 @@ function SignupPage() {
 
               <div>
                 <h1 className="text-3xl font-bold text-white mb-2">
-                  What will you use Brynsa for?
+                  What will you use Rivvra for?
                 </h1>
                 <p className="text-dark-400">
                   We'll set up your workspace accordingly.
@@ -959,12 +959,12 @@ function SignupPage() {
                     onClick={() => setFormData({ ...formData, useCase: useCase.id })}
                     className={`p-4 rounded-xl border text-left transition-all ${
                       formData.useCase === useCase.id
-                        ? 'border-brynsa-500 bg-brynsa-500/10'
+                        ? 'border-rivvra-500 bg-rivvra-500/10'
                         : 'border-dark-700 bg-dark-800/50 hover:border-dark-600'
                     }`}
                   >
                     <useCase.icon className={`w-6 h-6 mb-3 ${
-                      formData.useCase === useCase.id ? 'text-brynsa-400' : 'text-dark-500'
+                      formData.useCase === useCase.id ? 'text-rivvra-400' : 'text-dark-500'
                     }`} />
                     <span className="font-medium text-white block">{useCase.label}</span>
                     <span className="text-sm text-dark-400">{useCase.description}</span>
@@ -995,8 +995,8 @@ function SignupPage() {
       <div className="hidden lg:flex flex-1 bg-dark-900/50 border-l border-dark-800/50 items-center justify-center p-12 relative overflow-hidden">
         {/* Background Effects */}
         <div className="absolute inset-0">
-          <div className="absolute top-1/4 right-1/4 w-96 h-96 bg-brynsa-500/10 rounded-full blur-3xl" />
-          <div className="absolute bottom-1/4 left-1/4 w-64 h-64 bg-brynsa-400/5 rounded-full blur-2xl" />
+          <div className="absolute top-1/4 right-1/4 w-96 h-96 bg-rivvra-500/10 rounded-full blur-3xl" />
+          <div className="absolute bottom-1/4 left-1/4 w-64 h-64 bg-rivvra-400/5 rounded-full blur-2xl" />
         </div>
 
         {/* Content */}
@@ -1004,8 +1004,8 @@ function SignupPage() {
           {/* Feature Card */}
           <div className="card p-8 text-left space-y-4 animate-float">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-xl bg-brynsa-500/20 flex items-center justify-center">
-                <Chrome className="w-6 h-6 text-brynsa-400" />
+              <div className="w-12 h-12 rounded-xl bg-rivvra-500/20 flex items-center justify-center">
+                <Chrome className="w-6 h-6 text-rivvra-400" />
               </div>
               <div>
                 <h3 className="font-semibold text-white">Chrome Extension</h3>
@@ -1015,7 +1015,7 @@ function SignupPage() {
             <div className="space-y-2">
               {['Unlimited profile scraping', 'Email enrichment', 'One-click export'].map((feature, i) => (
                 <div key={i} className="flex items-center gap-2 text-sm">
-                  <Check className="w-4 h-4 text-brynsa-400" />
+                  <Check className="w-4 h-4 text-rivvra-400" />
                   <span className="text-dark-300">{feature}</span>
                 </div>
               ))}

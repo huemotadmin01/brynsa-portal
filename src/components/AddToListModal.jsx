@@ -149,7 +149,7 @@ function AddToListModal({ isOpen, onClose, lead, onLeadUpdate }) {
               placeholder="Search"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-dark-800 border border-dark-600 rounded-xl text-white placeholder-dark-500 focus:outline-none focus:border-brynsa-500 text-sm"
+              className="w-full pl-10 pr-4 py-2.5 bg-dark-800 border border-dark-600 rounded-xl text-white placeholder-dark-500 focus:outline-none focus:border-rivvra-500 text-sm"
             />
           </div>
         </div>
@@ -158,7 +158,7 @@ function AddToListModal({ isOpen, onClose, lead, onLeadUpdate }) {
         <div className="flex-1 overflow-y-auto px-6 min-h-0">
           {loading ? (
             <div className="py-8 text-center">
-              <div className="w-6 h-6 border-2 border-brynsa-500 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+              <div className="w-6 h-6 border-2 border-rivvra-500 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
               <p className="text-dark-500 text-sm">Loading lists...</p>
             </div>
           ) : filteredLists.length === 0 && !showCreateInput ? (
@@ -182,7 +182,7 @@ function AddToListModal({ isOpen, onClose, lead, onLeadUpdate }) {
                       onClick={() => toggleList(list.name)}
                       className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
                         isSelected
-                          ? 'bg-brynsa-500/10 border border-brynsa-500/30'
+                          ? 'bg-rivvra-500/10 border border-rivvra-500/30'
                           : 'hover:bg-dark-800 border border-transparent'
                       }`}
                     >
@@ -193,7 +193,7 @@ function AddToListModal({ isOpen, onClose, lead, onLeadUpdate }) {
                         {list.name}
                       </span>
                       {isSelected && (
-                        <Check className="w-4 h-4 text-brynsa-400 flex-shrink-0" />
+                        <Check className="w-4 h-4 text-rivvra-400 flex-shrink-0" />
                       )}
                     </button>
                   );
@@ -222,12 +222,12 @@ function AddToListModal({ isOpen, onClose, lead, onLeadUpdate }) {
                 }}
                 autoFocus
                 disabled={creating}
-                className="flex-1 px-3 py-2 bg-dark-800 border border-dark-600 rounded-lg text-white placeholder-dark-500 focus:outline-none focus:border-brynsa-500 text-sm"
+                className="flex-1 px-3 py-2 bg-dark-800 border border-dark-600 rounded-lg text-white placeholder-dark-500 focus:outline-none focus:border-rivvra-500 text-sm"
               />
               <button
                 onClick={handleCreateList}
                 disabled={!newListName.trim() || creating}
-                className="px-3 py-2 bg-brynsa-500 text-dark-950 rounded-lg text-sm font-medium hover:bg-brynsa-400 transition-colors disabled:opacity-50"
+                className="px-3 py-2 bg-rivvra-500 text-dark-950 rounded-lg text-sm font-medium hover:bg-rivvra-400 transition-colors disabled:opacity-50"
               >
                 {creating ? <RefreshCw className="w-4 h-4 animate-spin" /> : 'Add'}
               </button>
@@ -242,14 +242,14 @@ function AddToListModal({ isOpen, onClose, lead, onLeadUpdate }) {
               setShowCreateInput(true);
               setNewListName('');
             }}
-            className="text-sm font-medium text-brynsa-400 hover:text-brynsa-300 transition-colors"
+            className="text-sm font-medium text-rivvra-400 hover:text-rivvra-300 transition-colors"
           >
             Create new list
           </button>
           <button
             onClick={handleSave}
             disabled={saving || !hasChanges}
-            className="px-5 py-2.5 bg-brynsa-500 text-dark-950 rounded-xl text-sm font-semibold hover:bg-brynsa-400 transition-colors disabled:opacity-50 flex items-center gap-2"
+            className="px-5 py-2.5 bg-rivvra-500 text-dark-950 rounded-xl text-sm font-semibold hover:bg-rivvra-400 transition-colors disabled:opacity-50 flex items-center gap-2"
           >
             {saving ? (
               <>

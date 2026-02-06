@@ -78,7 +78,7 @@ function SettingsPage() {
                   onClick={() => tab.comingSoon ? handleFeatureClick(tab.label) : setActiveTab(tab.id)}
                   className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-left transition-colors ${
                     activeTab === tab.id
-                      ? 'bg-brynsa-500/10 text-brynsa-400'
+                      ? 'bg-rivvra-500/10 text-rivvra-400'
                       : 'text-dark-400 hover:text-white hover:bg-dark-800/50'
                   }`}
                 >
@@ -98,7 +98,7 @@ function SettingsPage() {
                   <h2 className="text-lg font-semibold text-white mb-6">Profile Information</h2>
                   
                   <div className="flex items-start gap-6 mb-6">
-                    <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-brynsa-400 to-brynsa-600 flex items-center justify-center flex-shrink-0">
+                    <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-rivvra-400 to-rivvra-600 flex items-center justify-center flex-shrink-0">
                       <span className="text-3xl font-bold text-dark-950">
                         {user?.name?.charAt(0)?.toUpperCase() || user?.email?.charAt(0)?.toUpperCase() || 'U'}
                       </span>

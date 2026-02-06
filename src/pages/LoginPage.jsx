@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import {
   ArrowRight, Loader2, Eye, EyeOff, AlertCircle, Mail, Lock
 } from 'lucide-react';
-import BrynsaLogo from '../components/BrynsaLogo';
+import RivvraLogo from '../components/BrynsaLogo';
 import { GOOGLE_CLIENT_ID } from '../utils/config';
 
 function LoginPage() {
@@ -131,9 +131,9 @@ function LoginPage() {
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2 mb-12">
             <div className="w-10 h-10 rounded-xl bg-dark-800 flex items-center justify-center">
-              <BrynsaLogo className="w-7 h-7" />
+              <RivvraLogo className="w-7 h-7" />
             </div>
-            <span className="text-xl font-bold text-white">Brynsa</span>
+            <span className="text-xl font-bold text-white">Rivvra</span>
           </Link>
 
           {/* Toggle Tabs */}
@@ -240,7 +240,7 @@ function LoginPage() {
                 <div className="flex justify-end">
                   <Link 
                     to="/forgot-password" 
-                    className="text-sm text-brynsa-400 hover:text-brynsa-300"
+                    className="text-sm text-rivvra-400 hover:text-rivvra-300"
                   >
                     Forgot password?
                   </Link>
@@ -266,7 +266,7 @@ function LoginPage() {
               <div className="text-center space-y-2">
                 <p className="text-dark-400">
                   Don't have an account?{' '}
-                  <Link to="/signup" className="text-brynsa-400 hover:underline">
+                  <Link to="/signup" className="text-rivvra-400 hover:underline">
                     Sign up
                   </Link>
                 </p>
@@ -285,8 +285,8 @@ function LoginPage() {
       {/* Right Panel - Decorative */}
       <div className="hidden lg:flex flex-1 bg-dark-900/50 border-l border-dark-800/50 items-center justify-center p-12 relative overflow-hidden">
         <div className="absolute inset-0">
-          <div className="absolute top-1/4 right-1/4 w-96 h-96 bg-brynsa-500/10 rounded-full blur-3xl" />
-          <div className="absolute bottom-1/4 left-1/4 w-64 h-64 bg-brynsa-400/5 rounded-full blur-2xl" />
+          <div className="absolute top-1/4 right-1/4 w-96 h-96 bg-rivvra-500/10 rounded-full blur-3xl" />
+          <div className="absolute bottom-1/4 left-1/4 w-64 h-64 bg-rivvra-400/5 rounded-full blur-2xl" />
         </div>
 
         <div className="relative max-w-lg space-y-8">
@@ -302,7 +302,7 @@ function LoginPage() {
           {/* Workflow Card */}
           <div className="card p-6 space-y-4">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-brynsa-400">Target high intent prospects</span>
+              <span className="text-sm font-medium text-rivvra-400">Target high intent prospects</span>
               <button className="text-xs text-dark-400 hover:text-white px-3 py-1 rounded bg-dark-700">
                 Learn more
               </button>
@@ -318,7 +318,7 @@ function LoginPage() {
                 { day: 'Day 4', action: 'Phone call', time: 'Schedule if no reply in 10 min' },
               ].map((step, i) => (
                 <div key={i} className="flex items-center gap-3 p-3 rounded-lg bg-dark-800/50">
-                  <div className="w-2 h-2 rounded-full bg-brynsa-400" />
+                  <div className="w-2 h-2 rounded-full bg-rivvra-400" />
                   <div className="flex-1">
                     <div className="text-sm text-white">{step.day}: {step.action}</div>
                     <div className="text-xs text-dark-500">{step.time}</div>

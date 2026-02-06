@@ -14,8 +14,8 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     const initAuth = async () => {
       try {
-        const storedToken = localStorage.getItem('brynsa_token');
-        const storedUser = localStorage.getItem('brynsa_user');
+        const storedToken = localStorage.getItem('rivvra_token');
+        const storedUser = localStorage.getItem('rivvra_user');
 
         if (storedToken && storedUser) {
           setToken(storedToken);
@@ -26,7 +26,7 @@ export function AuthProvider({ children }) {
             const response = await api.getProfile();
             if (response.success) {
               setUser(response.user);
-              localStorage.setItem('brynsa_user', JSON.stringify(response.user));
+              localStorage.setItem('rivvra_user', JSON.stringify(response.user));
               broadcastAuthChange(response.user, storedToken);
             }
           } catch (err) {
@@ -48,10 +48,10 @@ export function AuthProvider({ children }) {
   // Listen for auth changes from other tabs/extension
   useEffect(() => {
     const handleStorageChange = (e) => {
-      if (e.key === 'brynsa_token') {
+      if (e.key === 'rivvra_token') {
         if (e.newValue) {
           setToken(e.newValue);
-          const userData = localStorage.getItem('brynsa_user');
+          const userData = localStorage.getItem('rivvra_user');
           if (userData) {
             setUser(JSON.parse(userData));
           }
@@ -77,7 +77,7 @@ export function AuthProvider({ children }) {
     }));
 
     // Dispatch custom event for same-tab listeners
-    window.dispatchEvent(new CustomEvent('brynsa_auth_change', {
+    window.dispatchEvent(new CustomEvent('rivvra_auth_change', {
       detail: { user: userData, token: authToken }
     }));
   }, []);
@@ -94,8 +94,8 @@ export function AuthProvider({ children }) {
         setToken(authToken);
         setUser(userData);
         
-        localStorage.setItem('brynsa_token', authToken);
-        localStorage.setItem('brynsa_user', JSON.stringify(userData));
+        localStorage.setItem('rivvra_token', authToken);
+        localStorage.setItem('rivvra_user', JSON.stringify(userData));
         
         broadcastAuthChange(userData, authToken);
         
@@ -121,8 +121,8 @@ export function AuthProvider({ children }) {
         setToken(authToken);
         setUser(userData);
         
-        localStorage.setItem('brynsa_token', authToken);
-        localStorage.setItem('brynsa_user', JSON.stringify(userData));
+        localStorage.setItem('rivvra_token', authToken);
+        localStorage.setItem('rivvra_user', JSON.stringify(userData));
         
         broadcastAuthChange(userData, authToken);
         
@@ -148,8 +148,8 @@ export function AuthProvider({ children }) {
         setToken(authToken);
         setUser(userData);
         
-        localStorage.setItem('brynsa_token', authToken);
-        localStorage.setItem('brynsa_user', JSON.stringify(userData));
+        localStorage.setItem('rivvra_token', authToken);
+        localStorage.setItem('rivvra_user', JSON.stringify(userData));
         
         broadcastAuthChange(userData, authToken);
         
@@ -175,8 +175,8 @@ export function AuthProvider({ children }) {
         setToken(authToken);
         setUser(userData);
         
-        localStorage.setItem('brynsa_token', authToken);
-        localStorage.setItem('brynsa_user', JSON.stringify(userData));
+        localStorage.setItem('rivvra_token', authToken);
+        localStorage.setItem('rivvra_user', JSON.stringify(userData));
         
         broadcastAuthChange(userData, authToken);
         
@@ -194,11 +194,11 @@ export function AuthProvider({ children }) {
   const clearAuth = useCallback(() => {
     setToken(null);
     setUser(null);
-    localStorage.removeItem('brynsa_token');
-    localStorage.removeItem('brynsa_user');
+    localStorage.removeItem('rivvra_token');
+    localStorage.removeItem('rivvra_user');
     localStorage.removeItem(AUTH_STORAGE_KEY);
     
-    window.dispatchEvent(new CustomEvent('brynsa_auth_change', {
+    window.dispatchEvent(new CustomEvent('rivvra_auth_change', {
       detail: { user: null, token: null }
     }));
   }, []);
@@ -212,7 +212,7 @@ export function AuthProvider({ children }) {
   const updateUser = useCallback((updates) => {
     const updatedUser = { ...user, ...updates };
     setUser(updatedUser);
-    localStorage.setItem('brynsa_user', JSON.stringify(updatedUser));
+    localStorage.setItem('rivvra_user', JSON.stringify(updatedUser));
     broadcastAuthChange(updatedUser, token);
   }, [user, token, broadcastAuthChange]);
 

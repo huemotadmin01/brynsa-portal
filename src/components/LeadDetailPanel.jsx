@@ -116,7 +116,7 @@ function LeadDetailPanel({ lead, onClose, onUpdate }) {
               href={href}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-sm text-brynsa-400 hover:underline flex items-center gap-1"
+              className="text-sm text-rivvra-400 hover:underline flex items-center gap-1"
             >
               {value}
               <ExternalLink className="w-3 h-3" />
@@ -237,7 +237,7 @@ function LeadDetailPanel({ lead, onClose, onUpdate }) {
           <select
             value={profileType}
             onChange={(e) => handleProfileTypeChange(e.target.value)}
-            className="w-full px-3 py-2.5 bg-dark-800 border border-dark-600 rounded-xl text-white focus:outline-none focus:border-brynsa-500 appearance-none cursor-pointer"
+            className="w-full px-3 py-2.5 bg-dark-800 border border-dark-600 rounded-xl text-white focus:outline-none focus:border-rivvra-500 appearance-none cursor-pointer"
           >
             <option value="">Select type...</option>
             <option value="candidate">Candidate</option>
@@ -300,12 +300,12 @@ function LeadDetailPanel({ lead, onClose, onUpdate }) {
               onChange={(e) => setNewNote(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleAddNote()}
               placeholder="Add a note..."
-              className="flex-1 px-3 py-2 bg-dark-800 border border-dark-700 rounded-lg text-white text-sm placeholder-dark-500 focus:outline-none focus:border-brynsa-500"
+              className="flex-1 px-3 py-2 bg-dark-800 border border-dark-700 rounded-lg text-white text-sm placeholder-dark-500 focus:outline-none focus:border-rivvra-500"
             />
             <button
               onClick={handleAddNote}
               disabled={!newNote.trim() || addingNote}
-              className="px-3 py-2 bg-brynsa-500 hover:bg-brynsa-400 disabled:opacity-50 disabled:cursor-not-allowed text-dark-950 font-medium rounded-lg transition-colors"
+              className="px-3 py-2 bg-rivvra-500 hover:bg-rivvra-400 disabled:opacity-50 disabled:cursor-not-allowed text-dark-950 font-medium rounded-lg transition-colors"
             >
               <Plus className="w-4 h-4" />
             </button>

@@ -17,7 +17,7 @@ class ApiClient {
     };
 
     // Add auth token if available
-    const token = localStorage.getItem('brynsa_token');
+    const token = localStorage.getItem('rivvra_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }

@@ -8,17 +8,17 @@
 
 /* Define custom theme tokens */
 @theme {
-  --color-brynsa-50: #f0fdf4;
-  --color-brynsa-100: #dcfce7;
-  --color-brynsa-200: #bbf7d0;
-  --color-brynsa-300: #86efac;
-  --color-brynsa-400: #4ade80;
-  --color-brynsa-500: #22c55e;
-  --color-brynsa-600: #16a34a;
-  --color-brynsa-700: #15803d;
-  --color-brynsa-800: #166534;
-  --color-brynsa-900: #14532d;
-  --color-brynsa-950: #052e16;
+  --color-rivvra-50: #f0fdf4;
+  --color-rivvra-100: #dcfce7;
+  --color-rivvra-200: #bbf7d0;
+  --color-rivvra-300: #86efac;
+  --color-rivvra-400: #4ade80;
+  --color-rivvra-500: #22c55e;
+  --color-rivvra-600: #16a34a;
+  --color-rivvra-700: #15803d;
+  --color-rivvra-800: #166534;
+  --color-rivvra-900: #14532d;
+  --color-rivvra-950: #052e16;
   
   --color-dark-50: #f8fafc;
   --color-dark-100: #f1f5f9;
@@ -49,10 +49,10 @@
   /* Primary Button - Green gradient */
   .btn-primary {
     @apply relative px-6 py-3 rounded-lg font-semibold text-dark-950 
-           bg-gradient-to-r from-brynsa-400 to-brynsa-500
-           hover:from-brynsa-300 hover:to-brynsa-400
+           bg-gradient-to-r from-rivvra-400 to-rivvra-500
+           hover:from-rivvra-300 hover:to-rivvra-400
            transition-all duration-300 ease-out
-           shadow-lg shadow-brynsa-500/25 hover:shadow-brynsa-400/40
+           shadow-lg shadow-rivvra-500/25 hover:shadow-rivvra-400/40
            hover:-translate-y-0.5 active:translate-y-0
            disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0;
   }
@@ -80,7 +80,7 @@
     @apply w-full px-4 py-3 rounded-lg
            bg-dark-800/50 border border-dark-700
            text-white placeholder-dark-400
-           focus:outline-none focus:border-brynsa-500 focus:ring-2 focus:ring-brynsa-500/20
+           focus:outline-none focus:border-rivvra-500 focus:ring-2 focus:ring-rivvra-500/20
            transition-all duration-200;
   }
   
@@ -97,7 +97,7 @@
   
   /* Gradient Text */
   .text-gradient {
-    @apply bg-gradient-to-r from-brynsa-400 to-brynsa-300 bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-rivvra-400 to-rivvra-300 bg-clip-text text-transparent;
   }
 }
 

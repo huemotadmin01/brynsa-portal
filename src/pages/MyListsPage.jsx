@@ -100,7 +100,7 @@ function MyListsPage() {
 
   useEffect(() => {
     const handleStorageChange = (e) => {
-      if (e.key === 'brynsa_lead_saved') {
+      if (e.key === 'rivvra_lead_saved') {
         console.log('Lead saved from extension (storage event), refreshing...');
         setTimeout(() => {
           loadLists(true);
@@ -124,7 +124,7 @@ function MyListsPage() {
     const handleFocus = () => checkForNewSaves();
 
     const checkForNewSaves = () => {
-      const lastSave = localStorage.getItem('brynsa_lead_saved');
+      const lastSave = localStorage.getItem('rivvra_lead_saved');
       if (lastSave) {
         try {
           const data = JSON.parse(lastSave);
@@ -145,13 +145,13 @@ function MyListsPage() {
 
     window.addEventListener('storage', handleStorageChange);
     window.addEventListener('focus', handleFocus);
-    window.addEventListener('brynsa_lead_saved', handleCustomEvent);
+    window.addEventListener('rivvra_lead_saved', handleCustomEvent);
 
     return () => {
       clearInterval(pollInterval);
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('focus', handleFocus);
-      window.removeEventListener('brynsa_lead_saved', handleCustomEvent);
+      window.removeEventListener('rivvra_lead_saved', handleCustomEvent);
     };
   }, [loadLists, loadLeads, selectedList, page, lastSeenTimestamp]);
 
@@ -336,14 +336,14 @@ function MyListsPage() {
               <button
                 onClick={handleManualRefresh}
                 disabled={refreshing}
-                className={`p-1.5 rounded-lg text-dark-400 hover:text-brynsa-400 hover:bg-dark-700 transition-colors ${refreshing ? 'opacity-50' : ''}`}
+                className={`p-1.5 rounded-lg text-dark-400 hover:text-rivvra-400 hover:bg-dark-700 transition-colors ${refreshing ? 'opacity-50' : ''}`}
                 title="Refresh"
               >
                 <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
               </button>
               <button
                 onClick={() => setShowCreateModal(true)}
-                className="p-1.5 rounded-lg bg-brynsa-500/10 text-brynsa-400 hover:bg-brynsa-500/20 transition-colors"
+                className="p-1.5 rounded-lg bg-rivvra-500/10 text-rivvra-400 hover:bg-rivvra-500/20 transition-colors"
               >
                 <Plus className="w-4 h-4" />
               </button>
@@ -358,7 +358,7 @@ function MyListsPage() {
               <p className="text-dark-400 text-sm">No lists yet</p>
               <button
                 onClick={() => setShowCreateModal(true)}
-                className="mt-2 text-sm text-brynsa-400 hover:text-brynsa-300"
+                className="mt-2 text-sm text-rivvra-400 hover:text-rivvra-300"
               >
                 Create your first list
               </button>
@@ -370,7 +370,7 @@ function MyListsPage() {
                   key={idx}
                   className={`group flex items-center justify-between px-3 py-2.5 rounded-lg cursor-pointer transition-colors ${
                     selectedList === list.name
-                      ? 'bg-brynsa-500/20 text-brynsa-400'
+                      ? 'bg-rivvra-500/20 text-rivvra-400'
                       : 'hover:bg-dark-700 text-dark-300'
                   }`}
                   onClick={() => { setSelectedList(list.name); setPage(1); }}
@@ -451,7 +451,7 @@ function MyListsPage() {
                     placeholder="Search contacts by name, company, or title..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 bg-dark-800 border border-dark-700 rounded-xl text-white placeholder-dark-500 focus:outline-none focus:border-brynsa-500"
+                    className="w-full pl-10 pr-4 py-2.5 bg-dark-800 border border-dark-700 rounded-xl text-white placeholder-dark-500 focus:outline-none focus:border-rivvra-500"
                   />
                 </div>
                 <div className="relative" ref={filterRef}>
@@ -459,14 +459,14 @@ function MyListsPage() {
                     onClick={() => setShowFilters(!showFilters)}
                     className={`flex items-center gap-2 px-4 py-2.5 bg-dark-800 border rounded-xl transition-colors ${
                       profileTypeFilter !== 'all'
-                        ? 'border-brynsa-500 text-brynsa-400'
+                        ? 'border-rivvra-500 text-rivvra-400'
                         : 'border-dark-700 text-dark-300 hover:text-white'
                     }`}
                   >
                     <Filter className="w-4 h-4" />
                     Filters
                     {profileTypeFilter !== 'all' && (
-                      <span className="ml-1 px-1.5 py-0.5 text-xs bg-brynsa-500 text-dark-950 rounded-full">1</span>
+                      <span className="ml-1 px-1.5 py-0.5 text-xs bg-rivvra-500 text-dark-950 rounded-full">1</span>
                     )}
                   </button>
 
@@ -479,7 +479,7 @@ function MyListsPage() {
                           {profileTypeFilter !== 'all' && (
                             <button
                               onClick={() => setProfileTypeFilter('all')}
-                              className="text-xs text-brynsa-400 hover:text-brynsa-300"
+                              className="text-xs text-rivvra-400 hover:text-rivvra-300"
                             >
                               Clear all
                             </button>
@@ -492,7 +492,7 @@ function MyListsPage() {
                           <select
                             value={profileTypeFilter}
                             onChange={(e) => setProfileTypeFilter(e.target.value)}
-                            className="w-full px-3 py-2 bg-dark-900 border border-dark-600 rounded-lg text-sm text-white focus:outline-none focus:border-brynsa-500"
+                            className="w-full px-3 py-2 bg-dark-900 border border-dark-600 rounded-lg text-sm text-white focus:outline-none focus:border-rivvra-500"
                           >
                             <option value="all">All Types</option>
                             <option value="candidate">Candidate</option>
@@ -502,7 +502,7 @@ function MyListsPage() {
 
                         <button
                           onClick={() => setShowFilters(false)}
-                          className="w-full py-2 px-4 bg-brynsa-500 text-dark-950 font-medium rounded-lg hover:bg-brynsa-400 transition-colors text-sm"
+                          className="w-full py-2 px-4 bg-rivvra-500 text-dark-950 font-medium rounded-lg hover:bg-rivvra-400 transition-colors text-sm"
                         >
                           Apply Filters
                         </button>
@@ -517,7 +517,7 @@ function MyListsPage() {
                 {leadsLoading ? (
                   <div className="p-12 text-center flex-1 flex items-center justify-center">
                     <div>
-                      <div className="w-8 h-8 border-2 border-brynsa-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                      <div className="w-8 h-8 border-2 border-rivvra-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
                       <p className="text-dark-400">Loading contacts...</p>
                     </div>
                   </div>
@@ -542,7 +542,7 @@ function MyListsPage() {
                                 type="checkbox"
                                 checked={selectedLeads.length === filteredLeads.length && filteredLeads.length > 0}
                                 onChange={toggleSelectAll}
-                                className="w-4 h-4 rounded border-dark-600 bg-dark-700 text-brynsa-500 focus:ring-brynsa-500"
+                                className="w-4 h-4 rounded border-dark-600 bg-dark-700 text-rivvra-500 focus:ring-rivvra-500"
                               />
                             </th>
                             {/* Sticky Name Column */}
@@ -577,7 +577,7 @@ function MyListsPage() {
                                   checked={selectedLeads.includes(lead._id)}
                                   onChange={(e) => toggleSelectLead(e, lead._id)}
                                   onClick={(e) => e.stopPropagation()}
-                                  className="w-4 h-4 rounded border-dark-600 bg-dark-700 text-brynsa-500 focus:ring-brynsa-500"
+                                  className="w-4 h-4 rounded border-dark-600 bg-dark-700 text-rivvra-500 focus:ring-rivvra-500"
                                 />
                               </td>
                               {/* Sticky Name Column */}
@@ -599,7 +599,7 @@ function MyListsPage() {
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         onClick={(e) => e.stopPropagation()}
-                                        className="text-xs text-brynsa-400 hover:underline flex items-center gap-1"
+                                        className="text-xs text-rivvra-400 hover:underline flex items-center gap-1"
                                       >
                                         <Linkedin className="w-3 h-3" />
                                         Profile
@@ -664,7 +664,7 @@ function MyListsPage() {
                               </td>
                               <td className="px-4 py-3 text-sm">
                                 {lead.email ? (
-                                  <span className="text-brynsa-400 truncate block max-w-[180px]">{lead.email}</span>
+                                  <span className="text-rivvra-400 truncate block max-w-[180px]">{lead.email}</span>
                                 ) : (
                                   <span className="text-dark-500">Not found</span>
                                 )}
@@ -672,7 +672,7 @@ function MyListsPage() {
                               <td className="px-4 py-3">
                                 {lead.notes && lead.notes.length > 0 ? (
                                   <div className="flex items-center gap-1 text-sm text-dark-300">
-                                    <StickyNote className="w-4 h-4 text-brynsa-400" />
+                                    <StickyNote className="w-4 h-4 text-rivvra-400" />
                                     <span>{lead.notes.length}</span>
                                   </div>
                                 ) : (
@@ -716,7 +716,7 @@ function MyListsPage() {
                                 onClick={() => setPage(pageNum)}
                                 className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors ${
                                   page === pageNum
-                                    ? 'bg-brynsa-500 text-dark-950'
+                                    ? 'bg-rivvra-500 text-dark-950'
                                     : 'text-dark-400 hover:bg-dark-700'
                                 }`}
                               >
@@ -816,7 +816,7 @@ function MyListsPage() {
               value={newListName}
               onChange={(e) => setNewListName(e.target.value)}
               placeholder="Enter list name..."
-              className="w-full bg-dark-900 border border-dark-600 rounded-lg px-4 py-3 text-white placeholder-dark-400 focus:outline-none focus:border-brynsa-500 mb-4"
+              className="w-full bg-dark-900 border border-dark-600 rounded-lg px-4 py-3 text-white placeholder-dark-400 focus:outline-none focus:border-rivvra-500 mb-4"
               autoFocus
               onKeyPress={(e) => e.key === 'Enter' && handleCreateList()}
             />
@@ -830,7 +830,7 @@ function MyListsPage() {
               <button
                 onClick={handleCreateList}
                 disabled={!newListName.trim()}
-                className="flex-1 py-2.5 bg-brynsa-500 text-dark-950 rounded-lg font-medium disabled:opacity-50 hover:bg-brynsa-400 transition-colors"
+                className="flex-1 py-2.5 bg-rivvra-500 text-dark-950 rounded-lg font-medium disabled:opacity-50 hover:bg-rivvra-400 transition-colors"
               >
                 Create List
               </button>

@@ -39,7 +39,7 @@ function LeadsPage() {
   const [exportCRMTarget, setExportCRMTarget] = useState(null);
 
   const leadsPerPage = 10;
-  const isPro = user?.plan === 'pro';
+  const isPro = user?.plan === 'pro' || user?.plan === 'premium';
 
   const loadLeads = useCallback(async (showRefreshIndicator = false) => {
     if (showRefreshIndicator) setRefreshing(true);
@@ -440,6 +440,11 @@ function LeadsPage() {
                             <ManageDropdown
                               lead={lead}
                               onExportCRM={() => {
+                                if (!isPro) {
+                                  setComingSoonFeature('Export to CRM');
+                                  setShowComingSoon(true);
+                                  return;
+                                }
                                 setExportCRMTarget(lead);
                                 setShowExportCRM(true);
                               }}

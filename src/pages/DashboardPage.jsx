@@ -74,12 +74,14 @@ function DashboardPage() {
     };
   }, [fetchData]);
 
-  const handleFeatureClick = (feature) => {
-    setComingSoonFeature(feature);
-    setShowComingSoon(true);
-  };
-
   const isPro = user?.plan === 'pro' || user?.plan === 'premium';
+
+  const handleFeatureClick = (feature) => {
+    if (!isPro) {
+      setComingSoonFeature(feature);
+      setShowComingSoon(true);
+    }
+  };
 
   return (
     <Layout>

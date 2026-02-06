@@ -1,4 +1,4 @@
-import { X, Sparkles, Bell } from 'lucide-react';
+import { X, Sparkles } from 'lucide-react';
 
 function ComingSoonModal({ isOpen, onClose, feature }) {
   if (!isOpen) return null;
@@ -6,11 +6,11 @@ function ComingSoonModal({ isOpen, onClose, feature }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
-      <div 
+      <div
         className="absolute inset-0 bg-dark-950/80 backdrop-blur-sm"
         onClick={onClose}
       />
-      
+
       {/* Modal */}
       <div className="relative bg-dark-900 border border-dark-700 rounded-2xl p-6 max-w-md w-full shadow-2xl animate-fade-in">
         {/* Close button */}
@@ -26,13 +26,13 @@ function ComingSoonModal({ isOpen, onClose, feature }) {
           <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-500/20 to-orange-500/20 flex items-center justify-center mx-auto mb-4">
             <Sparkles className="w-8 h-8 text-amber-400" />
           </div>
-          
+
           <h2 className="text-2xl font-bold text-white mb-2">
-            Coming Soon!
+            Work in Progress
           </h2>
-          
+
           <p className="text-dark-400 mb-6">
-            <span className="text-white font-medium">{feature || 'This feature'}</span> is currently in development and will be available soon in our Pro plan.
+            <span className="text-white font-medium">{feature || 'This feature'}</span> is currently being built and will be available soon.
           </p>
 
           <div className="bg-dark-800/50 rounded-xl p-4 mb-6">
@@ -46,24 +46,12 @@ function ComingSoonModal({ isOpen, onClose, feature }) {
             </ul>
           </div>
 
-          <div className="flex gap-3">
-            <button
-              onClick={onClose}
-              className="flex-1 px-4 py-2.5 rounded-xl bg-dark-800 text-white font-medium hover:bg-dark-700 transition-colors"
-            >
-              Got it
-            </button>
-            <button
-              onClick={() => {
-                // TODO: Add to waitlist
-                onClose();
-              }}
-              className="flex-1 px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-dark-950 font-semibold hover:from-amber-400 hover:to-orange-400 transition-all flex items-center justify-center gap-2"
-            >
-              <Bell className="w-4 h-4" />
-              Notify Me
-            </button>
-          </div>
+          <button
+            onClick={onClose}
+            className="w-full px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-dark-950 font-semibold hover:from-amber-400 hover:to-orange-400 transition-all"
+          >
+            OK
+          </button>
         </div>
       </div>
     </div>

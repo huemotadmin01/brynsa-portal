@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -5,12 +6,14 @@ import {
   ChevronRight, GraduationCap, Crown
 } from 'lucide-react';
 import BrynsaLogo from './BrynsaLogo';
+import ComingSoonModal from './ComingSoonModal';
 
 function Sidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const isPro = user?.plan === 'pro' || user?.plan === 'premium';
+  const [showWipModal, setShowWipModal] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -77,7 +80,10 @@ function Sidebar() {
             <p className="text-sm text-dark-400 mb-3">
               Unlock AI emails, CRM exports & more
             </p>
-            <button className="w-full py-2 px-4 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 text-dark-950 font-semibold text-sm hover:from-amber-400 hover:to-orange-400 transition-all">
+            <button
+              onClick={() => setShowWipModal(true)}
+              className="w-full py-2 px-4 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 text-dark-950 font-semibold text-sm hover:from-amber-400 hover:to-orange-400 transition-all"
+            >
               Upgrade Now
             </button>
           </div>
@@ -113,6 +119,11 @@ function Sidebar() {
           </button>
         </div>
       </div>
+      <ComingSoonModal
+        isOpen={showWipModal}
+        onClose={() => setShowWipModal(false)}
+        feature="Pro Plan"
+      />
     </aside>
   );
 }

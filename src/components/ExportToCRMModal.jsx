@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { X, Upload, RefreshCw, CheckCircle, AlertTriangle, Pencil } from 'lucide-react';
+import { X, Upload, RefreshCw, CheckCircle, AlertTriangle, Pencil, Sparkles } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
 
 function ExportToCRMModal({ isOpen, onClose, lead }) {
   const { user } = useAuth();
+  const isPro = user?.plan === 'pro' || user?.plan === 'premium';
   const [step, setStep] = useState('form'); // 'form' | 'confirm' | 'exporting' | 'success' | 'error' | 'duplicate'
   const [profileType, setProfileType] = useState('');
   const [name, setName] = useState('');
@@ -46,6 +47,33 @@ function ExportToCRMModal({ isOpen, onClose, lead }) {
   }, [isOpen, lead, user?.email]);
 
   if (!isOpen || !lead) return null;
+
+  // Defence-in-depth: block free users from exporting
+  if (!isPro) {
+    return (
+      <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+        <div className="absolute inset-0 bg-dark-950/80 backdrop-blur-sm" onClick={onClose} />
+        <div className="relative bg-dark-900 border border-dark-700 rounded-2xl p-6 max-w-md w-full shadow-2xl text-center">
+          <button onClick={onClose} className="absolute top-4 right-4 p-1 text-dark-400 hover:text-white transition-colors">
+            <X className="w-5 h-5" />
+          </button>
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-500/20 to-orange-500/20 flex items-center justify-center mx-auto mb-4">
+            <Sparkles className="w-8 h-8 text-amber-400" />
+          </div>
+          <h2 className="text-xl font-bold text-white mb-2">Work in Progress</h2>
+          <p className="text-dark-400 mb-6">
+            <span className="text-white font-medium">Export to CRM</span> is currently being built and will be available soon.
+          </p>
+          <button
+            onClick={onClose}
+            className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-dark-950 font-semibold hover:from-amber-400 hover:to-orange-400 transition-all"
+          >
+            OK
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const handleExportClick = () => {
     if (!profileType) {

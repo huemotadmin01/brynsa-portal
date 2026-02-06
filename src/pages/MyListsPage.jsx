@@ -49,7 +49,7 @@ function MyListsPage() {
   const [profileTypeFilter, setProfileTypeFilter] = useState('all');
   const filterRef = useRef(null);
 
-  const isPro = user?.plan === 'pro';
+  const isPro = user?.plan === 'pro' || user?.plan === 'premium';
   const leadsPerPage = 10;
 
   const loadLeads = useCallback(async (listName, pageNum = 1) => {
@@ -613,6 +613,11 @@ function MyListsPage() {
                                 <ManageDropdown
                                   lead={lead}
                                   onExportCRM={() => {
+                                    if (!isPro) {
+                                      setComingSoonFeature('Export to CRM');
+                                      setShowComingSoon(true);
+                                      return;
+                                    }
                                     setExportCRMTarget(lead);
                                     setShowExportCRM(true);
                                   }}

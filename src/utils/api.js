@@ -229,6 +229,64 @@ class ApiClient {
     });
   }
 
+  // Sequence endpoints
+  async getSequences() {
+    return this.request('/api/sequences');
+  }
+
+  async getSequence(id) {
+    return this.request(`/api/sequences/${id}`);
+  }
+
+  async createSequence(data) {
+    return this.request('/api/sequences', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateSequence(id, data) {
+    return this.request(`/api/sequences/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteSequence(id) {
+    return this.request(`/api/sequences/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async enrollInSequence(sequenceId, leadIds) {
+    return this.request(`/api/sequences/${sequenceId}/enroll`, {
+      method: 'POST',
+      body: JSON.stringify({ leadIds }),
+    });
+  }
+
+  async pauseSequence(id) {
+    return this.request(`/api/sequences/${id}/pause`, {
+      method: 'POST',
+    });
+  }
+
+  async resumeSequence(id) {
+    return this.request(`/api/sequences/${id}/resume`, {
+      method: 'POST',
+    });
+  }
+
+  async getSequenceEnrollments(id, page = 1, limit = 50) {
+    return this.request(`/api/sequences/${id}/enrollments?page=${page}&limit=${limit}`);
+  }
+
+  async removeEnrollment(sequenceId, enrollmentId) {
+    return this.request(`/api/sequences/${sequenceId}/enrollments/${enrollmentId}`, {
+      method: 'DELETE',
+    });
+  }
+
   // Account management
   async deleteAccount() {
     return this.request('/api/user/delete-account', {

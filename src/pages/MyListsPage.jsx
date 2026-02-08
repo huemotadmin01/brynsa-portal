@@ -16,6 +16,7 @@ import { exportLeadsToCSV } from '../utils/csvExport';
 import ComingSoonModal from '../components/ComingSoonModal';
 import AddToListModal from '../components/AddToListModal';
 import ExportToCRMModal from '../components/ExportToCRMModal';
+import AddToSequenceModal from '../components/AddToSequenceModal';
 
 function MyListsPage() {
   const navigate = useNavigate();
@@ -46,6 +47,8 @@ function MyListsPage() {
   const [addToListTarget, setAddToListTarget] = useState(null);
   const [showExportCRM, setShowExportCRM] = useState(false);
   const [exportCRMTarget, setExportCRMTarget] = useState(null);
+  const [showAddToSequence, setShowAddToSequence] = useState(false);
+  const [sequenceTarget, setSequenceTarget] = useState(null);
   const [showFilters, setShowFilters] = useState(false);
   const [profileTypeFilter, setProfileTypeFilter] = useState('all');
   const filterRef = useRef(null);
@@ -639,7 +642,10 @@ function MyListsPage() {
                                     setExportCRMTarget(lead);
                                     setShowExportCRM(true);
                                   }}
-                                  onAddToSequence={() => handleFeatureClick('Add to Sequence')}
+                                  onAddToSequence={() => {
+                                    setSequenceTarget(lead);
+                                    setShowAddToSequence(true);
+                                  }}
                                   onAddToList={() => {
                                     setAddToListTarget(lead);
                                     setShowAddToList(true);
@@ -883,6 +889,16 @@ function MyListsPage() {
           setExportCRMTarget(null);
         }}
         lead={exportCRMTarget}
+      />
+
+      <AddToSequenceModal
+        isOpen={showAddToSequence}
+        onClose={() => {
+          setShowAddToSequence(false);
+          setSequenceTarget(null);
+        }}
+        leadIds={sequenceTarget ? [sequenceTarget._id] : []}
+        leadNames={sequenceTarget ? [sequenceTarget.name] : []}
       />
     </Layout>
   );

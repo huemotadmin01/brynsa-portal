@@ -16,6 +16,7 @@ import { exportLeadsToCSV } from '../utils/csvExport';
 import ComingSoonModal from '../components/ComingSoonModal';
 import AddToListModal from '../components/AddToListModal';
 import ExportToCRMModal from '../components/ExportToCRMModal';
+import AddToSequenceModal from '../components/AddToSequenceModal';
 
 function LeadsPage() {
   const { user } = useAuth();
@@ -38,6 +39,8 @@ function LeadsPage() {
   const [addToListTarget, setAddToListTarget] = useState(null);
   const [showExportCRM, setShowExportCRM] = useState(false);
   const [exportCRMTarget, setExportCRMTarget] = useState(null);
+  const [showAddToSequence, setShowAddToSequence] = useState(false);
+  const [sequenceTarget, setSequenceTarget] = useState(null);
 
   const leadsPerPage = 10;
   const isPro = user?.plan === 'pro' || user?.plan === 'premium';
@@ -454,7 +457,10 @@ function LeadsPage() {
                                 setExportCRMTarget(lead);
                                 setShowExportCRM(true);
                               }}
-                              onAddToSequence={() => handleFeatureClick('Add to Sequence')}
+                              onAddToSequence={() => {
+                                setSequenceTarget(lead);
+                                setShowAddToSequence(true);
+                              }}
                               onAddToList={() => {
                                 setAddToListTarget(lead);
                                 setShowAddToList(true);
@@ -653,6 +659,16 @@ function LeadsPage() {
           setExportCRMTarget(null);
         }}
         lead={exportCRMTarget}
+      />
+
+      <AddToSequenceModal
+        isOpen={showAddToSequence}
+        onClose={() => {
+          setShowAddToSequence(false);
+          setSequenceTarget(null);
+        }}
+        leadIds={sequenceTarget ? [sequenceTarget._id] : []}
+        leadNames={sequenceTarget ? [sequenceTarget.name] : []}
       />
     </Layout>
   );

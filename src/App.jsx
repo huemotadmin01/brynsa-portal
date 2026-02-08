@@ -7,8 +7,6 @@ import DashboardPage from './pages/DashboardPage';
 import LeadsPage from './pages/LeadsPage';
 import MyListsPage from './pages/MyListsPage';
 import SettingsPage from './pages/SettingsPage';
-import OnboardingPage from './pages/OnboardingPage';
-import SearchPage from './pages/SearchPage';
 import EngagePage from './pages/EngagePage';
 import PrivacyPage from './pages/PrivacyPage';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -33,22 +31,9 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route
-            path="/onboarding"
-            element={
-              <ProtectedRoute>
-                <OnboardingPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/search"
-            element={
-              <ProtectedRoute>
-                <SearchPage />
-              </ProtectedRoute>
-            }
-          />
+          {/* Redirects for removed pages */}
+          <Route path="/onboarding" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/search" element={<Navigate to="/dashboard" replace />} />
           <Route
             path="/engage"
             element={

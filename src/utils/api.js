@@ -127,6 +127,22 @@ class ApiClient {
     return this.request(url);
   }
 
+  async searchAllLeads({ search, location, title, profileType, company, emailStatus, listName, page = 1, limit = 25, sort = 'createdAt', sortDir = 'desc' } = {}) {
+    const params = new URLSearchParams();
+    if (search) params.set('search', search);
+    if (location) params.set('location', location);
+    if (title) params.set('title', title);
+    if (profileType) params.set('profileType', profileType);
+    if (company) params.set('company', company);
+    if (emailStatus) params.set('emailStatus', emailStatus);
+    if (listName) params.set('listName', listName);
+    params.set('page', page.toString());
+    params.set('limit', limit.toString());
+    params.set('sort', sort);
+    params.set('sortDir', sortDir);
+    return this.request(`/api/portal/leads/search?${params.toString()}`);
+  }
+
   async getLead(id) {
     return this.request(`/api/portal/leads/${id}`);
   }

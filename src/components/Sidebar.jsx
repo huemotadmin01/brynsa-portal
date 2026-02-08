@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
-  Home, Search, Send, Users, List, Settings, LogOut,
-  ChevronRight, GraduationCap, Crown
+  Home, Send, Users, List, Settings, LogOut,
+  ChevronRight, Crown
 } from 'lucide-react';
 import RivvraLogo from './BrynsaLogo';
 import ComingSoonModal from './ComingSoonModal';
@@ -21,9 +21,7 @@ function Sidebar() {
   };
 
   const navItems = [
-    { path: '/onboarding', label: 'Onboarding', icon: GraduationCap, badge: '70%' },
     { path: '/dashboard', label: 'Home', icon: Home },
-    { path: '/search', label: 'Search', icon: Search },
     { path: '/engage', label: 'Engage', icon: Send },
     { path: '/leads', label: 'My Contacts', icon: Users },
     { path: '/lists', label: 'My Lists', icon: List },

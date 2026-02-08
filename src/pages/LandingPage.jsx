@@ -260,11 +260,11 @@ function LandingPage() {
               <span className="font-semibold text-white">Rivvra</span>
             </div>
             <div className="flex items-center gap-6 text-sm text-dark-400">
-              <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
+              <Link to="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
               <a href="#" className="hover:text-white transition-colors">Terms of Service</a>
               <a href="#" className="hover:text-white transition-colors">Contact</a>
             </div>
-            <p className="text-dark-500 text-sm">© 2024 Rivvra. All rights reserved.</p>
+            <p className="text-dark-500 text-sm">&copy; {new Date().getFullYear()} Rivvra. All rights reserved.</p>
           </div>
         </div>
       </footer>

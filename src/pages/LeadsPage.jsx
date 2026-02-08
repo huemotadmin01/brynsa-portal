@@ -12,6 +12,7 @@ import Layout from '../components/Layout';
 import LeadDetailPanel from '../components/LeadDetailPanel';
 import ManageDropdown from '../components/ManageDropdown';
 import api from '../utils/api';
+import { exportLeadsToCSV } from '../utils/csvExport';
 import ComingSoonModal from '../components/ComingSoonModal';
 import AddToListModal from '../components/AddToListModal';
 import ExportToCRMModal from '../components/ExportToCRMModal';
@@ -257,11 +258,16 @@ function LeadsPage() {
                 Refresh
               </button>
               <button
-                onClick={() => handleFeatureClick('Bulk Export')}
+                onClick={() => {
+                  const leadsToExport = selectedLeads.length > 0
+                    ? leads.filter(l => selectedLeads.includes(l._id))
+                    : filteredLeads;
+                  if (leadsToExport.length > 0) exportLeadsToCSV(leadsToExport, 'rivvra-contacts');
+                }}
                 className="flex items-center gap-2 px-4 py-2 rounded-lg bg-dark-800 text-white hover:bg-dark-700 transition-colors"
               >
                 <Download className="w-4 h-4" />
-                Export
+                Export{selectedLeads.length > 0 ? ` (${selectedLeads.length})` : ''}
               </button>
             </div>
           </div>

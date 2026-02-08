@@ -5,11 +5,12 @@ import {
   Search, Users, Mail, MessageSquare, Building2,
   Crown, Lock, Check, ChevronRight, Chrome, ExternalLink,
   Sparkles, ArrowRight, Plus, MapPin, X, Filter,
-  ChevronLeft, Briefcase, Loader2
+  ChevronLeft, Briefcase, Loader2, Download
 } from 'lucide-react';
 import Layout from '../components/Layout';
 import LeadDetailPanel from '../components/LeadDetailPanel';
 import api from '../utils/api';
+import { exportLeadsToCSV } from '../utils/csvExport';
 import ComingSoonModal from '../components/ComingSoonModal';
 
 // ==================== Lead Search Card ====================
@@ -478,20 +479,32 @@ function DashboardPage() {
                     </p>
                   </div>
                   {searchMode === 'contacts' && (
-                    <select
-                      value={`${sortBy}_${sortDir}`}
-                      onChange={(e) => {
-                        const [s, d] = e.target.value.split('_');
-                        setSortBy(s);
-                        setSortDir(d);
-                      }}
-                      className="px-3 py-1.5 bg-dark-800/50 border border-dark-700 rounded-lg text-sm text-dark-300 outline-none cursor-pointer"
-                    >
-                      <option value="createdAt_desc">Newest First</option>
-                      <option value="createdAt_asc">Oldest First</option>
-                      <option value="name_asc">Name A-Z</option>
-                      <option value="name_desc">Name Z-A</option>
-                    </select>
+                    <>
+                      <button
+                        onClick={() => {
+                          if (searchResults.length > 0) exportLeadsToCSV(searchResults, 'rivvra-search');
+                        }}
+                        disabled={searchResults.length === 0 || searchLoading}
+                        className="flex items-center gap-2 px-3 py-1.5 bg-dark-800/50 border border-dark-700 rounded-lg text-sm text-dark-300 hover:text-white hover:border-dark-600 disabled:opacity-50 transition-colors"
+                      >
+                        <Download className="w-4 h-4" />
+                        Export
+                      </button>
+                      <select
+                        value={`${sortBy}_${sortDir}`}
+                        onChange={(e) => {
+                          const [s, d] = e.target.value.split('_');
+                          setSortBy(s);
+                          setSortDir(d);
+                        }}
+                        className="px-3 py-1.5 bg-dark-800/50 border border-dark-700 rounded-lg text-sm text-dark-300 outline-none cursor-pointer"
+                      >
+                        <option value="createdAt_desc">Newest First</option>
+                        <option value="createdAt_asc">Oldest First</option>
+                        <option value="name_asc">Name A-Z</option>
+                        <option value="name_desc">Name Z-A</option>
+                      </select>
+                    </>
                   )}
                 </div>
 

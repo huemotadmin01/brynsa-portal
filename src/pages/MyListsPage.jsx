@@ -12,6 +12,7 @@ import Layout from '../components/Layout';
 import LeadDetailPanel from '../components/LeadDetailPanel';
 import ManageDropdown from '../components/ManageDropdown';
 import api from '../utils/api';
+import { exportLeadsToCSV } from '../utils/csvExport';
 import ComingSoonModal from '../components/ComingSoonModal';
 import AddToListModal from '../components/AddToListModal';
 import ExportToCRMModal from '../components/ExportToCRMModal';
@@ -433,11 +434,28 @@ function MyListsPage() {
                     Refresh
                   </button>
                   <button
-                    onClick={() => handleFeatureClick('Bulk Export')}
+                    onClick={async () => {
+                      let leadsToExport;
+                      if (selectedLeads.length > 0) {
+                        leadsToExport = filteredLeads.filter(l => selectedLeads.includes(l._id));
+                      } else {
+                        try {
+                          const response = await api.getLeads(selectedList);
+                          leadsToExport = response.leads || [];
+                        } catch (err) {
+                          console.error('Failed to fetch leads for export:', err);
+                          leadsToExport = filteredLeads;
+                        }
+                      }
+                      if (leadsToExport.length > 0) {
+                        const prefix = `rivvra-${(selectedList || 'list').replace(/\s+/g, '-').toLowerCase()}`;
+                        exportLeadsToCSV(leadsToExport, prefix);
+                      }
+                    }}
                     className="flex items-center gap-2 px-4 py-2 rounded-lg bg-dark-800 text-white hover:bg-dark-700 transition-colors"
                   >
                     <Download className="w-4 h-4" />
-                    Export
+                    Export{selectedLeads.length > 0 ? ` (${selectedLeads.length})` : ''}
                   </button>
                 </div>
               </div>

@@ -51,6 +51,7 @@ function MyListsPage() {
   const [sequenceTarget, setSequenceTarget] = useState(null);
   const [showFilters, setShowFilters] = useState(false);
   const [profileTypeFilter, setProfileTypeFilter] = useState('all');
+  const [outreachStatusFilter, setOutreachStatusFilter] = useState('all');
   const filterRef = useRef(null);
 
   const isPro = user?.plan === 'pro' || user?.plan === 'premium';
@@ -314,6 +315,8 @@ function MyListsPage() {
     }
   };
 
+  const activeFilterCount = (profileTypeFilter !== 'all' ? 1 : 0) + (outreachStatusFilter !== 'all' ? 1 : 0);
+
   const filteredLeads = leads.filter(lead => {
     const searchLower = searchQuery.toLowerCase();
     const matchesSearch = !searchQuery ||
@@ -326,7 +329,10 @@ function MyListsPage() {
       (profileTypeFilter === 'candidate' && lead.profileType === 'candidate') ||
       (profileTypeFilter === 'client' && lead.profileType === 'client');
 
-    return matchesSearch && matchesProfileType;
+    const leadStatus = lead.outreachStatus || 'not_contacted';
+    const matchesOutreachStatus = outreachStatusFilter === 'all' || leadStatus === outreachStatusFilter;
+
+    return matchesSearch && matchesProfileType && matchesOutreachStatus;
   });
 
   return (
@@ -479,15 +485,15 @@ function MyListsPage() {
                   <button
                     onClick={() => setShowFilters(!showFilters)}
                     className={`flex items-center gap-2 px-4 py-2.5 bg-dark-800 border rounded-xl transition-colors ${
-                      profileTypeFilter !== 'all'
+                      activeFilterCount > 0
                         ? 'border-rivvra-500 text-rivvra-400'
                         : 'border-dark-700 text-dark-300 hover:text-white'
                     }`}
                   >
                     <Filter className="w-4 h-4" />
                     Filters
-                    {profileTypeFilter !== 'all' && (
-                      <span className="ml-1 px-1.5 py-0.5 text-xs bg-rivvra-500 text-dark-950 rounded-full">1</span>
+                    {activeFilterCount > 0 && (
+                      <span className="ml-1 px-1.5 py-0.5 text-xs bg-rivvra-500 text-dark-950 rounded-full">{activeFilterCount}</span>
                     )}
                   </button>
 
@@ -497,9 +503,9 @@ function MyListsPage() {
                       <div className="p-4">
                         <div className="flex items-center justify-between mb-3">
                           <span className="text-sm font-medium text-white">Filters</span>
-                          {profileTypeFilter !== 'all' && (
+                          {activeFilterCount > 0 && (
                             <button
-                              onClick={() => setProfileTypeFilter('all')}
+                              onClick={() => { setProfileTypeFilter('all'); setOutreachStatusFilter('all'); }}
                               className="text-xs text-rivvra-400 hover:text-rivvra-300"
                             >
                               Clear all
@@ -518,6 +524,23 @@ function MyListsPage() {
                             <option value="all">All Types</option>
                             <option value="candidate">Candidate</option>
                             <option value="client">Client</option>
+                          </select>
+                        </div>
+
+                        {/* Outreach Status Filter */}
+                        <div className="mb-3">
+                          <label className="block text-xs text-dark-400 mb-2">Outreach Status</label>
+                          <select
+                            value={outreachStatusFilter}
+                            onChange={(e) => setOutreachStatusFilter(e.target.value)}
+                            className="w-full px-3 py-2 bg-dark-900 border border-dark-600 rounded-lg text-sm text-white focus:outline-none focus:border-rivvra-500"
+                          >
+                            <option value="all">All Statuses</option>
+                            <option value="not_contacted">Not Contacted</option>
+                            <option value="in_sequence">In Sequence</option>
+                            <option value="replied">Replied</option>
+                            <option value="no_response">No Response</option>
+                            <option value="bounced">Bounced</option>
                           </select>
                         </div>
 
@@ -576,6 +599,7 @@ function MyListsPage() {
                             <th className="sticky left-[260px] z-30 bg-dark-800 px-4 py-3 text-left w-[110px] min-w-[110px] shadow-[2px_0_5px_-2px_rgba(0,0,0,0.3)]"></th>
                             {/* Scrollable Columns */}
                             <th className="px-4 py-3 text-left text-sm font-medium text-dark-400 min-w-[120px]">Profile Type</th>
+                            <th className="px-4 py-3 text-left text-sm font-medium text-dark-400 min-w-[130px]">Status</th>
                             <th className="px-4 py-3 text-left text-sm font-medium text-dark-400 min-w-[180px]">Company</th>
                             <th className="px-4 py-3 text-left text-sm font-medium text-dark-400 min-w-[150px]">Location</th>
                             <th className="px-4 py-3 text-left text-sm font-medium text-dark-400 min-w-[200px]">Email</th>
@@ -673,6 +697,22 @@ function MyListsPage() {
                                 ) : (
                                   <span className="text-dark-500">-</span>
                                 )}
+                              </td>
+                              <td className="px-4 py-3">
+                                {(() => {
+                                  const statusConfig = {
+                                    in_sequence: { label: 'In Sequence', cls: 'bg-blue-500/10 text-blue-400' },
+                                    replied: { label: 'Replied', cls: 'bg-emerald-500/10 text-emerald-400' },
+                                    no_response: { label: 'No Response', cls: 'bg-orange-500/10 text-orange-400' },
+                                    bounced: { label: 'Bounced', cls: 'bg-red-500/10 text-red-400' },
+                                  };
+                                  const cfg = statusConfig[lead.outreachStatus];
+                                  return cfg ? (
+                                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${cfg.cls}`}>{cfg.label}</span>
+                                  ) : (
+                                    <span className="px-2 py-1 text-xs font-medium rounded-full bg-dark-700 text-dark-400">Not Contacted</span>
+                                  );
+                                })()}
                               </td>
                               <td className="px-4 py-3">
                                 <div className="flex items-center gap-2 text-sm">

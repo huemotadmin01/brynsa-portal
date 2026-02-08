@@ -19,6 +19,10 @@ const CSV_COLUMNS = [
     const type = lead.profileType || '';
     return type.charAt(0).toUpperCase() + type.slice(1);
   }},
+  { header: 'Outreach Status', field: (lead) => {
+    const STATUS_LABELS = { in_sequence: 'In Sequence', replied: 'Replied', no_response: 'No Response', bounced: 'Bounced' };
+    return STATUS_LABELS[lead.outreachStatus] || 'Not Contacted';
+  }},
   { header: 'LinkedIn URL', field: (lead) => lead.linkedinUrl || '' },
   { header: 'Email Verified', field: (lead) => {
     if (lead.emailVerified === true) return 'Yes';

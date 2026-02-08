@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Layout from '../components/Layout';
 import SequenceBuilder from '../components/SequenceBuilder';
 import api from '../utils/api';
@@ -22,6 +22,8 @@ import {
   XCircle,
   MessageSquare,
   Ban,
+  ThumbsDown,
+  ChevronDown,
 } from 'lucide-react';
 
 const STATUS_STYLES = {
@@ -34,12 +36,59 @@ const ENROLLMENT_STATUS = {
   active: { text: 'text-green-400', label: 'Active' },
   completed: { text: 'text-blue-400', label: 'Completed' },
   replied: { text: 'text-emerald-400', label: 'Replied' },
+  replied_not_interested: { text: 'text-purple-400', label: 'Not Interested' },
   lost_no_response: { text: 'text-orange-400', label: 'No Response' },
   paused: { text: 'text-amber-400', label: 'Paused' },
   bounced: { text: 'text-red-400', label: 'Bounced' },
   error: { text: 'text-red-400', label: 'Error' },
   stopped: { text: 'text-dark-400', label: 'Stopped' },
 };
+
+// Reply Dropdown Component
+function ReplyDropdown({ onReplied, onNotInterested }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handleClick = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [open]);
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen(!open)}
+        title="Mark reply status"
+        className="flex items-center gap-0.5 p-1.5 text-dark-500 hover:text-emerald-400 transition-colors"
+      >
+        <MessageSquare className="w-4 h-4" />
+        <ChevronDown className="w-3 h-3" />
+      </button>
+      {open && (
+        <div className="absolute right-0 top-full mt-1 w-48 bg-dark-800 border border-dark-600 rounded-xl shadow-xl py-1 z-30">
+          <button
+            onClick={() => { onReplied(); setOpen(false); }}
+            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-emerald-400 hover:bg-dark-700 transition-colors"
+          >
+            <MessageSquare className="w-3.5 h-3.5" />
+            Replied (Interested)
+          </button>
+          <button
+            onClick={() => { onNotInterested(); setOpen(false); }}
+            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-purple-400 hover:bg-dark-700 transition-colors"
+          >
+            <ThumbsDown className="w-3.5 h-3.5" />
+            Not Interested
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function EngagePage() {
   // Views: 'list' | 'detail'
@@ -186,10 +235,10 @@ function EngagePage() {
     }
   };
 
-  const handleMarkReplied = async (enrollmentId) => {
+  const handleMarkReplied = async (enrollmentId, replyType = 'interested') => {
     if (!selectedSequence) return;
     try {
-      await api.markEnrollmentReplied(selectedSequence._id, enrollmentId);
+      await api.markEnrollmentReplied(selectedSequence._id, enrollmentId, replyType);
       // Refresh detail view to get updated stats and enrollment status
       await loadDetail(selectedSequence._id);
     } catch (err) {
@@ -575,7 +624,7 @@ function DetailView({
       </div>
 
       {/* Stats cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3 mb-6">
         <StatCard label="Enrolled" value={stats.enrolled || 0} icon={Users} />
         <StatCard label="Sent" value={stats.sent || 0} icon={Send} />
         <StatCard label="Opened" value={stats.opened || 0} icon={Eye} />
@@ -589,6 +638,12 @@ function DetailView({
           value={stats.replied || 0}
           icon={MessageSquare}
           success={stats.replied > 0}
+        />
+        <StatCard
+          label="Not Interested"
+          value={stats.repliedNotInterested || 0}
+          icon={ThumbsDown}
+          warn={stats.repliedNotInterested > 0}
         />
         <StatCard
           label="No Response"
@@ -718,6 +773,8 @@ function DetailView({
                         <td className="py-3 pr-4 text-dark-400">
                           {enrollment.status === 'replied'
                             ? 'Replied'
+                            : enrollment.status === 'replied_not_interested'
+                            ? 'Replied'
                             : enrollment.status === 'lost_no_response'
                             ? 'Done'
                             : enrollment.status === 'completed'
@@ -732,13 +789,10 @@ function DetailView({
                         <td className="py-3 text-right">
                           <div className="flex items-center justify-end gap-1">
                             {(enrollment.status === 'active' || enrollment.status === 'paused') && (
-                              <button
-                                onClick={() => onMarkReplied(enrollment._id)}
-                                title="Mark as replied"
-                                className="p-1.5 text-dark-500 hover:text-emerald-400 transition-colors"
-                              >
-                                <MessageSquare className="w-4 h-4" />
-                              </button>
+                              <ReplyDropdown
+                                onReplied={() => onMarkReplied(enrollment._id, 'interested')}
+                                onNotInterested={() => onMarkReplied(enrollment._id, 'not_interested')}
+                              />
                             )}
                             <button
                               onClick={() => onRemoveEnrollment(enrollment._id)}

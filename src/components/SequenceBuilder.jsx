@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { X, Plus, Mail, Clock, ChevronUp, ChevronDown, Trash2, RefreshCw, Info, Zap } from 'lucide-react';
+import { X, Plus, Mail, Clock, ChevronUp, ChevronDown, Trash2, RefreshCw, Info, Zap, Settings, Tag } from 'lucide-react';
+import api from '../utils/api';
 
 const PLACEHOLDERS = [
   { label: '{{firstName}}', desc: 'First name' },
@@ -22,17 +23,91 @@ const FOLLOW_UP_TEMPLATE = [
   { type: 'email', subject: 'Last note from me, {{firstName}}', body: 'Hi {{firstName}},\n\nThis will be my last follow-up. I don\'t want to be a bother.\n\nIf you\'d ever like to revisit this conversation, feel free to reach out anytime.\n\nWishing you and {{company}} all the best!\n\n{{senderName}}', days: 0 },
 ];
 
+const DEFAULT_RULES = {
+  onReplied: { updateStatus: true, moveToList: '', addTags: [] },
+  onRepliedNotInterested: { updateStatus: true, moveToList: '', addTags: [] },
+  onNoResponse: { updateStatus: true, moveToList: '', addTags: [] },
+  onBounced: { updateStatus: true, moveToList: '', addTags: [] },
+};
+
+const TRIGGER_CONFIG = [
+  { key: 'onReplied', label: 'On Reply (Interested)', statusLabel: 'Replied', color: 'emerald' },
+  { key: 'onRepliedNotInterested', label: 'On Reply (Not Interested)', statusLabel: 'Not Interested', color: 'purple' },
+  { key: 'onNoResponse', label: 'On No Response', statusLabel: 'No Response', color: 'orange' },
+  { key: 'onBounced', label: 'On Bounce', statusLabel: 'Bounced', color: 'red' },
+];
+
+// Tag input component
+function TagInput({ tags, onChange }) {
+  const [input, setInput] = useState('');
+
+  const addTag = () => {
+    const tag = input.trim();
+    if (tag && !tags.includes(tag)) {
+      onChange([...tags, tag]);
+    }
+    setInput('');
+  };
+
+  const removeTag = (index) => {
+    onChange(tags.filter((_, i) => i !== index));
+  };
+
+  return (
+    <div>
+      <div className="flex flex-wrap gap-1.5 mb-2">
+        {tags.map((tag, i) => (
+          <span
+            key={i}
+            className="inline-flex items-center gap-1 px-2 py-0.5 bg-rivvra-500/10 text-rivvra-400 border border-rivvra-500/20 rounded-full text-xs"
+          >
+            {tag}
+            <button onClick={() => removeTag(i)} className="hover:text-white transition-colors">
+              <X className="w-3 h-3" />
+            </button>
+          </span>
+        ))}
+      </div>
+      <div className="flex items-center gap-2">
+        <input
+          type="text"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } }}
+          placeholder="Type tag and press Enter"
+          className="flex-1 px-3 py-1.5 bg-dark-800 border border-dark-600 rounded-lg text-white text-xs placeholder-dark-500 focus:outline-none focus:border-rivvra-500"
+        />
+        <button
+          onClick={addTag}
+          disabled={!input.trim()}
+          className="px-2 py-1.5 bg-dark-700 text-dark-300 rounded-lg text-xs hover:bg-dark-600 hover:text-white transition-colors disabled:opacity-30"
+        >
+          <Plus className="w-3.5 h-3.5" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function SequenceBuilder({ isOpen, onClose, onSave, sequence = null }) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [steps, setSteps] = useState([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [automationRules, setAutomationRules] = useState({ ...DEFAULT_RULES });
+  const [showAutomation, setShowAutomation] = useState(false);
+  const [lists, setLists] = useState([]);
 
   const isEdit = !!sequence;
 
   useEffect(() => {
     if (isOpen) {
+      // Load user's lists for the dropdown
+      api.getLists().then(res => {
+        setLists(res.lists || []);
+      }).catch(() => {});
+
       if (sequence) {
         setName(sequence.name || '');
         setDescription(sequence.description || '');
@@ -45,6 +120,19 @@ function SequenceBuilder({ isOpen, onClose, onSave, sequence = null }) {
             days: s.days || 1,
           }))
         );
+        // Load existing automation rules with defaults
+        const existing = sequence.automationRules || {};
+        setAutomationRules({
+          onReplied: { ...DEFAULT_RULES.onReplied, ...existing.onReplied },
+          onRepliedNotInterested: { ...DEFAULT_RULES.onRepliedNotInterested, ...existing.onRepliedNotInterested },
+          onNoResponse: { ...DEFAULT_RULES.onNoResponse, ...existing.onNoResponse },
+          onBounced: { ...DEFAULT_RULES.onBounced, ...existing.onBounced },
+        });
+        // Show automation section if any rules are configured beyond defaults
+        const hasCustomRules = Object.values(existing).some(
+          r => r && (r.moveToList || (r.addTags && r.addTags.length > 0))
+        );
+        setShowAutomation(hasCustomRules);
       } else {
         setName('');
         setDescription('');
@@ -57,6 +145,8 @@ function SequenceBuilder({ isOpen, onClose, onSave, sequence = null }) {
             days: s.days,
           }))
         );
+        setAutomationRules({ ...DEFAULT_RULES });
+        setShowAutomation(false);
       }
       setError('');
     }
@@ -94,6 +184,13 @@ function SequenceBuilder({ isOpen, onClose, onSave, sequence = null }) {
     const newSteps = [...steps];
     [newSteps[index], newSteps[newIndex]] = [newSteps[newIndex], newSteps[index]];
     setSteps(newSteps);
+  };
+
+  const updateRule = (triggerKey, field, value) => {
+    setAutomationRules(prev => ({
+      ...prev,
+      [triggerKey]: { ...prev[triggerKey], [field]: value }
+    }));
   };
 
   const handleSave = async () => {
@@ -139,6 +236,7 @@ function SequenceBuilder({ isOpen, onClose, onSave, sequence = null }) {
           body: s.body,
           days: s.days,
         })),
+        automationRules,
       });
       onClose();
     } catch (err) {
@@ -377,6 +475,77 @@ function SequenceBuilder({ isOpen, onClose, onSave, sequence = null }) {
                 </div>
               ))}
             </div>
+          </div>
+
+          {/* Automation Rules Section */}
+          <div className="border border-dark-700 rounded-xl overflow-hidden">
+            <button
+              onClick={() => setShowAutomation(!showAutomation)}
+              className="w-full flex items-center justify-between px-4 py-3 bg-dark-800/50 hover:bg-dark-800 transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <Settings className="w-4 h-4 text-rivvra-400" />
+                <span className="text-sm font-medium text-white">Automation Rules</span>
+                <span className="text-xs text-dark-500">Configure actions on status changes</span>
+              </div>
+              <ChevronDown className={`w-4 h-4 text-dark-400 transition-transform ${showAutomation ? 'rotate-180' : ''}`} />
+            </button>
+
+            {showAutomation && (
+              <div className="p-4 space-y-3 border-t border-dark-700">
+                {TRIGGER_CONFIG.map(({ key, label, statusLabel, color }) => {
+                  const rule = automationRules[key] || DEFAULT_RULES[key];
+                  return (
+                    <div key={key} className={`border border-${color}-500/20 rounded-lg p-3 bg-${color}-500/5`}>
+                      <div className="flex items-center gap-2 mb-3">
+                        <span className={`w-2 h-2 rounded-full bg-${color}-400`} />
+                        <span className="text-xs font-semibold text-dark-200">{label}</span>
+                      </div>
+
+                      {/* Update Status */}
+                      <div className="flex items-center gap-2 mb-2">
+                        <input
+                          type="checkbox"
+                          checked={rule.updateStatus !== false}
+                          onChange={(e) => updateRule(key, 'updateStatus', e.target.checked)}
+                          className="rounded border-dark-600 bg-dark-800 text-rivvra-500 focus:ring-rivvra-500 w-3.5 h-3.5"
+                        />
+                        <span className="text-xs text-dark-300">
+                          Update lead status to <span className={`text-${color}-400 font-medium`}>"{statusLabel}"</span>
+                        </span>
+                      </div>
+
+                      {/* Move to List */}
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-xs text-dark-400 w-20 flex-shrink-0">Move to list:</span>
+                        <select
+                          value={rule.moveToList || ''}
+                          onChange={(e) => updateRule(key, 'moveToList', e.target.value)}
+                          className="flex-1 px-2 py-1.5 bg-dark-800 border border-dark-600 rounded-lg text-xs text-white focus:outline-none focus:border-rivvra-500"
+                        >
+                          <option value="">None</option>
+                          {lists.map((list) => (
+                            <option key={list.name} value={list.name}>{list.name}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* Add Tags */}
+                      <div>
+                        <div className="flex items-center gap-1 mb-1.5">
+                          <Tag className="w-3 h-3 text-dark-400" />
+                          <span className="text-xs text-dark-400">Add tags:</span>
+                        </div>
+                        <TagInput
+                          tags={rule.addTags || []}
+                          onChange={(tags) => updateRule(key, 'addTags', tags)}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {/* Info note */}

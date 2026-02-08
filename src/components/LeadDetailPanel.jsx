@@ -13,6 +13,9 @@ function LeadDetailPanel({ lead, onClose, onUpdate }) {
   const [notes, setNotes] = useState(lead?.notes || []);
   const [profileType, setProfileType] = useState(lead?.profileType || '');
   const [savingProfileType, setSavingProfileType] = useState(false);
+  const [tags, setTags] = useState(lead?.tags || []);
+  const [newTag, setNewTag] = useState('');
+  const [savingTags, setSavingTags] = useState(false);
 
   // Sync notes when lead changes
   useEffect(() => {
@@ -23,6 +26,11 @@ function LeadDetailPanel({ lead, onClose, onUpdate }) {
   useEffect(() => {
     setProfileType(lead?.profileType || '');
   }, [lead?._id, lead?.profileType]);
+
+  // Sync tags when lead changes
+  useEffect(() => {
+    setTags(lead?.tags || []);
+  }, [lead?._id, lead?.tags]);
 
   if (!lead) return null;
 
@@ -101,6 +109,39 @@ function LeadDetailPanel({ lead, onClose, onUpdate }) {
       setProfileType(lead?.profileType || '');
     } finally {
       setSavingProfileType(false);
+    }
+  };
+
+  const handleAddTag = async () => {
+    const tagValue = newTag.trim().toLowerCase();
+    if (!tagValue || tags.includes(tagValue)) { setNewTag(''); return; }
+    const updatedTags = [...tags, tagValue];
+    setTags(updatedTags);
+    setNewTag('');
+    try {
+      setSavingTags(true);
+      await api.updateLeadTags(lead._id, updatedTags);
+      if (onUpdate) onUpdate({ ...lead, tags: updatedTags });
+    } catch (err) {
+      console.error('Failed to save tags:', err);
+      setTags(tags); // revert
+    } finally {
+      setSavingTags(false);
+    }
+  };
+
+  const handleRemoveTag = async (tagToRemove) => {
+    const updatedTags = tags.filter((t) => t !== tagToRemove);
+    setTags(updatedTags);
+    try {
+      setSavingTags(true);
+      await api.updateLeadTags(lead._id, updatedTags);
+      if (onUpdate) onUpdate({ ...lead, tags: updatedTags });
+    } catch (err) {
+      console.error('Failed to save tags:', err);
+      setTags(tags); // revert
+    } finally {
+      setSavingTags(false);
     }
   };
 
@@ -243,6 +284,57 @@ function LeadDetailPanel({ lead, onClose, onUpdate }) {
             <option value="candidate">Candidate</option>
             <option value="client">Client</option>
           </select>
+        </div>
+
+        {/* Tags */}
+        <div className="p-4 border-b border-dark-700">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold text-dark-300 uppercase tracking-wider">
+              Tags
+            </h3>
+            {savingTags && (
+              <div className="flex items-center gap-1 text-xs text-dark-500">
+                <RefreshCw className="w-3 h-3 animate-spin" />
+                Saving...
+              </div>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-1.5 mb-3">
+            {tags.length === 0 && (
+              <span className="text-xs text-dark-500">No tags yet</span>
+            )}
+            {tags.map((tag) => (
+              <span
+                key={tag}
+                className="inline-flex items-center gap-1 px-2 py-0.5 text-xs bg-rivvra-500/10 text-rivvra-400 border border-rivvra-500/20 rounded-full"
+              >
+                {tag}
+                <button
+                  onClick={() => handleRemoveTag(tag)}
+                  className="hover:text-red-400 transition-colors"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            ))}
+          </div>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={newTag}
+              onChange={(e) => setNewTag(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleAddTag()}
+              placeholder="Add a tag..."
+              className="flex-1 px-3 py-1.5 bg-dark-800 border border-dark-700 rounded-lg text-white text-xs placeholder-dark-500 focus:outline-none focus:border-rivvra-500"
+            />
+            <button
+              onClick={handleAddTag}
+              disabled={!newTag.trim()}
+              className="px-2 py-1.5 bg-dark-800 hover:bg-dark-700 disabled:opacity-50 disabled:cursor-not-allowed text-dark-300 rounded-lg transition-colors"
+            >
+              <Plus className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
 
         {/* Contact Metadata */}

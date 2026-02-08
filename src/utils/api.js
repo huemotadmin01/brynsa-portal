@@ -287,9 +287,18 @@ class ApiClient {
     });
   }
 
-  async markEnrollmentReplied(sequenceId, enrollmentId) {
+  async markEnrollmentReplied(sequenceId, enrollmentId, replyType = 'interested') {
     return this.request(`/api/sequences/${sequenceId}/enrollments/${enrollmentId}/mark-replied`, {
       method: 'POST',
+      body: JSON.stringify({ replyType }),
+    });
+  }
+
+  // Tags management
+  async updateLeadTags(leadId, tags) {
+    return this.request(`/api/portal/leads/${leadId}/tags`, {
+      method: 'PUT',
+      body: JSON.stringify({ tags }),
     });
   }
 

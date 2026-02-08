@@ -20,6 +20,8 @@ import {
   RefreshCw,
   ChevronRight,
   XCircle,
+  MessageSquare,
+  Ban,
 } from 'lucide-react';
 
 const STATUS_STYLES = {
@@ -31,6 +33,8 @@ const STATUS_STYLES = {
 const ENROLLMENT_STATUS = {
   active: { text: 'text-green-400', label: 'Active' },
   completed: { text: 'text-blue-400', label: 'Completed' },
+  replied: { text: 'text-emerald-400', label: 'Replied' },
+  lost_no_response: { text: 'text-orange-400', label: 'No Response' },
   paused: { text: 'text-amber-400', label: 'Paused' },
   bounced: { text: 'text-red-400', label: 'Bounced' },
   error: { text: 'text-red-400', label: 'Error' },
@@ -182,6 +186,17 @@ function EngagePage() {
     }
   };
 
+  const handleMarkReplied = async (enrollmentId) => {
+    if (!selectedSequence) return;
+    try {
+      await api.markEnrollmentReplied(selectedSequence._id, enrollmentId);
+      // Refresh detail view to get updated stats and enrollment status
+      await loadDetail(selectedSequence._id);
+    } catch (err) {
+      console.error('Failed to mark as replied:', err);
+    }
+  };
+
   // ========================== RENDER ==========================
 
   return (
@@ -223,6 +238,7 @@ function EngagePage() {
             onPause={() => handlePause(selectedSequence?._id)}
             onResume={() => handleResume(selectedSequence?._id)}
             onRemoveEnrollment={handleRemoveEnrollment}
+            onMarkReplied={handleMarkReplied}
             onLoadMore={async () => {
               const nextPage = enrollmentPage + 1;
               try {
@@ -483,6 +499,7 @@ function DetailView({
   onPause,
   onResume,
   onRemoveEnrollment,
+  onMarkReplied,
   onLoadMore,
 }) {
   if (loading && !sequence) {
@@ -558,7 +575,7 @@ function DetailView({
       </div>
 
       {/* Stats cards */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 mb-6">
         <StatCard label="Enrolled" value={stats.enrolled || 0} icon={Users} />
         <StatCard label="Sent" value={stats.sent || 0} icon={Send} />
         <StatCard label="Opened" value={stats.opened || 0} icon={Eye} />
@@ -566,6 +583,18 @@ function DetailView({
           label="Open Rate"
           value={stats.sent > 0 ? `${((stats.opened / stats.sent) * 100).toFixed(0)}%` : '—'}
           icon={Eye}
+        />
+        <StatCard
+          label="Replied"
+          value={stats.replied || 0}
+          icon={MessageSquare}
+          success={stats.replied > 0}
+        />
+        <StatCard
+          label="No Response"
+          value={stats.lostNoResponse || 0}
+          icon={Ban}
+          warn={stats.lostNoResponse > 0}
         />
         <StatCard
           label="Bounced"
@@ -687,7 +716,11 @@ function DetailView({
                           {enrollment.leadEmail}
                         </td>
                         <td className="py-3 pr-4 text-dark-400">
-                          {enrollment.status === 'completed'
+                          {enrollment.status === 'replied'
+                            ? 'Replied'
+                            : enrollment.status === 'lost_no_response'
+                            ? 'Done'
+                            : enrollment.status === 'completed'
                             ? 'Done'
                             : `${currentStep}/${totalSteps}`}
                         </td>
@@ -697,13 +730,24 @@ function DetailView({
                           </span>
                         </td>
                         <td className="py-3 text-right">
-                          <button
-                            onClick={() => onRemoveEnrollment(enrollment._id)}
-                            title="Remove from sequence"
-                            className="p-1.5 text-dark-500 hover:text-red-400 transition-colors"
-                          >
-                            <XCircle className="w-4 h-4" />
-                          </button>
+                          <div className="flex items-center justify-end gap-1">
+                            {(enrollment.status === 'active' || enrollment.status === 'paused') && (
+                              <button
+                                onClick={() => onMarkReplied(enrollment._id)}
+                                title="Mark as replied"
+                                className="p-1.5 text-dark-500 hover:text-emerald-400 transition-colors"
+                              >
+                                <MessageSquare className="w-4 h-4" />
+                              </button>
+                            )}
+                            <button
+                              onClick={() => onRemoveEnrollment(enrollment._id)}
+                              title="Remove from sequence"
+                              className="p-1.5 text-dark-500 hover:text-red-400 transition-colors"
+                            >
+                              <XCircle className="w-4 h-4" />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -730,14 +774,14 @@ function DetailView({
   );
 }
 
-function StatCard({ label, value, icon: Icon, warn = false }) {
+function StatCard({ label, value, icon: Icon, warn = false, success = false }) {
   return (
     <div className="card p-4">
       <div className="flex items-center gap-2 mb-1">
-        <Icon className={`w-4 h-4 ${warn ? 'text-red-400' : 'text-dark-500'}`} />
+        <Icon className={`w-4 h-4 ${success ? 'text-emerald-400' : warn ? 'text-red-400' : 'text-dark-500'}`} />
         <span className="text-xs text-dark-500 font-medium">{label}</span>
       </div>
-      <p className={`text-xl font-bold ${warn ? 'text-red-400' : 'text-white'}`}>
+      <p className={`text-xl font-bold ${success ? 'text-emerald-400' : warn ? 'text-red-400' : 'text-white'}`}>
         {value}
       </p>
     </div>

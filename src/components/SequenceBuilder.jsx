@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Plus, Mail, Clock, ChevronUp, ChevronDown, Trash2, RefreshCw, Info } from 'lucide-react';
+import { X, Plus, Mail, Clock, ChevronUp, ChevronDown, Trash2, RefreshCw, Info, Zap } from 'lucide-react';
 
 const PLACEHOLDERS = [
   { label: '{{firstName}}', desc: 'First name' },
@@ -7,6 +7,19 @@ const PLACEHOLDERS = [
   { label: '{{company}}', desc: 'Company name' },
   { label: '{{title}}', desc: 'Job title' },
   { label: '{{senderName}}', desc: 'Your name' },
+];
+
+// Default follow-up cadence: Initial → 2d → FU1 → 2d → FU2 → 4d → FU3 → 2d → FU4
+const FOLLOW_UP_TEMPLATE = [
+  { type: 'email', subject: 'Quick intro - {{firstName}}', body: 'Hi {{firstName}},\n\nI came across your profile at {{company}} and wanted to reach out.\n\nWould love to connect and share how we might be able to help.\n\nBest,\n{{senderName}}', days: 0 },
+  { type: 'wait', subject: '', body: '', days: 2 },
+  { type: 'email', subject: 'Re: Quick intro - {{firstName}}', body: 'Hi {{firstName}},\n\nJust following up on my last email. I understand you\'re busy, so I\'ll keep this brief.\n\nWould you be open to a quick 15-minute call this week?\n\nBest,\n{{senderName}}', days: 0 },
+  { type: 'wait', subject: '', body: '', days: 2 },
+  { type: 'email', subject: 'One more thought, {{firstName}}', body: 'Hi {{firstName}},\n\nI wanted to share one more thought that might be relevant for {{company}}.\n\nMany companies in your space have seen great results with our approach. Happy to share specifics if you\'re interested.\n\nBest,\n{{senderName}}', days: 0 },
+  { type: 'wait', subject: '', body: '', days: 4 },
+  { type: 'email', subject: 'Following up - {{firstName}}', body: 'Hi {{firstName}},\n\nI know timing is everything, so I wanted to check in one more time.\n\nIf now isn\'t the right time, I completely understand. Just let me know either way.\n\nBest,\n{{senderName}}', days: 0 },
+  { type: 'wait', subject: '', body: '', days: 2 },
+  { type: 'email', subject: 'Last note from me, {{firstName}}', body: 'Hi {{firstName}},\n\nThis will be my last follow-up. I don\'t want to be a bother.\n\nIf you\'d ever like to revisit this conversation, feel free to reach out anytime.\n\nWishing you and {{company}} all the best!\n\n{{senderName}}', days: 0 },
 ];
 
 function SequenceBuilder({ isOpen, onClose, onSave, sequence = null }) {
@@ -35,9 +48,15 @@ function SequenceBuilder({ isOpen, onClose, onSave, sequence = null }) {
       } else {
         setName('');
         setDescription('');
-        setSteps([
-          { id: `step-0-${Date.now()}`, type: 'email', subject: '', body: '', days: 0 },
-        ]);
+        setSteps(
+          FOLLOW_UP_TEMPLATE.map((s, i) => ({
+            id: `step-${i}-${Date.now()}`,
+            type: s.type,
+            subject: s.subject,
+            body: s.body,
+            days: s.days,
+          }))
+        );
       }
       setError('');
     }
@@ -218,6 +237,23 @@ function SequenceBuilder({ isOpen, onClose, onSave, sequence = null }) {
                 >
                   <Clock className="w-3.5 h-3.5" />
                   Add Wait
+                </button>
+                <button
+                  onClick={() => {
+                    setSteps(
+                      FOLLOW_UP_TEMPLATE.map((s, i) => ({
+                        id: `step-${i}-${Date.now()}`,
+                        type: s.type,
+                        subject: s.subject,
+                        body: s.body,
+                        days: s.days,
+                      }))
+                    );
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-rivvra-500/10 text-rivvra-400 border border-rivvra-500/20 rounded-lg text-xs font-medium hover:bg-rivvra-500/20 transition-colors"
+                >
+                  <Zap className="w-3.5 h-3.5" />
+                  Follow-Up Template
                 </button>
               </div>
             </div>

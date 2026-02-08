@@ -287,6 +287,12 @@ class ApiClient {
     });
   }
 
+  async markEnrollmentReplied(sequenceId, enrollmentId) {
+    return this.request(`/api/sequences/${sequenceId}/enrollments/${enrollmentId}/mark-replied`, {
+      method: 'POST',
+    });
+  }
+
   // Account management
   async deleteAccount() {
     return this.request('/api/user/delete-account', {

@@ -374,7 +374,7 @@ function SequenceCard({
   const totalSteps = (sequence.steps || []).length;
 
   const openRate =
-    stats.sent > 0 ? ((stats.opened / stats.sent) * 100).toFixed(0) : '—';
+    stats.sent > 0 ? Math.min((stats.opened / stats.sent) * 100, 100).toFixed(0) : '—';
 
   return (
     <div
@@ -581,7 +581,7 @@ function DetailView({
         <StatCard label="Opened" value={stats.opened || 0} icon={Eye} />
         <StatCard
           label="Open Rate"
-          value={stats.sent > 0 ? `${((stats.opened / stats.sent) * 100).toFixed(0)}%` : '—'}
+          value={stats.sent > 0 ? `${Math.min((stats.opened / stats.sent) * 100, 100).toFixed(0)}%` : '—'}
           icon={Eye}
         />
         <StatCard

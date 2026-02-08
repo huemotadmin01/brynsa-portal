@@ -5,7 +5,7 @@ import {
   Search, Users, Mail, MessageSquare, Building2,
   Crown, Lock, Check, ChevronRight, Chrome, ExternalLink,
   Sparkles, ArrowRight, Plus, MapPin, X, Filter,
-  ChevronLeft, Briefcase, Loader2, Download
+  ChevronLeft, Briefcase, Loader2, Download, UserPlus, List, CheckCircle2
 } from 'lucide-react';
 import Layout from '../components/Layout';
 import LeadDetailPanel from '../components/LeadDetailPanel';
@@ -14,7 +14,7 @@ import { exportLeadsToCSV } from '../utils/csvExport';
 import ComingSoonModal from '../components/ComingSoonModal';
 
 // ==================== Lead Search Card ====================
-function LeadSearchCard({ lead, onClick }) {
+function LeadSearchCard({ lead, onClick, onSave, onAddToList, isSaved, saving }) {
   const hasEmail = lead.email && lead.email !== 'noemail@domain.com' && lead.email !== 'No email found' && lead.email !== '';
   const displayTitle = lead.title || lead.currentTitle || lead.headline || '';
   const displayCompany = lead.company || lead.companyName || '';
@@ -72,6 +72,36 @@ function LeadSearchCard({ lead, onClick }) {
             <span className="text-dark-500">No email</span>
           )}
         </div>
+      </div>
+
+      {/* Action buttons */}
+      <div className="flex items-center gap-2 mt-3 pt-3 border-t border-dark-800">
+        <button
+          onClick={(e) => { e.stopPropagation(); onSave(lead); }}
+          disabled={isSaved || saving}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+            isSaved
+              ? 'bg-green-500/10 text-green-400 border border-green-500/20 cursor-default'
+              : saving
+              ? 'bg-dark-700 text-dark-400 cursor-wait'
+              : 'bg-rivvra-500/10 text-rivvra-400 border border-rivvra-500/20 hover:bg-rivvra-500/20'
+          }`}
+        >
+          {isSaved ? (
+            <><CheckCircle2 className="w-3.5 h-3.5" /> Saved</>
+          ) : saving ? (
+            <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Saving...</>
+          ) : (
+            <><UserPlus className="w-3.5 h-3.5" /> Save Contact</>
+          )}
+        </button>
+        <button
+          onClick={(e) => { e.stopPropagation(); onAddToList(lead); }}
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-dark-700 text-dark-300 border border-dark-600 rounded-lg text-xs font-medium hover:bg-dark-600 hover:text-white transition-colors"
+        >
+          <List className="w-3.5 h-3.5" />
+          Add to List
+        </button>
       </div>
     </div>
   );
@@ -240,6 +270,83 @@ function Pagination({ page, totalPages, onPageChange }) {
   );
 }
 
+// ==================== Add to List Modal ====================
+function AddToListModal({ isOpen, onClose, lists, onSelect, onCreateList, lead }) {
+  const [newListName, setNewListName] = useState('');
+  const [creating, setCreating] = useState(false);
+
+  if (!isOpen || !lead) return null;
+
+  const handleCreate = async () => {
+    if (!newListName.trim()) return;
+    setCreating(true);
+    try {
+      await onCreateList(newListName.trim());
+      setNewListName('');
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-dark-950/80 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-dark-900 border border-dark-700 rounded-2xl w-full max-w-sm shadow-2xl">
+        <div className="p-5 border-b border-dark-800">
+          <div className="flex items-center justify-between">
+            <h3 className="text-white font-semibold">Add to List</h3>
+            <button onClick={onClose} className="p-1 text-dark-400 hover:text-white transition-colors">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          <p className="text-xs text-dark-400 mt-1 truncate">{lead.name}</p>
+        </div>
+
+        <div className="p-3 max-h-60 overflow-y-auto">
+          {lists.length === 0 ? (
+            <p className="text-dark-500 text-sm text-center py-4">No lists yet. Create one below.</p>
+          ) : (
+            <div className="space-y-1">
+              {lists.map((list) => (
+                <button
+                  key={list.name}
+                  onClick={() => onSelect(list.name)}
+                  className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm text-dark-200 hover:bg-dark-800 hover:text-white transition-colors"
+                >
+                  <span className="truncate">{list.name}</span>
+                  <span className="text-xs text-dark-500 flex-shrink-0 ml-2">{list.count || 0}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="p-3 border-t border-dark-800">
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              value={newListName}
+              onChange={(e) => setNewListName(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
+              placeholder="Create new list..."
+              className="flex-1 px-3 py-2 bg-dark-800 border border-dark-600 rounded-lg text-white text-sm placeholder-dark-500 focus:outline-none focus:border-rivvra-500"
+            />
+            <button
+              onClick={handleCreate}
+              disabled={!newListName.trim() || creating}
+              className="px-3 py-2 bg-rivvra-500 text-dark-950 rounded-lg text-sm font-medium hover:bg-rivvra-400 disabled:opacity-50 transition-colors"
+            >
+              {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ==================== Main Dashboard Page ====================
 function DashboardPage() {
   const { user, isAuthenticated } = useAuth();
@@ -274,6 +381,11 @@ function DashboardPage() {
 
   // Detail panel
   const [selectedLead, setSelectedLead] = useState(null);
+
+  // Save & Add to List
+  const [savedLeadIds, setSavedLeadIds] = useState(new Set());
+  const [savingLeadId, setSavingLeadId] = useState(null);
+  const [listModalLead, setListModalLead] = useState(null);
 
   // ---- Dashboard data fetch ----
   const fetchData = useCallback(async () => {
@@ -406,6 +518,89 @@ function DashboardPage() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  // Save contact to My Contacts
+  const handleSaveContact = async (lead) => {
+    setSavingLeadId(lead._id);
+    try {
+      await api.saveLead({
+        name: lead.name,
+        title: lead.title || lead.currentTitle,
+        headline: lead.headline,
+        company: lead.company || lead.companyName,
+        companyName: lead.company || lead.companyName,
+        location: lead.location,
+        linkedinUrl: lead.linkedinUrl,
+        email: lead.email,
+        phone: lead.phone,
+        profilePicture: lead.profilePicture,
+        about: lead.about,
+        currentTitle: lead.currentTitle,
+        profileType: lead.profileType,
+        emailSource: lead.emailSource,
+        emailConfidence: lead.emailConfidence,
+        leadSource: 'portal_search',
+      });
+      setSavedLeadIds((prev) => new Set([...prev, lead._id]));
+      setSavedLeadsCount((prev) => prev + 1);
+    } catch (err) {
+      console.error('Failed to save contact:', err);
+    } finally {
+      setSavingLeadId(null);
+    }
+  };
+
+  // Save contact + add to specific list
+  const handleAddToList = async (listName) => {
+    const lead = listModalLead;
+    if (!lead) return;
+    setSavingLeadId(lead._id);
+    setListModalLead(null);
+    try {
+      await api.saveLead({
+        name: lead.name,
+        title: lead.title || lead.currentTitle,
+        headline: lead.headline,
+        company: lead.company || lead.companyName,
+        companyName: lead.company || lead.companyName,
+        location: lead.location,
+        linkedinUrl: lead.linkedinUrl,
+        email: lead.email,
+        phone: lead.phone,
+        profilePicture: lead.profilePicture,
+        about: lead.about,
+        currentTitle: lead.currentTitle,
+        profileType: lead.profileType,
+        emailSource: lead.emailSource,
+        emailConfidence: lead.emailConfidence,
+        leadSource: 'portal_search',
+        lists: [listName],
+      });
+      setSavedLeadIds((prev) => new Set([...prev, lead._id]));
+      setSavedLeadsCount((prev) => prev + 1);
+      // Refresh lists to update counts
+      try {
+        const listsRes = await api.getLists();
+        setLists(listsRes.lists || []);
+      } catch (e) {}
+    } catch (err) {
+      console.error('Failed to add to list:', err);
+    } finally {
+      setSavingLeadId(null);
+    }
+  };
+
+  // Create a new list and then add the lead to it
+  const handleCreateListAndAdd = async (newListName) => {
+    try {
+      await api.createList(newListName);
+      const listsRes = await api.getLists();
+      setLists(listsRes.lists || []);
+      await handleAddToList(newListName);
+    } catch (err) {
+      console.error('Failed to create list:', err);
+    }
+  };
+
   return (
     <Layout>
       <div className="min-h-screen">
@@ -527,6 +722,10 @@ function DashboardPage() {
                         key={lead._id}
                         lead={lead}
                         onClick={() => setSelectedLead(lead)}
+                        onSave={handleSaveContact}
+                        onAddToList={(lead) => setListModalLead(lead)}
+                        isSaved={savedLeadIds.has(lead._id)}
+                        saving={savingLeadId === lead._id}
                       />
                     ))}
                   </div>
@@ -769,6 +968,16 @@ function DashboardPage() {
           }}
         />
       )}
+
+      {/* Add to List Modal */}
+      <AddToListModal
+        isOpen={!!listModalLead}
+        onClose={() => setListModalLead(null)}
+        lists={lists}
+        lead={listModalLead}
+        onSelect={handleAddToList}
+        onCreateList={handleCreateListAndAdd}
+      />
 
       <ComingSoonModal
         isOpen={showComingSoon}

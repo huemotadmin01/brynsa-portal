@@ -148,7 +148,7 @@ class ApiClient {
   }
 
   async saveLead(data) {
-    return this.request('/api/portal/leads', {
+    return this.request('/api/portal/leads/save', {
       method: 'POST',
       body: JSON.stringify(data),
     });

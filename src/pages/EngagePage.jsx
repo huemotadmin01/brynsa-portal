@@ -44,8 +44,8 @@ const ENROLLMENT_STATUS = {
   stopped: { text: 'text-dark-400', label: 'Stopped' },
 };
 
-// Reply Dropdown Component
-function ReplyDropdown({ onReplied, onNotInterested }) {
+// Reply Dropdown Component — always visible, shows current status
+function ReplyDropdown({ currentStatus, onReplied, onNotInterested }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
@@ -58,31 +58,56 @@ function ReplyDropdown({ onReplied, onNotInterested }) {
     return () => document.removeEventListener('mousedown', handleClick);
   }, [open]);
 
+  // Determine display based on current enrollment status
+  const isReplied = currentStatus === 'replied';
+  const isNotInterested = currentStatus === 'replied_not_interested';
+  const hasReplyStatus = isReplied || isNotInterested;
+
+  const buttonLabel = isReplied ? 'Interested' : isNotInterested ? 'Not Interested' : null;
+  const buttonColor = isReplied
+    ? 'text-emerald-400'
+    : isNotInterested
+    ? 'text-purple-400'
+    : 'text-dark-500 hover:text-emerald-400';
+
   return (
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen(!open)}
-        title="Mark reply status"
-        className="flex items-center gap-0.5 p-1.5 text-dark-500 hover:text-emerald-400 transition-colors"
+        title="Set reply status"
+        className={`flex items-center gap-1 p-1.5 transition-colors ${buttonColor}`}
       >
-        <MessageSquare className="w-4 h-4" />
+        {hasReplyStatus ? (
+          <>
+            {isNotInterested ? <ThumbsDown className="w-3.5 h-3.5" /> : <MessageSquare className="w-3.5 h-3.5" />}
+            <span className="text-xs font-medium">{buttonLabel}</span>
+          </>
+        ) : (
+          <MessageSquare className="w-4 h-4" />
+        )}
         <ChevronDown className="w-3 h-3" />
       </button>
       {open && (
         <div className="absolute right-0 top-full mt-1 w-48 bg-dark-800 border border-dark-600 rounded-xl shadow-xl py-1 z-30">
           <button
             onClick={() => { onReplied(); setOpen(false); }}
-            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-emerald-400 hover:bg-dark-700 transition-colors"
+            className={`w-full flex items-center justify-between gap-2 px-3 py-2 text-sm text-emerald-400 hover:bg-dark-700 transition-colors ${isReplied ? 'bg-dark-700/50' : ''}`}
           >
-            <MessageSquare className="w-3.5 h-3.5" />
-            Replied (Interested)
+            <span className="flex items-center gap-2">
+              <MessageSquare className="w-3.5 h-3.5" />
+              Replied (Interested)
+            </span>
+            {isReplied && <span className="text-[10px] text-dark-400">✓</span>}
           </button>
           <button
             onClick={() => { onNotInterested(); setOpen(false); }}
-            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-purple-400 hover:bg-dark-700 transition-colors"
+            className={`w-full flex items-center justify-between gap-2 px-3 py-2 text-sm text-purple-400 hover:bg-dark-700 transition-colors ${isNotInterested ? 'bg-dark-700/50' : ''}`}
           >
-            <ThumbsDown className="w-3.5 h-3.5" />
-            Not Interested
+            <span className="flex items-center gap-2">
+              <ThumbsDown className="w-3.5 h-3.5" />
+              Not Interested
+            </span>
+            {isNotInterested && <span className="text-[10px] text-dark-400">✓</span>}
           </button>
         </div>
       )}
@@ -788,8 +813,9 @@ function DetailView({
                         </td>
                         <td className="py-3 text-right">
                           <div className="flex items-center justify-end gap-1">
-                            {(enrollment.status === 'active' || enrollment.status === 'paused') && (
+                            {['active', 'paused', 'replied', 'replied_not_interested'].includes(enrollment.status) && (
                               <ReplyDropdown
+                                currentStatus={enrollment.status}
                                 onReplied={() => onMarkReplied(enrollment._id, 'interested')}
                                 onNotInterested={() => onMarkReplied(enrollment._id, 'not_interested')}
                               />

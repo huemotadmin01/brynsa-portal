@@ -417,7 +417,7 @@ function LeadsPage() {
                         </th>
                         <th className="sticky left-[260px] z-30 bg-dark-800 px-4 py-3 text-left w-[110px] min-w-[110px] shadow-[2px_0_5px_-2px_rgba(0,0,0,0.3)]"></th>
                         <th className="px-4 py-3 text-left text-sm font-medium text-dark-400 min-w-[120px]">Profile Type</th>
-                        <th className="px-4 py-3 text-left text-sm font-medium text-dark-400 min-w-[130px]">Status</th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-dark-400 min-w-[150px]">Status</th>
                         <th className="px-4 py-3 text-left text-sm font-medium text-dark-400 min-w-[180px]">Company</th>
                         <th className="px-4 py-3 text-left text-sm font-medium text-dark-400 min-w-[150px]">Location</th>
                         <th className="px-4 py-3 text-left text-sm font-medium text-dark-400 min-w-[200px]">Email</th>
@@ -520,9 +520,9 @@ function LeadsPage() {
                               };
                               const cfg = statusConfig[lead.outreachStatus];
                               return cfg ? (
-                                <span className={`px-2 py-1 text-xs font-medium rounded-full ${cfg.cls}`}>{cfg.label}</span>
+                                <span className={`px-2 py-1 text-xs font-medium rounded-full whitespace-nowrap ${cfg.cls}`}>{cfg.label}</span>
                               ) : (
-                                <span className="px-2 py-1 text-xs font-medium rounded-full bg-dark-700 text-dark-400">Not Contacted</span>
+                                <span className="px-2 py-1 text-xs font-medium rounded-full whitespace-nowrap bg-dark-700 text-dark-400">Not Contacted</span>
                               );
                             })()}
                           </td>

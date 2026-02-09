@@ -17,6 +17,7 @@ import ComingSoonModal from '../components/ComingSoonModal';
 import AddToListModal from '../components/AddToListModal';
 import ExportToCRMModal from '../components/ExportToCRMModal';
 import AddToSequenceModal from '../components/AddToSequenceModal';
+import EditContactModal from '../components/EditContactModal';
 
 function MyListsPage() {
   const navigate = useNavigate();
@@ -49,6 +50,8 @@ function MyListsPage() {
   const [exportCRMTarget, setExportCRMTarget] = useState(null);
   const [showAddToSequence, setShowAddToSequence] = useState(false);
   const [sequenceTarget, setSequenceTarget] = useState(null);
+  const [showEditContact, setShowEditContact] = useState(false);
+  const [editContactTarget, setEditContactTarget] = useState(null);
   const [showFilters, setShowFilters] = useState(false);
   const [profileTypeFilter, setProfileTypeFilter] = useState('all');
   const [outreachStatusFilter, setOutreachStatusFilter] = useState('all');
@@ -676,7 +679,8 @@ function MyListsPage() {
                                     setShowAddToList(true);
                                   }}
                                   onEditContact={() => {
-                                    setSelectedLead(lead);
+                                    setEditContactTarget(lead);
+                                    setShowEditContact(true);
                                   }}
                                   onTagContact={() => handleFeatureClick('Tag Contact')}
                                   onRemoveContact={() => {
@@ -941,6 +945,16 @@ function MyListsPage() {
         }}
         leadIds={sequenceTarget ? [sequenceTarget._id] : []}
         leadNames={sequenceTarget ? [sequenceTarget.name] : []}
+      />
+
+      <EditContactModal
+        lead={editContactTarget}
+        isOpen={showEditContact}
+        onClose={() => {
+          setShowEditContact(false);
+          setEditContactTarget(null);
+        }}
+        onLeadUpdate={handleLeadUpdate}
       />
     </Layout>
   );

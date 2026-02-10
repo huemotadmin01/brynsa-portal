@@ -16,7 +16,7 @@ function EngageSettings({ gmailStatus }) {
 
   useEffect(() => {
     loadSettings();
-  }, []);
+  }, [gmailStatus?.connected]);
 
   async function loadSettings() {
     try {
@@ -225,8 +225,16 @@ function EngageSettings({ gmailStatus }) {
 
       {/* Email signature */}
       <div className="card p-6">
-        <h3 className="text-sm font-semibold text-white mb-1">Email signature</h3>
-        <p className="text-xs text-dark-400 mb-4">This signature will be appended to all sequence emails.</p>
+        <div className="flex items-center justify-between mb-1">
+          <h3 className="text-sm font-semibold text-white">Email signature</h3>
+          {gmailStatus.connected && !settings.signature && (
+            <span className="text-xs text-dark-500">Connect Gmail to auto-import your signature</span>
+          )}
+          {gmailStatus.connected && settings.signature && (
+            <span className="text-xs text-rivvra-400">Synced from Gmail</span>
+          )}
+        </div>
+        <p className="text-xs text-dark-400 mb-4">This signature will be appended to all sequence emails. It is automatically fetched from your connected Gmail account.</p>
 
         <textarea
           value={settings.signature || ''}

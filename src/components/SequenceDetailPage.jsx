@@ -1116,6 +1116,14 @@ function EmailsTab({ sequenceId, sequence, enrollments, emails, total, loading, 
     };
   }, [selectedContact, sequence]);
 
+  // Re-filter contact emails when email log data arrives
+  useEffect(() => {
+    if (selectedContact && emails.length > 0) {
+      const filtered = emails.filter(e => e.leadEmail === selectedContact.leadEmail);
+      setContactEmails(filtered);
+    }
+  }, [emails.length, selectedContact]);
+
   // Auto-select first contact
   useEffect(() => {
     if (!selectedContact && paginatedContacts.length > 0) {

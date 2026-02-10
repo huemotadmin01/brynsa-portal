@@ -3,10 +3,12 @@ import {
   ArrowLeft, Mail, Clock, Users, Send, Eye, MessageSquare,
   AlertTriangle, XCircle, ChevronDown, ChevronUp, ThumbsDown, Loader2,
   Calendar, MoreVertical, Search, Linkedin, UserPlus, Pause, Play,
-  ArrowUpDown, ChevronLeft, ChevronRight, Save, Check
+  ArrowUpDown, ChevronLeft, ChevronRight, Save, Check, X, Edit3, Trash2,
+  UserMinus
 } from 'lucide-react';
 import api from '../utils/api';
 import ToggleSwitch from './ToggleSwitch';
+import AddToSequenceModal from './AddToSequenceModal';
 
 const ENROLLMENT_STATUS = {
   active: { text: 'text-green-400', label: 'Active' },
@@ -19,6 +21,14 @@ const ENROLLMENT_STATUS = {
   error: { text: 'text-red-400', label: 'Error' },
   stopped: { text: 'text-dark-400', label: 'Stopped' },
 };
+
+const PLACEHOLDERS = [
+  { label: '{{firstName}}', desc: 'First name' },
+  { label: '{{lastName}}', desc: 'Last name' },
+  { label: '{{company}}', desc: 'Company name' },
+  { label: '{{title}}', desc: 'Job title' },
+  { label: '{{senderName}}', desc: 'Your name' },
+];
 
 function SequenceDetailPage({ sequenceId, onBack }) {
   const [sequence, setSequence] = useState(null);
@@ -36,6 +46,11 @@ function SequenceDetailPage({ sequenceId, onBack }) {
   const [emailLogTotal, setEmailLogTotal] = useState(0);
   const [emailLogPage, setEmailLogPage] = useState(1);
   const [emailLogLoading, setEmailLogLoading] = useState(false);
+
+  // Modals
+  const [showAddContacts, setShowAddContacts] = useState(false);
+  const [showStepEditor, setShowStepEditor] = useState(null); // { stepIndex, step }
+  const [showAddEmail, setShowAddEmail] = useState(false);
 
   const loadSequence = useCallback(async () => {
     try {
@@ -138,6 +153,82 @@ function SequenceDetailPage({ sequenceId, onBack }) {
     }
   }
 
+  // Step actions
+  async function handleToggleStep(stepIndex) {
+    try {
+      const res = await api.toggleStep(sequenceId, stepIndex);
+      if (res.success) {
+        setSequence(res.sequence);
+      }
+    } catch (err) {
+      console.error('Toggle step failed:', err);
+    }
+  }
+
+  async function handleUpdateStep(stepIndex, data) {
+    try {
+      const res = await api.updateStep(sequenceId, stepIndex, data);
+      if (res.success) {
+        setSequence(res.sequence);
+        setShowStepEditor(null);
+      }
+    } catch (err) {
+      console.error('Update step failed:', err);
+    }
+  }
+
+  async function handleDeleteStep(stepIndex) {
+    if (!confirm('Are you sure you want to delete this step?')) return;
+    try {
+      const res = await api.deleteStep(sequenceId, stepIndex);
+      if (res.success) {
+        setSequence(res.sequence);
+      }
+    } catch (err) {
+      console.error('Delete step failed:', err);
+    }
+  }
+
+  async function handleAddEmailStep() {
+    try {
+      const res = await api.addStep(sequenceId, {
+        type: 'email',
+        subject: '',
+        body: '',
+      });
+      if (res.success) {
+        setSequence(res.sequence);
+        // Open editor for the newly added step
+        const newIndex = res.sequence.steps.length - 1;
+        setShowStepEditor({ stepIndex: newIndex, step: res.sequence.steps[newIndex] });
+      }
+    } catch (err) {
+      console.error('Add step failed:', err);
+    }
+  }
+
+  // Bulk enrollment actions
+  async function handleBulkPause(enrollmentIds) {
+    try {
+      await api.bulkPauseEnrollments(sequenceId, Array.from(enrollmentIds));
+      loadEnrollments(1);
+      loadSequence();
+    } catch (err) {
+      console.error('Bulk pause failed:', err);
+    }
+  }
+
+  async function handleBulkRemove(enrollmentIds) {
+    if (!confirm(`Remove ${enrollmentIds.size} contacts from this sequence?`)) return;
+    try {
+      await api.bulkRemoveEnrollments(sequenceId, Array.from(enrollmentIds));
+      loadEnrollments(1);
+      loadSequence();
+    } catch (err) {
+      console.error('Bulk remove failed:', err);
+    }
+  }
+
   if (loading) {
     return (
       <div className="py-16 text-center">
@@ -149,9 +240,7 @@ function SequenceDetailPage({ sequenceId, onBack }) {
 
   if (!sequence) return null;
 
-  const stats = sequence.stats || {};
   const isActive = sequence.status === 'active';
-  const emailStepCount = (sequence.steps || []).filter(s => s.type === 'email').length;
   const createdDate = sequence.createdAt ? new Date(sequence.createdAt).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }) : '';
   const updatedDate = sequence.updatedAt ? new Date(sequence.updatedAt).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }) : '';
 
@@ -210,16 +299,34 @@ function SequenceDetailPage({ sequenceId, onBack }) {
           ))}
 
           <div className="ml-auto pb-3">
-            <button className="flex items-center gap-2 px-4 py-1.5 text-sm font-medium bg-rivvra-500 text-dark-950 rounded-lg hover:bg-rivvra-400 transition-colors">
-              {activeTab === 'contacts' ? '+ Add contacts' : '+ Add email'}
-            </button>
+            {activeTab === 'contacts' ? (
+              <button
+                onClick={() => setShowAddContacts(true)}
+                className="flex items-center gap-2 px-4 py-1.5 text-sm font-medium bg-rivvra-500 text-dark-950 rounded-lg hover:bg-rivvra-400 transition-colors"
+              >
+                + Add contacts
+              </button>
+            ) : activeTab === 'overview' ? (
+              <button
+                onClick={handleAddEmailStep}
+                className="flex items-center gap-2 px-4 py-1.5 text-sm font-medium bg-rivvra-500 text-dark-950 rounded-lg hover:bg-rivvra-400 transition-colors"
+              >
+                + Add email
+              </button>
+            ) : null}
           </div>
         </div>
       </div>
 
       {/* Tab content */}
       {activeTab === 'overview' && (
-        <OverviewTab sequence={sequence} stepStats={stepStats} />
+        <OverviewTab
+          sequence={sequence}
+          stepStats={stepStats}
+          onToggleStep={handleToggleStep}
+          onEditStep={(stepIndex, step) => setShowStepEditor({ stepIndex, step })}
+          onDeleteStep={handleDeleteStep}
+        />
       )}
       {activeTab === 'contacts' && (
         <ContactsTab
@@ -231,6 +338,8 @@ function SequenceDetailPage({ sequenceId, onBack }) {
           onPauseEnrollment={handlePauseEnrollment}
           onMarkReplied={handleMarkReplied}
           onReloadEnrollments={loadEnrollments}
+          onBulkPause={handleBulkPause}
+          onBulkRemove={handleBulkRemove}
         />
       )}
       {activeTab === 'emails' && (
@@ -248,13 +357,164 @@ function SequenceDetailPage({ sequenceId, onBack }) {
       {activeTab === 'schedule' && (
         <ScheduleTab sequence={sequence} sequenceId={sequenceId} onUpdate={loadSequence} />
       )}
+
+      {/* Add Contacts Modal */}
+      {showAddContacts && (
+        <AddToSequenceModal
+          isOpen={showAddContacts}
+          onClose={() => {
+            setShowAddContacts(false);
+            loadEnrollments(1);
+            loadSequence();
+          }}
+          preSelectedSequenceId={sequenceId}
+        />
+      )}
+
+      {/* Step Editor Modal */}
+      {showStepEditor && (
+        <StepEditorModal
+          step={showStepEditor.step}
+          stepIndex={showStepEditor.stepIndex}
+          onSave={handleUpdateStep}
+          onClose={() => setShowStepEditor(null)}
+        />
+      )}
     </>
+  );
+}
+
+// ========================== STEP EDITOR MODAL ==========================
+
+function StepEditorModal({ step, stepIndex, onSave, onClose }) {
+  const [subject, setSubject] = useState(step.subject || '');
+  const [body, setBody] = useState(step.body || '');
+  const [days, setDays] = useState(step.days || 1);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  async function handleSave() {
+    setError('');
+    if (step.type === 'email') {
+      if (!subject.trim()) { setError('Subject is required'); return; }
+      if (!body.trim()) { setError('Body is required'); return; }
+    }
+    if (step.type === 'wait' && (!days || days < 1)) {
+      setError('Wait days must be at least 1'); return;
+    }
+
+    setSaving(true);
+    try {
+      await onSave(stepIndex, {
+        subject: subject.trim(),
+        body: body.trim(),
+        days,
+      });
+    } catch (err) {
+      setError(err.message || 'Failed to save');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function insertPlaceholder(placeholder) {
+    setBody(prev => prev + placeholder);
+  }
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-dark-950/80 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-dark-900 border border-dark-700 rounded-2xl w-full max-w-lg shadow-2xl flex flex-col max-h-[80vh]">
+        <button onClick={onClose} className="absolute top-4 right-4 p-1 text-dark-400 hover:text-white transition-colors z-10">
+          <X className="w-5 h-5" />
+        </button>
+
+        <div className="p-6 pb-4">
+          <h2 className="text-lg font-bold text-white">
+            Edit {step.type === 'email' ? 'Email' : 'Wait'} Step
+          </h2>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-6 min-h-0 space-y-4">
+          {error && (
+            <div className="px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm">
+              {error}
+            </div>
+          )}
+
+          {step.type === 'email' ? (
+            <>
+              <div>
+                <label className="block text-xs font-medium text-dark-400 mb-1">Subject</label>
+                <input
+                  type="text"
+                  value={subject}
+                  onChange={(e) => setSubject(e.target.value)}
+                  placeholder="Email subject line"
+                  className="w-full px-3 py-2 bg-dark-800 border border-dark-600 rounded-lg text-white placeholder-dark-500 focus:outline-none focus:border-rivvra-500 text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-dark-400 mb-1">Body</label>
+                <textarea
+                  value={body}
+                  onChange={(e) => setBody(e.target.value)}
+                  placeholder="Email body..."
+                  rows={8}
+                  className="w-full px-3 py-2 bg-dark-800 border border-dark-600 rounded-lg text-white placeholder-dark-500 focus:outline-none focus:border-rivvra-500 text-sm resize-none"
+                />
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  {PLACEHOLDERS.map((p) => (
+                    <button
+                      key={p.label}
+                      onClick={() => insertPlaceholder(p.label)}
+                      title={p.desc}
+                      className="px-2 py-1 bg-dark-700 text-dark-300 rounded text-xs font-mono hover:bg-dark-600 hover:text-white transition-colors"
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="flex items-center gap-3">
+              <label className="text-sm text-dark-300">Wait for</label>
+              <input
+                type="number"
+                min={1}
+                max={30}
+                value={days}
+                onChange={(e) => setDays(parseInt(e.target.value) || 1)}
+                className="w-20 px-3 py-2 bg-dark-800 border border-dark-600 rounded-lg text-white text-sm text-center focus:outline-none focus:border-rivvra-500"
+              />
+              <span className="text-sm text-dark-300">day{days !== 1 ? 's' : ''}</span>
+            </div>
+          )}
+        </div>
+
+        <div className="p-6 pt-4 flex items-center justify-end gap-3 border-t border-dark-800 mt-2">
+          <button onClick={onClose} className="px-5 py-2.5 text-dark-300 hover:text-white text-sm font-medium transition-colors">
+            Cancel
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="px-5 py-2.5 bg-rivvra-500 text-dark-950 rounded-xl text-sm font-semibold hover:bg-rivvra-400 transition-colors disabled:opacity-50 flex items-center gap-2"
+          >
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+            Save
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
 // ========================== OVERVIEW TAB ==========================
 
-function OverviewTab({ sequence, stepStats }) {
+function OverviewTab({ sequence, stepStats, onToggleStep, onEditStep, onDeleteStep }) {
+  const [openMenuIndex, setOpenMenuIndex] = useState(null);
   const steps = sequence.steps || [];
   let cumulativeDay = 1;
 
@@ -266,6 +526,7 @@ function OverviewTab({ sequence, stepStats }) {
           return null;
         }
 
+        const stepEnabled = step.enabled !== false;
         const text = (step.subject || '') + ' ' + (step.body || '');
         const placeholders = (text.match(/\{\{[^}]+\}\}/g) || []).length;
 
@@ -284,26 +545,66 @@ function OverviewTab({ sequence, stepStats }) {
         const day = cumulativeDay;
 
         return (
-          <div key={index} className="card p-5">
+          <div key={index} className={`card p-5 ${!stepEnabled ? 'opacity-50' : ''}`}>
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-3">
-                <ToggleSwitch checked={true} onChange={() => {}} size="small" />
+                <ToggleSwitch
+                  checked={stepEnabled}
+                  onChange={() => onToggleStep(index)}
+                  size="small"
+                />
                 <span className="text-sm font-semibold text-white">Email {emailNumber}</span>
                 <span className="text-dark-700">|</span>
                 <div className="flex items-center gap-1.5 text-xs text-dark-400">
                   <Calendar className="w-3 h-3" />
                   Day {day}
                 </div>
-                <span className="text-dark-700">|</span>
                 {placeholders > 0 && (
-                  <span className="text-xs text-amber-400">{placeholders} placeholders to customize</span>
+                  <>
+                    <span className="text-dark-700">|</span>
+                    <span className="text-xs text-amber-400">{placeholders} placeholders to customize</span>
+                  </>
                 )}
               </div>
               <div className="flex items-center gap-3">
                 <span className="text-xs text-dark-500">{schedulingText}</span>
-                <button className="p-1 text-dark-500 hover:text-white transition-colors">
-                  <MoreVertical className="w-4 h-4" />
-                </button>
+                <div className="relative">
+                  <button
+                    onClick={() => setOpenMenuIndex(openMenuIndex === index ? null : index)}
+                    className="p-1 text-dark-500 hover:text-white transition-colors"
+                  >
+                    <MoreVertical className="w-4 h-4" />
+                  </button>
+
+                  {openMenuIndex === index && (
+                    <>
+                      <div className="fixed inset-0 z-10" onClick={() => setOpenMenuIndex(null)} />
+                      <div className="absolute right-0 top-full mt-1 w-40 bg-dark-800 border border-dark-600 rounded-xl shadow-xl py-1 z-20">
+                        <button
+                          onClick={() => { onToggleStep(index); setOpenMenuIndex(null); }}
+                          className="w-full flex items-center gap-2 px-3 py-2 text-sm text-dark-200 hover:bg-dark-700 hover:text-white transition-colors"
+                        >
+                          {stepEnabled ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
+                          {stepEnabled ? 'Pause' : 'Resume'}
+                        </button>
+                        <button
+                          onClick={() => { onEditStep(index, step); setOpenMenuIndex(null); }}
+                          className="w-full flex items-center gap-2 px-3 py-2 text-sm text-dark-200 hover:bg-dark-700 hover:text-white transition-colors"
+                        >
+                          <Edit3 className="w-3.5 h-3.5" />
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => { onDeleteStep(index); setOpenMenuIndex(null); }}
+                          className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-dark-700 transition-colors"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          Delete
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -357,7 +658,7 @@ function SortableHeader({ label, sortKey, currentSort, onSort }) {
 
 // ========================== CONTACTS TAB ==========================
 
-function ContactsTab({ sequence, enrollments, enrollmentTotal, onLoadMore, onRemoveEnrollment, onPauseEnrollment, onMarkReplied, onReloadEnrollments }) {
+function ContactsTab({ sequence, enrollments, enrollmentTotal, onLoadMore, onRemoveEnrollment, onPauseEnrollment, onMarkReplied, onReloadEnrollments, onBulkPause, onBulkRemove }) {
   const [contactSearch, setContactSearch] = useState('');
   const [contactFilter, setContactFilter] = useState('all');
   const [showContactFilter, setShowContactFilter] = useState(false);
@@ -448,7 +749,35 @@ function ContactsTab({ sequence, enrollments, enrollmentTotal, onLoadMore, onRem
       {/* Contacts toolbar */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
-          <span className="text-xs text-dark-500">{selectedContacts.size} selected</span>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={allSelected}
+              onChange={toggleSelectAll}
+              className="w-3.5 h-3.5 rounded border-dark-600 bg-dark-800 text-rivvra-500 focus:ring-0 focus:ring-offset-0 cursor-pointer"
+            />
+            <span className="text-xs text-dark-500">{selectedContacts.size} selected</span>
+          </label>
+
+          {/* Bulk actions (show when contacts selected) */}
+          {selectedContacts.size > 0 && (
+            <div className="flex items-center gap-1 ml-2">
+              <button
+                onClick={() => { onBulkPause(selectedContacts); setSelectedContacts(new Set()); }}
+                className="flex items-center gap-1.5 px-2.5 py-1 text-xs text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-lg hover:bg-amber-500/20 transition-colors"
+              >
+                <Pause className="w-3 h-3" />
+                Pause
+              </button>
+              <button
+                onClick={() => { onBulkRemove(selectedContacts); setSelectedContacts(new Set()); }}
+                className="flex items-center gap-1.5 px-2.5 py-1 text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg hover:bg-red-500/20 transition-colors"
+              >
+                <UserMinus className="w-3 h-3" />
+                Remove
+              </button>
+            </div>
+          )}
 
           {/* Filter dropdown */}
           <div className="relative">
@@ -752,17 +1081,6 @@ function EmailsTab({ sequenceId, sequence, enrollments, emails, total, loading, 
     });
   }
 
-  // Get step info for an email
-  function getStepLabel(stepIndex) {
-    if (stepIndex === undefined || stepIndex === null) return 'Email';
-    const emailSteps = (sequence?.steps || []).filter(s => s.type === 'email');
-    const emailNum = emailSteps.findIndex((_, i) => {
-      const realIndex = (sequence?.steps || []).findIndex((s, idx) => s.type === 'email' && (sequence.steps.filter((ss, ii) => ss.type === 'email' && ii <= idx).length - 1) === i);
-      return realIndex === stepIndex;
-    });
-    return `Email ${emailNum >= 0 ? emailNum + 1 : (stepIndex + 1)}`;
-  }
-
   if (loading && emails.length === 0) {
     return (
       <div className="py-12 text-center">
@@ -785,13 +1103,31 @@ function EmailsTab({ sequenceId, sequence, enrollments, emails, total, loading, 
     <div className="flex gap-4" style={{ minHeight: '500px' }}>
       {/* Left pane: Contact list */}
       <div className="w-80 flex-shrink-0 card flex flex-col">
+        {/* Header with filter */}
+        <div className="p-3 border-b border-dark-800 flex items-center justify-between">
+          <span className="text-xs text-dark-500">All contacts</span>
+          <div className="flex items-center gap-2 text-xs text-dark-500">
+            <span>{filteredContacts.length > 0 ? `${(contactPage-1)*contactsPerPage+1}-${Math.min(contactPage*contactsPerPage, filteredContacts.length)}` : '0'} of {filteredContacts.length}</span>
+            {totalContactPages > 1 && (
+              <div className="flex items-center gap-0.5">
+                <button onClick={() => setContactPage(p => Math.max(1, p - 1))} disabled={contactPage === 1} className="p-0.5 text-dark-400 hover:text-white disabled:opacity-30 transition-colors">
+                  <ChevronLeft className="w-3.5 h-3.5" />
+                </button>
+                <button onClick={() => setContactPage(p => Math.min(totalContactPages, p + 1))} disabled={contactPage === totalContactPages} className="p-0.5 text-dark-400 hover:text-white disabled:opacity-30 transition-colors">
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* Search */}
         <div className="p-3 border-b border-dark-800">
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-dark-500" />
             <input
               type="text"
-              placeholder="Search contacts..."
+              placeholder="Search..."
               value={contactSearch}
               onChange={(e) => { setContactSearch(e.target.value); setContactPage(1); }}
               className="w-full pl-8 pr-3 py-1.5 bg-dark-800 border border-dark-700 rounded-lg text-xs text-white placeholder:text-dark-500 focus:outline-none focus:border-rivvra-500"
@@ -811,7 +1147,7 @@ function EmailsTab({ sequenceId, sequence, enrollments, emails, total, loading, 
 
             // Get last activity
             const contactMails = emails.filter(e => e.leadEmail === enrollment.leadEmail);
-            const lastMail = contactMails[0]; // Already sorted by sentAt desc
+            const lastMail = contactMails[0];
             const lastEngaged = lastMail?.sentAt ? getRelativeTime(new Date(lastMail.sentAt)) : null;
 
             return (
@@ -823,40 +1159,19 @@ function EmailsTab({ sequenceId, sequence, enrollments, emails, total, loading, 
                 }`}
               >
                 <div className="flex items-center gap-2">
-                  <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${statusDot}`} />
                   <span className="text-sm text-white font-medium truncate">{enrollment.leadName}</span>
+                  <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${statusDot}`} />
                 </div>
-                <div className="text-xs text-dark-500 mt-0.5 ml-3.5 truncate">
+                <div className="text-xs text-dark-500 mt-0.5 truncate">
                   {enrollment.leadTitle ? `${enrollment.leadTitle}` : ''}{enrollment.leadTitle && enrollment.leadCompany ? ', ' : ''}{enrollment.leadCompany || ''}
                 </div>
                 {lastEngaged && (
-                  <div className="text-xs text-dark-600 mt-1 ml-3.5">Last engaged: {lastEngaged}</div>
+                  <div className="text-xs text-dark-600 mt-1">Last engaged: {lastEngaged}</div>
                 )}
               </button>
             );
           })}
         </div>
-
-        {/* Pagination */}
-        {totalContactPages > 1 && (
-          <div className="p-3 border-t border-dark-800 flex items-center justify-between">
-            <button
-              onClick={() => setContactPage(p => Math.max(1, p - 1))}
-              disabled={contactPage === 1}
-              className="p-1 text-dark-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            <span className="text-xs text-dark-500">{contactPage} / {totalContactPages}</span>
-            <button
-              onClick={() => setContactPage(p => Math.min(totalContactPages, p + 1))}
-              disabled={contactPage === totalContactPages}
-              className="p-1 text-dark-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
-        )}
       </div>
 
       {/* Right pane: Email history for selected contact */}
@@ -864,20 +1179,8 @@ function EmailsTab({ sequenceId, sequence, enrollments, emails, total, loading, 
         {selectedContact ? (
           <div className="p-5">
             {/* Contact header */}
-            <div className="flex items-center justify-between mb-5 pb-4 border-b border-dark-800">
-              <div>
-                <h3 className="text-sm font-semibold text-white">{selectedContact.leadName}</h3>
-                <p className="text-xs text-dark-500 mt-0.5">{selectedContact.leadEmail}</p>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className={`w-1.5 h-1.5 rounded-full ${
-                  selectedContact.status === 'active' ? 'bg-green-400' :
-                  selectedContact.status === 'completed' ? 'bg-blue-400' :
-                  selectedContact.status === 'replied' ? 'bg-emerald-400' :
-                  'bg-dark-500'
-                }`} />
-                <span className="text-xs text-dark-400 capitalize">{selectedContact.status}</span>
-              </div>
+            <div className="mb-5 pb-4 border-b border-dark-800">
+              <h3 className="text-base font-semibold text-white">{selectedContact.leadName}</h3>
             </div>
 
             {/* Email cards */}
@@ -904,34 +1207,47 @@ function EmailsTab({ sequenceId, sequence, enrollments, emails, total, loading, 
 
                   const sentDate = email.sentAt
                     ? new Date(email.sentAt).toLocaleString('en-US', {
-                        month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit'
+                        month: '2-digit', day: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true
                       })
                     : '';
+
+                  // Calculate email number properly
+                  const emailSteps = (sequence?.steps || []).filter(s => s.type === 'email');
+                  const emailIdx = emailSteps.findIndex((_, idx) => {
+                    let count = 0;
+                    for (let j = 0; j < (sequence?.steps || []).length; j++) {
+                      if (sequence.steps[j].type === 'email') {
+                        if (count === idx) return j === email.stepIndex;
+                        count++;
+                      }
+                    }
+                    return false;
+                  });
+                  const displayNum = emailIdx >= 0 ? emailIdx + 1 : emailNumber;
 
                   return (
                     <div key={i} className="bg-dark-800/40 rounded-xl p-4 border border-dark-700/50">
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-3">
-                          <span className="text-xs font-semibold text-dark-400">Email {emailNumber}</span>
+                          <span className="text-xs font-semibold text-dark-400">Email {displayNum}</span>
+                          <span className="text-sm font-medium text-white truncate max-w-xs">{email.subject || 'No subject'}</span>
                           <span className={`inline-flex items-center px-2 py-0.5 text-xs font-medium rounded border ${statusBadge.color}`}>
                             {statusBadge.label}
                           </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-dark-500">{sentDate}</span>
                           {email.openCount > 1 && (
-                            <span className="text-xs text-dark-500">{email.openCount} opens</span>
+                            <span className="text-xs text-dark-500">({email.openCount} opens)</span>
                           )}
                         </div>
-                        <span className="text-xs text-dark-500">{sentDate}</span>
-                      </div>
-
-                      <div className="mb-2">
-                        <span className="text-xs text-dark-500">Subject: </span>
-                        <span className="text-sm text-white">{email.subject || 'No subject'}</span>
                       </div>
 
                       {/* Content preview */}
                       {email.body && (
                         <div className="mt-2">
-                          <p className={`text-xs text-dark-400 ${!isExpanded ? 'line-clamp-2' : ''}`}>
+                          <span className="text-xs text-dark-500">Content</span>
+                          <p className={`text-xs text-dark-400 mt-1 ${!isExpanded ? 'line-clamp-2' : ''}`}>
                             {email.body}
                           </p>
                           {email.body.length > 120 && (
@@ -939,7 +1255,7 @@ function EmailsTab({ sequenceId, sequence, enrollments, emails, total, loading, 
                               onClick={() => toggleExpandEmail(i)}
                               className="text-xs text-rivvra-400 hover:text-rivvra-300 mt-1 font-medium"
                             >
-                              {isExpanded ? 'Show less' : 'Read More'}
+                              ...{isExpanded ? 'Show less' : 'Read More'}
                             </button>
                           )}
                         </div>
@@ -965,13 +1281,13 @@ function EmailsTab({ sequenceId, sequence, enrollments, emails, total, loading, 
 const DEFAULT_SCHEDULE = {
   timezone: 'America/New_York',
   days: {
-    mon: { enabled: true, start: '09:00', end: '17:00' },
-    tue: { enabled: true, start: '09:00', end: '17:00' },
-    wed: { enabled: true, start: '09:00', end: '17:00' },
-    thu: { enabled: true, start: '09:00', end: '17:00' },
-    fri: { enabled: true, start: '09:00', end: '17:00' },
-    sat: { enabled: false, start: '09:00', end: '17:00' },
-    sun: { enabled: false, start: '09:00', end: '17:00' },
+    mon: { enabled: true, start: '08:00', end: '18:00' },
+    tue: { enabled: true, start: '08:00', end: '18:00' },
+    wed: { enabled: true, start: '08:00', end: '18:00' },
+    thu: { enabled: true, start: '08:00', end: '18:00' },
+    fri: { enabled: true, start: '08:00', end: '18:00' },
+    sat: { enabled: false, start: '08:00', end: '18:00' },
+    sun: { enabled: false, start: '08:00', end: '18:00' },
   }
 };
 
@@ -980,27 +1296,26 @@ for (let h = 0; h < 24; h++) {
   for (let m = 0; m < 60; m += 30) {
     const hh = h.toString().padStart(2, '0');
     const mm = m.toString().padStart(2, '0');
-    const label = `${h === 0 ? 12 : h > 12 ? h - 12 : h}:${mm} ${h < 12 ? 'AM' : 'PM'}`;
-    TIME_OPTIONS.push({ value: `${hh}:${mm}`, label });
+    TIME_OPTIONS.push({ value: `${hh}:${mm}`, label: `${hh}:${mm}` });
   }
 }
 
 const TIMEZONE_OPTIONS = [
-  'America/New_York',
-  'America/Chicago',
-  'America/Denver',
-  'America/Los_Angeles',
-  'America/Anchorage',
-  'Pacific/Honolulu',
-  'Europe/London',
-  'Europe/Paris',
-  'Europe/Berlin',
-  'Asia/Kolkata',
-  'Asia/Tokyo',
-  'Asia/Shanghai',
-  'Asia/Dubai',
-  'Australia/Sydney',
-  'Pacific/Auckland',
+  { value: 'America/New_York', label: '(UTC-05:00) America/New York' },
+  { value: 'America/Chicago', label: '(UTC-06:00) America/Chicago' },
+  { value: 'America/Denver', label: '(UTC-07:00) America/Denver' },
+  { value: 'America/Los_Angeles', label: '(UTC-08:00) America/Los Angeles' },
+  { value: 'America/Anchorage', label: '(UTC-09:00) America/Anchorage' },
+  { value: 'Pacific/Honolulu', label: '(UTC-10:00) Pacific/Honolulu' },
+  { value: 'Europe/London', label: '(UTC+00:00) Europe/London' },
+  { value: 'Europe/Paris', label: '(UTC+01:00) Europe/Paris' },
+  { value: 'Europe/Berlin', label: '(UTC+01:00) Europe/Berlin' },
+  { value: 'Asia/Dubai', label: '(UTC+04:00) Asia/Dubai' },
+  { value: 'Asia/Kolkata', label: '(UTC+05:30) Asia/Calcutta' },
+  { value: 'Asia/Shanghai', label: '(UTC+08:00) Asia/Shanghai' },
+  { value: 'Asia/Tokyo', label: '(UTC+09:00) Asia/Tokyo' },
+  { value: 'Australia/Sydney', label: '(UTC+11:00) Australia/Sydney' },
+  { value: 'Pacific/Auckland', label: '(UTC+13:00) Pacific/Auckland' },
 ];
 
 const DAY_LABELS = {
@@ -1061,36 +1376,28 @@ function ScheduleTab({ sequence, sequenceId, onUpdate }) {
 
   return (
     <div className="card p-6">
-      <div className="flex items-center justify-between mb-6">
-        <h3 className="text-sm font-semibold text-white">Sending schedule</h3>
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-rivvra-500 text-dark-950 rounded-lg hover:bg-rivvra-400 transition-colors disabled:opacity-50"
-        >
-          {saving ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : saved ? (
-            <Check className="w-4 h-4" />
-          ) : (
-            <Save className="w-4 h-4" />
-          )}
-          {saved ? 'Saved' : 'Save changes'}
-        </button>
-      </div>
-
       {/* Timezone */}
       <div className="mb-6">
-        <label className="block text-xs text-dark-400 mb-2">Timezone</label>
+        <label className="block text-xs text-dark-400 mb-2">Choose time zone</label>
         <select
           value={schedule.timezone}
           onChange={(e) => handleTimezoneChange(e.target.value)}
-          className="w-full max-w-sm px-3 py-2 bg-dark-800 border border-dark-700 rounded-lg text-sm text-white focus:outline-none focus:border-rivvra-500 appearance-none cursor-pointer"
+          className="w-full max-w-md px-3 py-2 bg-dark-800 border border-dark-700 rounded-lg text-sm text-white focus:outline-none focus:border-rivvra-500 appearance-none cursor-pointer"
         >
           {TIMEZONE_OPTIONS.map(tz => (
-            <option key={tz} value={tz}>{tz.replace(/_/g, ' ')}</option>
+            <option key={tz.value} value={tz.value}>{tz.label}</option>
           ))}
         </select>
+      </div>
+
+      {/* Description */}
+      <div className="mb-6">
+        <p className="text-sm text-dark-400">
+          Schedule lets you specify which days and time slots your contacts will be emailed.
+        </p>
+        <p className="text-sm text-dark-400">
+          Emails will only be sent on selected days.
+        </p>
       </div>
 
       {/* Day-by-day schedule */}
@@ -1107,43 +1414,55 @@ function ScheduleTab({ sequence, sequenceId, onUpdate }) {
                   onChange={() => handleDayToggle(key)}
                   className="w-4 h-4 rounded border-dark-600 bg-dark-800 text-rivvra-500 focus:ring-0 focus:ring-offset-0 cursor-pointer"
                 />
-                <span className={`text-sm ${day.enabled ? 'text-white' : 'text-dark-500'}`}>{label}</span>
+                <span className={`text-sm font-medium ${day.enabled ? 'text-white' : 'text-dark-500'}`}>{label}</span>
               </label>
 
               {/* Time range */}
-              {day.enabled ? (
-                <div className="flex items-center gap-2">
-                  <select
-                    value={day.start}
-                    onChange={(e) => handleTimeChange(key, 'start', e.target.value)}
-                    className="px-2.5 py-1.5 bg-dark-800 border border-dark-700 rounded-lg text-xs text-white focus:outline-none focus:border-rivvra-500 appearance-none cursor-pointer"
-                  >
-                    {TIME_OPTIONS.map(t => (
-                      <option key={t.value} value={t.value}>{t.label}</option>
-                    ))}
-                  </select>
-                  <span className="text-xs text-dark-500">to</span>
-                  <select
-                    value={day.end}
-                    onChange={(e) => handleTimeChange(key, 'end', e.target.value)}
-                    className="px-2.5 py-1.5 bg-dark-800 border border-dark-700 rounded-lg text-xs text-white focus:outline-none focus:border-rivvra-500 appearance-none cursor-pointer"
-                  >
-                    {TIME_OPTIONS.map(t => (
-                      <option key={t.value} value={t.value}>{t.label}</option>
-                    ))}
-                  </select>
-                </div>
-              ) : (
-                <span className="text-xs text-dark-600">Not sending</span>
-              )}
+              <div className="flex items-center gap-2">
+                <select
+                  value={day.start}
+                  onChange={(e) => handleTimeChange(key, 'start', e.target.value)}
+                  disabled={!day.enabled}
+                  className="px-2.5 py-1.5 bg-dark-800 border border-dark-700 rounded-lg text-xs text-white focus:outline-none focus:border-rivvra-500 appearance-none cursor-pointer disabled:opacity-40"
+                >
+                  {TIME_OPTIONS.map(t => (
+                    <option key={t.value} value={t.value}>{t.label}</option>
+                  ))}
+                </select>
+                <span className="text-xs text-dark-500">-</span>
+                <select
+                  value={day.end}
+                  onChange={(e) => handleTimeChange(key, 'end', e.target.value)}
+                  disabled={!day.enabled}
+                  className="px-2.5 py-1.5 bg-dark-800 border border-dark-700 rounded-lg text-xs text-white focus:outline-none focus:border-rivvra-500 appearance-none cursor-pointer disabled:opacity-40"
+                >
+                  {TIME_OPTIONS.map(t => (
+                    <option key={t.value} value={t.value}>{t.label}</option>
+                  ))}
+                </select>
+              </div>
             </div>
           );
         })}
       </div>
 
-      <p className="text-xs text-dark-500 mt-6">
-        Emails will only be sent during the hours you specify above. Scheduled emails outside these windows will be queued until the next available time slot.
-      </p>
+      {/* Save button - positioned top right like Lusha */}
+      <div className="flex justify-end mt-6">
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="flex items-center gap-2 px-5 py-2 text-sm font-medium bg-rivvra-500 text-dark-950 rounded-lg hover:bg-rivvra-400 transition-colors disabled:opacity-50"
+        >
+          {saving ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : saved ? (
+            <Check className="w-4 h-4" />
+          ) : (
+            <Save className="w-4 h-4" />
+          )}
+          {saved ? 'Saved!' : 'Save changes'}
+        </button>
+      </div>
     </div>
   );
 }

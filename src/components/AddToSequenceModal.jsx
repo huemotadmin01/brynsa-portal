@@ -8,44 +8,83 @@ const STATUS_COLORS = {
   paused: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
 };
 
-function AddToSequenceModal({ isOpen, onClose, leadIds = [], leadNames = [] }) {
+function AddToSequenceModal({ isOpen, onClose, leadIds = [], leadNames = [], preSelectedSequenceId = null }) {
   const [sequences, setSequences] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [enrolling, setEnrolling] = useState(false);
   const [result, setResult] = useState(null);
+  // For inline "Add contacts" from detail page - show lead picker instead
+  const [showLeadPicker, setShowLeadPicker] = useState(!!preSelectedSequenceId);
+  const [leads, setLeads] = useState([]);
+  const [leadSearch, setLeadSearch] = useState('');
+  const [selectedLeadIds, setSelectedLeadIds] = useState(new Set());
+  const [leadsLoading, setLeadsLoading] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
-      setSelectedId(null);
+      setSelectedId(preSelectedSequenceId || null);
       setResult(null);
       setLoading(true);
 
-      api.getSequences()
-        .then((response) => {
-          if (response.success) {
-            // Show active and draft sequences
-            setSequences(
-              (response.sequences || []).filter(
-                (s) => s.status === 'active' || s.status === 'draft'
-              )
-            );
-          }
-        })
-        .catch((err) => console.error('Failed to load sequences:', err))
-        .finally(() => setLoading(false));
+      if (preSelectedSequenceId) {
+        // If pre-selected, load leads for picking
+        setLoading(false);
+        loadLeads();
+      } else {
+        api.getSequences()
+          .then((response) => {
+            if (response.success) {
+              setSequences(
+                (response.sequences || []).filter(
+                  (s) => s.status === 'active' || s.status === 'draft'
+                )
+              );
+            }
+          })
+          .catch((err) => console.error('Failed to load sequences:', err))
+          .finally(() => setLoading(false));
+      }
     }
   }, [isOpen]);
+
+  async function loadLeads(search = '') {
+    setLeadsLoading(true);
+    try {
+      const res = search
+        ? await api.searchAllLeads({ search, limit: 50 })
+        : await api.getLeads();
+      if (res.success) {
+        setLeads(res.leads || []);
+      }
+    } catch (err) {
+      console.error('Failed to load leads:', err);
+    } finally {
+      setLeadsLoading(false);
+    }
+  }
+
+  function toggleLeadSelection(leadId) {
+    setSelectedLeadIds(prev => {
+      const next = new Set(prev);
+      if (next.has(leadId)) next.delete(leadId);
+      else next.add(leadId);
+      return next;
+    });
+  }
 
   if (!isOpen) return null;
 
   const handleEnroll = async () => {
-    if (!selectedId || leadIds.length === 0) return;
+    const idsToEnroll = preSelectedSequenceId ? Array.from(selectedLeadIds) : leadIds;
+    const seqId = preSelectedSequenceId || selectedId;
+
+    if (!seqId || idsToEnroll.length === 0) return;
 
     setEnrolling(true);
     setResult(null);
     try {
-      const response = await api.enrollInSequence(selectedId, leadIds);
+      const response = await api.enrollInSequence(seqId, idsToEnroll);
       setResult({
         success: true,
         enrolled: response.enrolled,
@@ -84,10 +123,12 @@ function AddToSequenceModal({ isOpen, onClose, leadIds = [], leadNames = [] }) {
 
         {/* Header */}
         <div className="p-6 pb-4">
-          <h2 className="text-xl font-bold text-white">Add to Sequence</h2>
+          <h2 className="text-xl font-bold text-white">{preSelectedSequenceId ? 'Add Contacts to Sequence' : 'Add to Sequence'}</h2>
           <p className="text-dark-400 text-sm mt-1">
-            Enroll {leadIds.length} contact{leadIds.length !== 1 ? 's' : ''} into
-            an email sequence
+            {preSelectedSequenceId
+              ? 'Select contacts to enroll into this sequence'
+              : `Enroll ${leadIds.length} contact${leadIds.length !== 1 ? 's' : ''} into an email sequence`
+            }
           </p>
         </div>
 
@@ -126,7 +167,62 @@ function AddToSequenceModal({ isOpen, onClose, leadIds = [], leadNames = [] }) {
             </div>
           )}
 
-          {loading ? (
+          {preSelectedSequenceId ? (
+            /* Lead picker mode */
+            <div>
+              <div className="mb-3">
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Search contacts..."
+                    value={leadSearch}
+                    onChange={(e) => { setLeadSearch(e.target.value); loadLeads(e.target.value); }}
+                    className="w-full pl-8 pr-3 py-2 bg-dark-800 border border-dark-700 rounded-lg text-sm text-white placeholder:text-dark-500 focus:outline-none focus:border-rivvra-500"
+                  />
+                  <Mail className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-dark-500" />
+                </div>
+              </div>
+              {leadsLoading ? (
+                <div className="py-8 text-center">
+                  <div className="w-6 h-6 border-2 border-rivvra-500 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+                </div>
+              ) : leads.length === 0 ? (
+                <div className="py-6 text-center text-dark-500 text-sm">
+                  {leadSearch ? 'No contacts found' : 'Type to search contacts'}
+                </div>
+              ) : (
+                <div className="space-y-1 max-h-64 overflow-y-auto">
+                  {leads.map(lead => {
+                    const isSelected = selectedLeadIds.has(lead._id);
+                    return (
+                      <button
+                        key={lead._id}
+                        onClick={() => toggleLeadSelection(lead._id)}
+                        className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${
+                          isSelected ? 'bg-rivvra-500/10 border border-rivvra-500/30' : 'hover:bg-dark-800 border border-transparent'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          readOnly
+                          className="w-3.5 h-3.5 rounded border-dark-600 bg-dark-800 text-rivvra-500 focus:ring-0 cursor-pointer"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <span className="text-sm text-white truncate block">{lead.firstName} {lead.lastName}</span>
+                          <span className="text-xs text-dark-500 truncate block">{lead.email || 'No email'} {lead.company ? `· ${lead.company}` : ''}</span>
+                        </div>
+                        {isSelected && <Check className="w-4 h-4 text-rivvra-400 flex-shrink-0" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+              {selectedLeadIds.size > 0 && (
+                <p className="text-xs text-rivvra-400 mt-2">{selectedLeadIds.size} contact{selectedLeadIds.size !== 1 ? 's' : ''} selected</p>
+              )}
+            </div>
+          ) : loading ? (
             <div className="py-8 text-center">
               <div className="w-6 h-6 border-2 border-rivvra-500 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
               <p className="text-dark-500 text-sm">Loading sequences...</p>
@@ -218,7 +314,7 @@ function AddToSequenceModal({ isOpen, onClose, leadIds = [], leadNames = [] }) {
           {!result?.success && (
             <button
               onClick={handleEnroll}
-              disabled={!selectedId || enrolling || leadIds.length === 0}
+              disabled={preSelectedSequenceId ? (selectedLeadIds.size === 0 || enrolling) : (!selectedId || enrolling || leadIds.length === 0)}
               className="px-5 py-2.5 bg-rivvra-500 text-dark-950 rounded-xl text-sm font-semibold hover:bg-rivvra-400 transition-colors disabled:opacity-50 flex items-center gap-2"
             >
               {enrolling ? (
@@ -229,7 +325,7 @@ function AddToSequenceModal({ isOpen, onClose, leadIds = [], leadNames = [] }) {
               ) : (
                 <>
                   <Send className="w-4 h-4" />
-                  Enroll {leadIds.length} Contact{leadIds.length !== 1 ? 's' : ''}
+                  Enroll {preSelectedSequenceId ? selectedLeadIds.size : leadIds.length} Contact{(preSelectedSequenceId ? selectedLeadIds.size : leadIds.length) !== 1 ? 's' : ''}
                 </>
               )}
             </button>

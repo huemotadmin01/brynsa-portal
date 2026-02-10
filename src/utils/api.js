@@ -377,6 +377,51 @@ class ApiClient {
     });
   }
 
+  // Toggle step enabled/disabled
+  async toggleStep(sequenceId, stepIndex) {
+    return this.request(`/api/sequences/${sequenceId}/steps/${stepIndex}/toggle`, {
+      method: 'PUT',
+    });
+  }
+
+  // Update single step (subject/body/days)
+  async updateStep(sequenceId, stepIndex, data) {
+    return this.request(`/api/sequences/${sequenceId}/steps/${stepIndex}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  // Delete single step
+  async deleteStep(sequenceId, stepIndex) {
+    return this.request(`/api/sequences/${sequenceId}/steps/${stepIndex}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Add step to sequence
+  async addStep(sequenceId, step) {
+    return this.request(`/api/sequences/${sequenceId}/steps`, {
+      method: 'POST',
+      body: JSON.stringify(step),
+    });
+  }
+
+  // Bulk enrollment actions
+  async bulkPauseEnrollments(sequenceId, enrollmentIds) {
+    return this.request(`/api/sequences/${sequenceId}/enrollments/bulk-pause`, {
+      method: 'POST',
+      body: JSON.stringify({ enrollmentIds }),
+    });
+  }
+
+  async bulkRemoveEnrollments(sequenceId, enrollmentIds) {
+    return this.request(`/api/sequences/${sequenceId}/enrollments/bulk-remove`, {
+      method: 'POST',
+      body: JSON.stringify({ enrollmentIds }),
+    });
+  }
+
   // Export sequence to CSV
   async getSequenceExportUrl(sequenceId) {
     const token = localStorage.getItem('rivvra_token');

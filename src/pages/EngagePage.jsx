@@ -22,10 +22,12 @@ import {
   Link2Off,
   Link2,
   ChevronDown,
+  ChevronUp,
   Filter,
   ExternalLink,
   Copy,
   Download,
+  ArrowUpDown,
 } from 'lucide-react';
 
 function EngagePage() {
@@ -382,6 +384,27 @@ function EngagePage() {
 
 // ========================== SEQUENCES TAB ==========================
 
+function SortableHeader({ label, sortKey, currentSort, onSort }) {
+  const isActive = currentSort.key === sortKey;
+  const isAsc = currentSort.dir === 'asc';
+
+  return (
+    <button
+      onClick={() => onSort(sortKey)}
+      className="flex items-center gap-1 text-left font-medium group"
+    >
+      {label}
+      <span className={`transition-colors ${isActive ? 'text-rivvra-400' : 'text-dark-600 group-hover:text-dark-400'}`}>
+        {isActive ? (
+          isAsc ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />
+        ) : (
+          <ArrowUpDown className="w-3 h-3" />
+        )}
+      </span>
+    </button>
+  );
+}
+
 function SequencesTab({
   sequences, loading, emailsSentToday, searchQuery, filterStatus,
   actionMenuId, user,
@@ -389,6 +412,38 @@ function SequencesTab({
   onEdit, onDuplicate, onDelete, onToggle, onPause, onResume, onToggleMenu,
 }) {
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+  const [sort, setSort] = useState({ key: 'updatedAt', dir: 'desc' });
+
+  function handleSort(key) {
+    setSort(prev => ({
+      key,
+      dir: prev.key === key && prev.dir === 'asc' ? 'desc' : 'asc'
+    }));
+  }
+
+  // Sort sequences
+  const sortedSequences = [...sequences].sort((a, b) => {
+    const dir = sort.dir === 'asc' ? 1 : -1;
+    const k = sort.key;
+    if (k === 'name') return (a.name || '').localeCompare(b.name || '') * dir;
+    if (k === 'contacts') return ((a.stats?.enrolled || 0) - (b.stats?.enrolled || 0)) * dir;
+    if (k === 'delivered') return ((a.stats?.sent || 0) - (b.stats?.sent || 0)) * dir;
+    if (k === 'opened') return ((a.stats?.opened || 0) - (b.stats?.opened || 0)) * dir;
+    if (k === 'replied') return ((a.stats?.replied || 0) - (b.stats?.replied || 0)) * dir;
+    if (k === 'bounced') return ((a.stats?.bounced || 0) - (b.stats?.bounced || 0)) * dir;
+    if (k === 'updatedAt') return (new Date(a.updatedAt || 0) - new Date(b.updatedAt || 0)) * dir;
+    return 0;
+  });
+
+  async function handleExportCsv(seqId) {
+    try {
+      const url = await api.getSequenceExportUrl(seqId);
+      window.open(url, '_blank');
+      onToggleMenu(null);
+    } catch (err) {
+      console.error('Export CSV error:', err);
+    }
+  }
 
   const filterLabel = filterStatus === 'all' ? 'All sequences'
     : filterStatus === 'active' ? 'Active'
@@ -485,20 +540,32 @@ function SequencesTab({
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-dark-500 text-xs uppercase tracking-wider border-b border-dark-700">
-                  <th className="text-left py-3 px-4 font-medium">Sequence</th>
+                  <th className="text-left py-3 px-4">
+                    <SortableHeader label="Sequence" sortKey="name" currentSort={sort} onSort={handleSort} />
+                  </th>
                   <th className="text-left py-3 px-4 font-medium">Owner</th>
-                  <th className="text-left py-3 px-4 font-medium">Contacts</th>
+                  <th className="text-left py-3 px-4">
+                    <SortableHeader label="Contacts" sortKey="contacts" currentSort={sort} onSort={handleSort} />
+                  </th>
                   <th className="text-left py-3 px-4 font-medium whitespace-nowrap">Active/Finished</th>
-                  <th className="text-left py-3 px-4 font-medium">Delivered</th>
-                  <th className="text-left py-3 px-4 font-medium">Opened</th>
-                  <th className="text-left py-3 px-4 font-medium">Replied</th>
-                  <th className="text-left py-3 px-4 font-medium">Bounced</th>
+                  <th className="text-left py-3 px-4">
+                    <SortableHeader label="Delivered" sortKey="delivered" currentSort={sort} onSort={handleSort} />
+                  </th>
+                  <th className="text-left py-3 px-4">
+                    <SortableHeader label="Opened" sortKey="opened" currentSort={sort} onSort={handleSort} />
+                  </th>
+                  <th className="text-left py-3 px-4">
+                    <SortableHeader label="Replied" sortKey="replied" currentSort={sort} onSort={handleSort} />
+                  </th>
+                  <th className="text-left py-3 px-4">
+                    <SortableHeader label="Bounced" sortKey="bounced" currentSort={sort} onSort={handleSort} />
+                  </th>
                   <th className="text-center py-3 px-4 font-medium w-24"></th>
                   <th className="text-right py-3 px-4 font-medium w-12"></th>
                 </tr>
               </thead>
               <tbody>
-                {sequences.map(seq => {
+                {sortedSequences.map(seq => {
                   const stats = seq.stats || {};
                   const emailSteps = (seq.steps || []).filter(s => s.type === 'email').length;
                   const isActive = seq.status === 'active';
@@ -574,6 +641,13 @@ function SequencesTab({
                             <>
                               <div className="fixed inset-0 z-10" onClick={() => onToggleMenu(null)} />
                               <div className="absolute right-0 top-full mt-1 w-48 bg-dark-800 border border-dark-600 rounded-xl shadow-xl py-1 z-20">
+                                <button
+                                  onClick={() => handleExportCsv(seq._id)}
+                                  className="w-full flex items-center gap-2 px-4 py-2 text-sm text-dark-200 hover:bg-dark-700 hover:text-white transition-colors"
+                                >
+                                  <Download className="w-3.5 h-3.5" />
+                                  Export to CSV
+                                </button>
                                 <button
                                   onClick={() => onDuplicate(seq._id)}
                                   className="w-full flex items-center gap-2 px-4 py-2 text-sm text-dark-200 hover:bg-dark-700 hover:text-white transition-colors"

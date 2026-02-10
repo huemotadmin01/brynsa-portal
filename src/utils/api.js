@@ -361,6 +361,27 @@ class ApiClient {
   async getSequenceEmailLog(sequenceId, page = 1, limit = 50) {
     return this.request(`/api/sequences/${sequenceId}/email-log?page=${page}&limit=${limit}`);
   }
+
+  // Sequence Schedule
+  async updateSequenceSchedule(sequenceId, schedule) {
+    return this.request(`/api/sequences/${sequenceId}/schedule`, {
+      method: 'PUT',
+      body: JSON.stringify({ schedule }),
+    });
+  }
+
+  // Pause/Resume enrollment
+  async pauseEnrollment(sequenceId, enrollmentId) {
+    return this.request(`/api/sequences/${sequenceId}/enrollments/${enrollmentId}/pause`, {
+      method: 'POST',
+    });
+  }
+
+  // Export sequence to CSV
+  async getSequenceExportUrl(sequenceId) {
+    const token = localStorage.getItem('rivvra_token');
+    return `${this.baseUrl}/api/sequences/${sequenceId}/export-csv?token=${token}`;
+  }
 }
 
 export const api = new ApiClient();

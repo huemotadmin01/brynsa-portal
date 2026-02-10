@@ -24,6 +24,8 @@ import {
   ChevronDown,
   Filter,
   ExternalLink,
+  Copy,
+  Download,
 } from 'lucide-react';
 
 function EngagePage() {
@@ -177,6 +179,18 @@ function EngagePage() {
       }
     } catch (err) {
       console.error('Update sequence error:', err);
+    }
+  }
+
+  async function handleDuplicateSequence(id) {
+    try {
+      const res = await api.duplicateSequence(id);
+      if (res.success) {
+        setActionMenuId(null);
+        loadSequences();
+      }
+    } catch (err) {
+      console.error('Duplicate sequence error:', err);
     }
   }
 
@@ -341,6 +355,7 @@ function EngagePage() {
             onNewSequence={() => { setEditingSequence(null); setShowBuilder(true); }}
             onOpenDetail={handleOpenDetail}
             onEdit={(seq) => { setEditingSequence(seq); setShowBuilder(true); setActionMenuId(null); }}
+            onDuplicate={handleDuplicateSequence}
             onDelete={handleDeleteSequence}
             onToggle={handleToggleSequence}
             onPause={(id) => handleToggleSequence(id, 'active')}
@@ -371,7 +386,7 @@ function SequencesTab({
   sequences, loading, emailsSentToday, searchQuery, filterStatus,
   actionMenuId, user,
   onSearch, onFilter, onNewSequence, onOpenDetail,
-  onEdit, onDelete, onToggle, onPause, onResume, onToggleMenu,
+  onEdit, onDuplicate, onDelete, onToggle, onPause, onResume, onToggleMenu,
 }) {
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
 
@@ -473,12 +488,12 @@ function SequencesTab({
                   <th className="text-left py-3 px-4 font-medium">Sequence</th>
                   <th className="text-left py-3 px-4 font-medium">Owner</th>
                   <th className="text-left py-3 px-4 font-medium">Contacts</th>
-                  <th className="text-left py-3 px-4 font-medium">Active/Fini...</th>
-                  <th className="text-left py-3 px-4 font-medium">Delive...</th>
-                  <th className="text-left py-3 px-4 font-medium">Ope...</th>
-                  <th className="text-left py-3 px-4 font-medium">Repli...</th>
-                  <th className="text-left py-3 px-4 font-medium">Bounc...</th>
-                  <th className="text-center py-3 px-4 font-medium w-16"></th>
+                  <th className="text-left py-3 px-4 font-medium whitespace-nowrap">Active/Finished</th>
+                  <th className="text-left py-3 px-4 font-medium">Delivered</th>
+                  <th className="text-left py-3 px-4 font-medium">Opened</th>
+                  <th className="text-left py-3 px-4 font-medium">Replied</th>
+                  <th className="text-left py-3 px-4 font-medium">Bounced</th>
+                  <th className="text-center py-3 px-4 font-medium w-24"></th>
                   <th className="text-right py-3 px-4 font-medium w-12"></th>
                 </tr>
               </thead>
@@ -530,12 +545,20 @@ function SequencesTab({
                       </td>
                       <td className="py-3 px-4 text-dark-300">{bounceRate}</td>
                       <td className="py-3 px-4 text-center" onClick={e => e.stopPropagation()}>
-                        {seq.status !== 'draft' && (
+                        {seq.status === 'completed' ? (
+                          <span className="inline-flex items-center px-2.5 py-1 text-xs font-medium text-green-400 bg-green-500/10 border border-green-500/20 rounded-full">
+                            Completed
+                          </span>
+                        ) : seq.status !== 'draft' ? (
                           <ToggleSwitch
                             checked={isActive}
                             onChange={() => onToggle(seq._id, seq.status)}
                             size="small"
                           />
+                        ) : (
+                          <span className="inline-flex items-center px-2.5 py-1 text-xs font-medium text-dark-400 bg-dark-700/50 border border-dark-600 rounded-full">
+                            Draft
+                          </span>
                         )}
                       </td>
                       <td className="py-3 px-4 text-right" onClick={e => e.stopPropagation()}>
@@ -550,7 +573,14 @@ function SequencesTab({
                           {actionMenuId === seq._id && (
                             <>
                               <div className="fixed inset-0 z-10" onClick={() => onToggleMenu(null)} />
-                              <div className="absolute right-0 top-full mt-1 w-44 bg-dark-800 border border-dark-600 rounded-xl shadow-xl py-1 z-20">
+                              <div className="absolute right-0 top-full mt-1 w-48 bg-dark-800 border border-dark-600 rounded-xl shadow-xl py-1 z-20">
+                                <button
+                                  onClick={() => onDuplicate(seq._id)}
+                                  className="w-full flex items-center gap-2 px-4 py-2 text-sm text-dark-200 hover:bg-dark-700 hover:text-white transition-colors"
+                                >
+                                  <Copy className="w-3.5 h-3.5" />
+                                  Duplicate
+                                </button>
                                 <button
                                   onClick={() => onEdit(seq)}
                                   disabled={seq.status === 'active'}
@@ -568,13 +598,13 @@ function SequencesTab({
                                     Pause
                                   </button>
                                 )}
-                                {seq.status === 'paused' && (
+                                {(seq.status === 'paused' || seq.status === 'draft') && (
                                   <button
                                     onClick={() => onResume(seq._id)}
                                     className="w-full flex items-center gap-2 px-4 py-2 text-sm text-green-400 hover:bg-dark-700 transition-colors"
                                   >
                                     <Play className="w-3.5 h-3.5" />
-                                    Resume
+                                    Activate
                                   </button>
                                 )}
                                 <button

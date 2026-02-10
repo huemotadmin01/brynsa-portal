@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   ArrowLeft, Mail, Clock, Users, Send, Eye, MessageSquare,
   AlertTriangle, XCircle, ChevronDown, ThumbsDown, Loader2,
-  Calendar, MoreVertical
+  Calendar, MoreVertical, Search, Linkedin, UserPlus
 } from 'lucide-react';
 import api from '../utils/api';
 import ToggleSwitch from './ToggleSwitch';
@@ -50,9 +50,9 @@ function SequenceDetailPage({ sequenceId, onBack }) {
     }
   }, [sequenceId]);
 
-  const loadEnrollments = useCallback(async (page = 1) => {
+  const loadEnrollments = useCallback(async (page = 1, { status, search } = {}) => {
     try {
-      const res = await api.getSequenceEnrollments(sequenceId, page);
+      const res = await api.getSequenceEnrollments(sequenceId, page, 50, { status, search });
       if (res.success) {
         setEnrollments(prev => page === 1 ? res.enrollments : [...prev, ...res.enrollments]);
         setEnrollmentTotal(res.pagination.total);
@@ -197,7 +197,7 @@ function SequenceDetailPage({ sequenceId, onBack }) {
 
           <div className="ml-auto pb-3">
             <button className="flex items-center gap-2 px-4 py-1.5 text-sm font-medium bg-rivvra-500 text-dark-950 rounded-lg hover:bg-rivvra-400 transition-colors">
-              + Add email
+              {activeTab === 'contacts' ? '+ Add contacts' : '+ Add email'}
             </button>
           </div>
         </div>
@@ -215,6 +215,7 @@ function SequenceDetailPage({ sequenceId, onBack }) {
           onLoadMore={() => loadEnrollments(enrollmentPage + 1)}
           onRemoveEnrollment={handleRemoveEnrollment}
           onMarkReplied={handleMarkReplied}
+          onReloadEnrollments={loadEnrollments}
         />
       )}
       {activeTab === 'emails' && (
@@ -322,8 +323,61 @@ function OverviewTab({ sequence, stepStats }) {
 
 // ========================== CONTACTS TAB ==========================
 
-function ContactsTab({ sequence, enrollments, enrollmentTotal, onLoadMore, onRemoveEnrollment, onMarkReplied }) {
-  if (enrollments.length === 0) {
+function ContactsTab({ sequence, enrollments, enrollmentTotal, onLoadMore, onRemoveEnrollment, onMarkReplied, onReloadEnrollments }) {
+  const [contactSearch, setContactSearch] = useState('');
+  const [contactFilter, setContactFilter] = useState('all');
+  const [showContactFilter, setShowContactFilter] = useState(false);
+  const [selectedContacts, setSelectedContacts] = useState(new Set());
+  const searchTimeoutRef = useRef(null);
+
+  // Debounced search
+  function handleContactSearch(value) {
+    setContactSearch(value);
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    searchTimeoutRef.current = setTimeout(() => {
+      if (onReloadEnrollments) onReloadEnrollments(1, { status: contactFilter, search: value });
+    }, 400);
+  }
+
+  function handleContactFilterChange(status) {
+    setContactFilter(status);
+    setShowContactFilter(false);
+    if (onReloadEnrollments) onReloadEnrollments(1, { status, search: contactSearch });
+  }
+
+  const allSelected = enrollments.length > 0 && selectedContacts.size === enrollments.length;
+
+  function toggleSelectAll() {
+    if (allSelected) {
+      setSelectedContacts(new Set());
+    } else {
+      setSelectedContacts(new Set(enrollments.map(e => e._id)));
+    }
+  }
+
+  function toggleSelectContact(id) {
+    setSelectedContacts(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  const contactFilterLabel = contactFilter === 'all' ? 'All contacts'
+    : contactFilter === 'active' ? 'Active'
+    : contactFilter === 'completed' ? 'Completed'
+    : contactFilter === 'replied' ? 'Replied'
+    : contactFilter === 'bounced' ? 'Bounced'
+    : 'All contacts';
+
+  const ENGAGEMENT_COLORS = {
+    Replied: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
+    Opened: 'text-purple-400 bg-purple-500/10 border-purple-500/20',
+    Delivered: 'text-blue-400 bg-blue-500/10 border-blue-500/20',
+  };
+
+  if (enrollments.length === 0 && !contactSearch && contactFilter === 'all') {
     return (
       <div className="card p-12 text-center">
         <Users className="w-8 h-8 text-dark-600 mx-auto mb-2" />
@@ -336,77 +390,196 @@ function ContactsTab({ sequence, enrollments, enrollmentTotal, onLoadMore, onRem
   }
 
   return (
-    <div className="card">
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="text-dark-500 text-xs uppercase tracking-wider border-b border-dark-700">
-              <th className="text-left py-3 px-4 font-medium">Lead</th>
-              <th className="text-left py-3 px-4 font-medium">Email</th>
-              <th className="text-left py-3 px-4 font-medium">Company</th>
-              <th className="text-left py-3 px-4 font-medium">Step</th>
-              <th className="text-left py-3 px-4 font-medium">Status</th>
-              <th className="text-right py-3 px-4 font-medium">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {enrollments.map(enrollment => {
-              const enrollStatus = ENROLLMENT_STATUS[enrollment.status] || ENROLLMENT_STATUS.active;
-              const totalSteps = sequence.steps?.length || 0;
-              const currentStep = Math.min(enrollment.currentStepIndex + 1, totalSteps);
+    <div>
+      {/* Contacts toolbar */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3">
+          {/* Select count */}
+          <span className="text-xs text-dark-500">{selectedContacts.size} selected</span>
 
-              return (
-                <tr key={enrollment._id} className="border-b border-dark-800 last:border-0 hover:bg-dark-800/30">
-                  <td className="py-3 px-4">
-                    <span className="text-white font-medium">{enrollment.leadName}</span>
-                  </td>
-                  <td className="py-3 px-4 text-dark-300">{enrollment.leadEmail}</td>
-                  <td className="py-3 px-4 text-dark-400">{enrollment.leadCompany || '—'}</td>
-                  <td className="py-3 px-4 text-dark-400">
-                    {['replied', 'replied_not_interested'].includes(enrollment.status)
-                      ? 'Replied'
-                      : ['lost_no_response', 'completed'].includes(enrollment.status)
-                        ? 'Done'
-                        : `${currentStep}/${totalSteps}`}
-                  </td>
-                  <td className="py-3 px-4">
-                    <span className={`text-xs font-medium ${enrollStatus.text}`}>{enrollStatus.label}</span>
-                  </td>
-                  <td className="py-3 px-4 text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      {['active', 'paused', 'replied', 'replied_not_interested'].includes(enrollment.status) && (
-                        <ReplyDropdown
-                          currentStatus={enrollment.status}
-                          onReplied={() => onMarkReplied(enrollment._id, 'interested')}
-                          onNotInterested={() => onMarkReplied(enrollment._id, 'not_interested')}
-                        />
-                      )}
-                      <button
-                        onClick={() => onRemoveEnrollment(enrollment._id)}
-                        title="Remove from sequence"
-                        className="p-1.5 text-dark-500 hover:text-red-400 transition-colors"
-                      >
-                        <XCircle className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+          {/* Filter dropdown */}
+          <div className="relative">
+            <button
+              onClick={() => setShowContactFilter(!showContactFilter)}
+              className="flex items-center gap-2 px-3 py-1.5 bg-dark-800 border border-dark-700 rounded-lg text-xs text-dark-300 hover:border-dark-600 transition-colors"
+            >
+              {contactFilterLabel}
+              <ChevronDown className="w-3 h-3" />
+            </button>
+            {showContactFilter && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setShowContactFilter(false)} />
+                <div className="absolute left-0 top-full mt-1 w-40 bg-dark-800 border border-dark-600 rounded-xl shadow-xl py-1 z-20">
+                  {[
+                    { value: 'all', label: 'All contacts' },
+                    { value: 'active', label: 'Active' },
+                    { value: 'completed', label: 'Completed' },
+                    { value: 'replied', label: 'Replied' },
+                    { value: 'bounced', label: 'Bounced' },
+                  ].map(opt => (
+                    <button
+                      key={opt.value}
+                      onClick={() => handleContactFilterChange(opt.value)}
+                      className={`w-full text-left px-3 py-1.5 text-xs hover:bg-dark-700 transition-colors ${
+                        contactFilter === opt.value ? 'text-rivvra-400' : 'text-dark-300'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Search */}
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-dark-500" />
+            <input
+              type="text"
+              placeholder="Search..."
+              value={contactSearch}
+              onChange={(e) => handleContactSearch(e.target.value)}
+              className="pl-8 pr-3 py-1.5 bg-dark-800 border border-dark-700 rounded-lg text-xs text-white placeholder:text-dark-500 focus:outline-none focus:border-rivvra-500 w-48"
+            />
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <span className="text-xs text-dark-500">
+            {enrollments.length}-{Math.min(enrollments.length, enrollmentTotal)} of {enrollmentTotal} Contacts
+          </span>
+        </div>
       </div>
 
-      {enrollments.length < enrollmentTotal && (
-        <div className="text-center py-4 border-t border-dark-800">
-          <button
-            onClick={onLoadMore}
-            className="text-sm text-rivvra-400 hover:text-rivvra-300 font-medium transition-colors"
-          >
-            Load more ({enrollmentTotal - enrollments.length} remaining)
-          </button>
+      {/* Table */}
+      <div className="card">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-dark-500 text-xs uppercase tracking-wider border-b border-dark-700">
+                <th className="py-3 px-4 w-10">
+                  <input
+                    type="checkbox"
+                    checked={allSelected}
+                    onChange={toggleSelectAll}
+                    className="w-3.5 h-3.5 rounded border-dark-600 bg-dark-800 text-rivvra-500 focus:ring-0 focus:ring-offset-0 cursor-pointer"
+                  />
+                </th>
+                <th className="text-left py-3 px-4 font-medium">Contact Name</th>
+                <th className="text-left py-3 px-4 font-medium">Contact Status</th>
+                <th className="text-left py-3 px-4 font-medium">Engagement</th>
+                <th className="text-left py-3 px-4 font-medium">Sent</th>
+                <th className="text-left py-3 px-4 font-medium">Delivered</th>
+                <th className="text-left py-3 px-4 font-medium">Opened</th>
+                <th className="text-left py-3 px-4 font-medium">Contact Info</th>
+                <th className="text-right py-3 px-4 font-medium w-12"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {enrollments.map(enrollment => {
+                const enrollStatus = ENROLLMENT_STATUS[enrollment.status] || ENROLLMENT_STATUS.active;
+                const emailStats = enrollment.emailStats || {};
+                const engagement = enrollment.engagement;
+                const engagementStyle = engagement ? ENGAGEMENT_COLORS[engagement] || '' : '';
+                const isSelected = selectedContacts.has(enrollment._id);
+
+                return (
+                  <tr key={enrollment._id} className={`border-b border-dark-800 last:border-0 hover:bg-dark-800/30 ${isSelected ? 'bg-dark-800/20' : ''}`}>
+                    <td className="py-3 px-4">
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => toggleSelectContact(enrollment._id)}
+                        className="w-3.5 h-3.5 rounded border-dark-600 bg-dark-800 text-rivvra-500 focus:ring-0 focus:ring-offset-0 cursor-pointer"
+                      />
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="text-white font-medium text-sm">{enrollment.leadName}</div>
+                      <div className="text-dark-500 text-xs">{enrollment.leadTitle ? `${enrollment.leadTitle}, ` : ''}{enrollment.leadCompany || ''}</div>
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="flex items-center gap-1.5">
+                        <span className={`w-1.5 h-1.5 rounded-full ${
+                          enrollment.status === 'active' ? 'bg-green-400' :
+                          enrollment.status === 'completed' ? 'bg-blue-400' :
+                          enrollment.status === 'replied' ? 'bg-emerald-400' :
+                          enrollment.status === 'bounced' ? 'bg-red-400' :
+                          'bg-dark-500'
+                        }`} />
+                        <span className="text-xs text-dark-300">{enrollStatus.label}</span>
+                      </div>
+                    </td>
+                    <td className="py-3 px-4">
+                      {engagement && (
+                        <span className={`inline-flex items-center px-2 py-0.5 text-xs font-medium rounded border ${engagementStyle}`}>
+                          {engagement}
+                        </span>
+                      )}
+                    </td>
+                    <td className="py-3 px-4 text-dark-300">{emailStats.sent || 0}</td>
+                    <td className="py-3 px-4 text-dark-300">{emailStats.delivered || 0}</td>
+                    <td className="py-3 px-4 text-dark-300">{emailStats.opened || 0}</td>
+                    <td className="py-3 px-4">
+                      <div className="flex items-center gap-2">
+                        {enrollment.leadLinkedin && (
+                          <a
+                            href={enrollment.leadLinkedin}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-1 text-dark-500 hover:text-blue-400 transition-colors"
+                            title="LinkedIn"
+                          >
+                            <Linkedin className="w-3.5 h-3.5" />
+                          </a>
+                        )}
+                        {enrollment.leadEmail && (
+                          <a
+                            href={`mailto:${enrollment.leadEmail}`}
+                            className="p-1 text-dark-500 hover:text-rivvra-400 transition-colors"
+                            title={enrollment.leadEmail}
+                          >
+                            <Mail className="w-3.5 h-3.5" />
+                          </a>
+                        )}
+                      </div>
+                    </td>
+                    <td className="py-3 px-4 text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        {['active', 'paused', 'replied', 'replied_not_interested'].includes(enrollment.status) && (
+                          <ReplyDropdown
+                            currentStatus={enrollment.status}
+                            onReplied={() => onMarkReplied(enrollment._id, 'interested')}
+                            onNotInterested={() => onMarkReplied(enrollment._id, 'not_interested')}
+                          />
+                        )}
+                        <button
+                          onClick={() => onRemoveEnrollment(enrollment._id)}
+                          title="Remove from sequence"
+                          className="p-1.5 text-dark-500 hover:text-red-400 transition-colors"
+                        >
+                          <XCircle className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
-      )}
+
+        {enrollments.length < enrollmentTotal && (
+          <div className="text-center py-4 border-t border-dark-800">
+            <button
+              onClick={onLoadMore}
+              className="text-sm text-rivvra-400 hover:text-rivvra-300 font-medium transition-colors"
+            >
+              Load more ({enrollmentTotal - enrollments.length} remaining)
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

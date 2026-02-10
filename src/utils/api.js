@@ -277,8 +277,17 @@ class ApiClient {
     });
   }
 
-  async getSequenceEnrollments(id, page = 1, limit = 50) {
-    return this.request(`/api/sequences/${id}/enrollments?page=${page}&limit=${limit}`);
+  async getSequenceEnrollments(id, page = 1, limit = 50, { status, search } = {}) {
+    let url = `/api/sequences/${id}/enrollments?page=${page}&limit=${limit}`;
+    if (status && status !== 'all') url += `&status=${status}`;
+    if (search) url += `&search=${encodeURIComponent(search)}`;
+    return this.request(url);
+  }
+
+  async duplicateSequence(id) {
+    return this.request(`/api/sequences/${id}/duplicate`, {
+      method: 'POST',
+    });
   }
 
   async removeEnrollment(sequenceId, enrollmentId) {

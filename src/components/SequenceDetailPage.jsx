@@ -106,6 +106,17 @@ function SequenceDetailPage({ sequenceId, onBack }) {
     loadEnrollments();
   }, [loadSequence, loadEnrollments]);
 
+  // Auto-refresh when sequence is active (poll every 10s)
+  useEffect(() => {
+    if (sequence?.status !== 'active') return;
+    const interval = setInterval(() => {
+      loadSequence();
+      loadEnrollments();
+      if (activeTab === 'emails') loadEmailLog();
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [sequence?.status, activeTab, loadSequence, loadEnrollments, loadEmailLog]);
+
   useEffect(() => {
     if (activeTab === 'emails' && emailLog.length === 0) {
       loadEmailLog();

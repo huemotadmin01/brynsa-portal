@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import {
   ArrowLeft, Mail, Clock, Users, Send, Eye, MessageSquare,
@@ -1067,6 +1067,55 @@ function EmailsTab({ sequenceId, sequence, enrollments, emails, total, loading, 
     setContactEmails(filtered);
   }
 
+  // Compute next scheduled email for selected contact
+  const scheduledEmail = useMemo(() => {
+    if (!selectedContact || selectedContact.status !== 'active' || !selectedContact.nextActionAt) return null;
+    const nextActionDate = new Date(selectedContact.nextActionAt);
+
+    const steps = sequence?.steps || [];
+    let nextEmailStepIndex = null;
+
+    // Walk forward from currentStepIndex to find the next email step
+    for (let i = selectedContact.currentStepIndex; i < steps.length; i++) {
+      if (steps[i].type === 'email') {
+        nextEmailStepIndex = i;
+        break;
+      }
+    }
+    if (nextEmailStepIndex === null) return null;
+
+    const step = steps[nextEmailStepIndex];
+
+    // Compute "Email N" display number (count email-type steps up to this index)
+    let emailNumber = 0;
+    for (let i = 0; i <= nextEmailStepIndex; i++) {
+      if (steps[i].type === 'email') emailNumber++;
+    }
+
+    // Replace placeholders client-side
+    const nameParts = (selectedContact.leadName || '').trim().split(' ');
+    const firstName = nameParts[0] || '';
+    const lastName = nameParts.slice(1).join(' ') || '';
+    const replacePlaceholders = (text) => {
+      if (!text) return '';
+      return text
+        .replace(/\{\{firstName\}\}/gi, firstName)
+        .replace(/\{\{lastName\}\}/gi, lastName)
+        .replace(/\{\{name\}\}/gi, selectedContact.leadName || '')
+        .replace(/\{\{company\}\}/gi, selectedContact.leadCompany || '')
+        .replace(/\{\{title\}\}/gi, selectedContact.leadTitle || '')
+        .replace(/\{\{email\}\}/gi, selectedContact.leadEmail || '');
+    };
+
+    return {
+      emailNumber,
+      subject: replacePlaceholders(step.subject),
+      body: replacePlaceholders(step.body),
+      scheduledAt: nextActionDate,
+      stepIndex: nextEmailStepIndex,
+    };
+  }, [selectedContact, sequence]);
+
   // Auto-select first contact
   useEffect(() => {
     if (!selectedContact && paginatedContacts.length > 0) {
@@ -1186,7 +1235,7 @@ function EmailsTab({ sequenceId, sequence, enrollments, emails, total, loading, 
             </div>
 
             {/* Email cards */}
-            {contactEmails.length === 0 ? (
+            {contactEmails.length === 0 && !scheduledEmail ? (
               <div className="text-center py-8">
                 <Mail className="w-6 h-6 text-dark-600 mx-auto mb-2" />
                 <p className="text-dark-500 text-sm">No emails sent to this contact yet</p>
@@ -1196,6 +1245,33 @@ function EmailsTab({ sequenceId, sequence, enrollments, emails, total, loading, 
               </div>
             ) : (
               <div className="space-y-4">
+                {/* Next scheduled email */}
+                {scheduledEmail && (
+                  <div className="bg-dark-800/40 rounded-xl p-4 border border-amber-500/30">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs font-semibold text-dark-400">Email {scheduledEmail.emailNumber}</span>
+                        <span className="text-sm font-medium text-white truncate max-w-xs">{scheduledEmail.subject || 'No subject'}</span>
+                        <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded border text-amber-400 bg-amber-500/10 border-amber-500/20">
+                          Scheduled
+                        </span>
+                      </div>
+                      <span className="text-xs text-dark-500">
+                        {scheduledEmail.scheduledAt.toLocaleString('en-US', {
+                          month: '2-digit', day: '2-digit', year: 'numeric',
+                          hour: '2-digit', minute: '2-digit', hour12: true
+                        })}
+                      </span>
+                    </div>
+                    {scheduledEmail.body && (
+                      <div className="mt-2">
+                        <span className="text-xs text-dark-500">Content</span>
+                        <p className="text-xs text-dark-400 mt-1 line-clamp-2">{scheduledEmail.body}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+                {/* Sent email cards */}
                 {contactEmails.map((email, i) => {
                   const isExpanded = expandedEmails.has(i);
                   const emailNumber = email.stepIndex !== undefined ? email.stepIndex + 1 : i + 1;

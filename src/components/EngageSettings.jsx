@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Info, Shield, RotateCcw, Save, Check, Loader2, Code, Eye } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Info, Shield, RotateCcw, Save, Check, Loader2 } from 'lucide-react';
 import api from '../utils/api';
 import ToggleSwitch from './ToggleSwitch';
 
@@ -226,7 +226,6 @@ function EngageSettings({ gmailStatus }) {
       {/* Email signature */}
       <SignatureSection
         signature={settings.signature || ''}
-        onChange={(val) => setSettings({ ...settings, signature: val })}
         gmailConnected={gmailStatus.connected}
       />
     </div>
@@ -235,56 +234,77 @@ function EngageSettings({ gmailStatus }) {
 
 // ========================== SIGNATURE SECTION ==========================
 
-function SignatureSection({ signature, onChange, gmailConnected }) {
-  const [showHtml, setShowHtml] = useState(false);
+function SignatureSection({ signature, gmailConnected }) {
+  const iframeRef = useRef(null);
+
+  useEffect(() => {
+    if (!signature || !iframeRef.current) return;
+
+    const iframe = iframeRef.current;
+    const doc = iframe.contentDocument || iframe.contentWindow?.document;
+    if (!doc) return;
+
+    doc.open();
+    doc.write(`<!DOCTYPE html>
+<html><head><meta charset="utf-8"><style>
+  body { margin: 0; padding: 16px 20px; font-family: Arial, Helvetica, sans-serif; font-size: 14px; color: #222; line-height: 1.5; background: #fff; }
+  img { max-width: 100%; height: auto; }
+  a { color: inherit; }
+  table { border-collapse: collapse; }
+</style></head><body>${signature}</body></html>`);
+    doc.close();
+
+    // Auto-resize iframe to fit content
+    const resizeObserver = new ResizeObserver(() => {
+      if (doc.body) {
+        iframe.style.height = doc.body.scrollHeight + 'px';
+      }
+    });
+
+    // Wait for images to load before measuring
+    const checkHeight = () => {
+      if (doc.body) {
+        iframe.style.height = doc.body.scrollHeight + 'px';
+      }
+    };
+
+    // Initial size + watch for changes
+    setTimeout(checkHeight, 50);
+    setTimeout(checkHeight, 300);
+    setTimeout(checkHeight, 1000);
+    if (doc.body) resizeObserver.observe(doc.body);
+
+    return () => resizeObserver.disconnect();
+  }, [signature]);
 
   return (
     <div className="card p-6">
       <div className="flex items-center justify-between mb-1">
         <h3 className="text-sm font-semibold text-white">Email signature</h3>
-        <div className="flex items-center gap-3">
-          {gmailConnected && signature && (
-            <span className="text-xs text-rivvra-400">Synced from Gmail</span>
-          )}
-          {signature && (
-            <button
-              onClick={() => setShowHtml(!showHtml)}
-              className="flex items-center gap-1.5 text-xs text-dark-500 hover:text-dark-300 transition-colors"
-            >
-              {showHtml ? <Eye className="w-3.5 h-3.5" /> : <Code className="w-3.5 h-3.5" />}
-              {showHtml ? 'Preview' : 'Edit HTML'}
-            </button>
-          )}
-        </div>
+        {gmailConnected && signature && (
+          <span className="text-xs text-rivvra-400">Synced from Gmail</span>
+        )}
       </div>
       <p className="text-xs text-dark-400 mb-4">This signature will be appended to all sequence emails. It is automatically fetched from your connected Gmail account.</p>
 
-      {/* Show rendered preview by default, raw HTML editor on toggle */}
       {signature ? (
-        showHtml ? (
-          <textarea
-            value={signature}
-            onChange={(e) => onChange(e.target.value)}
-            rows={8}
-            maxLength={5000}
-            className="w-full px-3 py-2 bg-dark-800 border border-dark-700 rounded-lg text-sm text-white font-mono resize-none focus:outline-none focus:border-rivvra-500"
+        <div className="rounded-lg overflow-hidden border border-dark-700">
+          <iframe
+            ref={iframeRef}
+            title="Email signature preview"
+            className="w-full border-0 bg-white"
+            style={{ minHeight: '120px' }}
+            sandbox="allow-same-origin"
           />
-        ) : (
-          <div
-            className="p-5 bg-white rounded-lg text-sm"
-            style={{ fontFamily: 'Arial, Helvetica, sans-serif', color: '#222', lineHeight: '1.5' }}
-            dangerouslySetInnerHTML={{ __html: signature }}
-          />
-        )
+        </div>
       ) : (
-        <textarea
-          value=""
-          onChange={(e) => onChange(e.target.value)}
-          rows={4}
-          maxLength={5000}
-          placeholder={gmailConnected ? 'Your Gmail signature will appear here after reconnecting...' : 'Connect your Gmail to auto-import your signature, or enter it manually (HTML supported)...'}
-          className="w-full px-3 py-2 bg-dark-800 border border-dark-700 rounded-lg text-sm text-white resize-none focus:outline-none focus:border-rivvra-500"
-        />
+        <div className="flex items-center justify-center py-8 px-4 bg-dark-800/50 border border-dark-700 border-dashed rounded-lg">
+          <p className="text-sm text-dark-500 text-center">
+            {gmailConnected
+              ? 'No signature found. Disconnect and reconnect Gmail to re-sync.'
+              : 'Connect your Gmail account to auto-import your email signature.'}
+          </p>
+        </div>
       )}
     </div>
   );

@@ -628,7 +628,8 @@ function SequencesTab({
                       <td className="py-3 px-4 text-right" onClick={e => e.stopPropagation()}>
                         <div className="relative">
                           <button
-                            onClick={() => onToggleMenu(seq._id)}
+                            ref={el => { if (actionMenuId === seq._id) window._menuBtnRect = el?.getBoundingClientRect(); }}
+                            onClick={(e) => { window._menuBtnRect = e.currentTarget.getBoundingClientRect(); onToggleMenu(seq._id); }}
                             className="p-1.5 text-dark-500 hover:text-white hover:bg-dark-700 rounded-lg transition-colors"
                           >
                             <MoreVertical className="w-4 h-4" />
@@ -636,8 +637,8 @@ function SequencesTab({
 
                           {actionMenuId === seq._id && (
                             <>
-                              <div className="fixed inset-0 z-10" onClick={() => onToggleMenu(null)} />
-                              <div className="absolute right-0 top-full mt-1 w-48 bg-dark-800 border border-dark-600 rounded-xl shadow-xl py-1 z-20">
+                              <div className="fixed inset-0 z-[40]" onClick={() => onToggleMenu(null)} />
+                              <div className="fixed w-48 bg-dark-800 border border-dark-600 rounded-xl shadow-xl py-1 z-[50]" style={{ top: (window._menuBtnRect?.bottom || 0) + 4, right: window.innerWidth - (window._menuBtnRect?.right || 0) }}>
                                 <button
                                   onClick={() => handleExportCsv(seq._id)}
                                   className="w-full flex items-center gap-2 px-4 py-2 text-sm text-dark-200 hover:bg-dark-700 hover:text-white transition-colors"

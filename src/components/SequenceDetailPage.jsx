@@ -940,7 +940,7 @@ function ContactsTab({ sequence, enrollments, enrollmentTotal, onLoadMore, onRem
                     <td className="py-3 px-4 text-right">
                       <div className="relative">
                         <button
-                          onClick={() => setContactMenuId(contactMenuId === enrollment._id ? null : enrollment._id)}
+                          onClick={(e) => { window._contactMenuBtnRect = e.currentTarget.getBoundingClientRect(); setContactMenuId(contactMenuId === enrollment._id ? null : enrollment._id); }}
                           className="p-1.5 text-dark-500 hover:text-white hover:bg-dark-700 rounded-lg transition-colors"
                         >
                           <MoreVertical className="w-4 h-4" />
@@ -948,8 +948,8 @@ function ContactsTab({ sequence, enrollments, enrollmentTotal, onLoadMore, onRem
 
                         {contactMenuId === enrollment._id && (
                           <>
-                            <div className="fixed inset-0 z-10" onClick={() => setContactMenuId(null)} />
-                            <div className="absolute right-0 top-full mt-1 w-44 bg-dark-800 border border-dark-600 rounded-xl shadow-xl py-1 z-20">
+                            <div className="fixed inset-0 z-[40]" onClick={() => setContactMenuId(null)} />
+                            <div className="fixed w-44 bg-dark-800 border border-dark-600 rounded-xl shadow-xl py-1 z-[50]" style={{ top: (window._contactMenuBtnRect?.bottom || 0) + 4, right: window.innerWidth - (window._contactMenuBtnRect?.right || 0) }}>
                               {enrollment.status === 'active' && (
                                 <button
                                   onClick={() => { onPauseEnrollment(enrollment._id); setContactMenuId(null); }}

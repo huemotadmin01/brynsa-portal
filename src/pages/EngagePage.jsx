@@ -480,8 +480,8 @@ function SequencesTab({
       ) : sequences.length === 0 ? (
         <EmptyState onNewSequence={onNewSequence} />
       ) : (
-        <div className="card overflow-hidden">
-          <div className="overflow-x-auto">
+        <div className="card overflow-visible">
+          <div className="overflow-x-auto overflow-y-visible">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-dark-500 text-xs uppercase tracking-wider border-b border-dark-700">

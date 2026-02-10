@@ -57,6 +57,30 @@ function EngagePage() {
     loadGmailStatus();
     loadEmailsSentToday();
     loadSequences();
+
+    // Handle redirect-back from Gmail OAuth (when popup was blocked)
+    const hash = window.location.hash; // e.g. #/engage?gmail_code=xxx
+    const queryPart = hash.split('?')[1];
+    if (queryPart) {
+      const params = new URLSearchParams(queryPart);
+      const gmailCode = params.get('gmail_code');
+      if (gmailCode) {
+        // Clean up URL
+        window.location.hash = '#/engage';
+        // Exchange the code
+        (async () => {
+          try {
+            const connectRes = await api.connectGmail(gmailCode);
+            if (connectRes.success) {
+              setGmailStatus({ connected: true, email: connectRes.gmailEmail });
+              setGmailLoading(false);
+            }
+          } catch (err) {
+            console.error('Gmail connect from redirect error:', err);
+          }
+        })();
+      }
+    }
   }, []);
 
   async function loadGmailStatus() {

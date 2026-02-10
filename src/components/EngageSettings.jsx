@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Info, Shield, RotateCcw, Save, Check, Loader2 } from 'lucide-react';
+import { Info, Shield, RotateCcw, Save, Check, Loader2, Code, Eye } from 'lucide-react';
 import api from '../utils/api';
 import ToggleSwitch from './ToggleSwitch';
 
@@ -224,37 +224,68 @@ function EngageSettings({ gmailStatus }) {
       </div>
 
       {/* Email signature */}
-      <div className="card p-6">
-        <div className="flex items-center justify-between mb-1">
-          <h3 className="text-sm font-semibold text-white">Email signature</h3>
-          {gmailStatus.connected && !settings.signature && (
-            <span className="text-xs text-dark-500">Connect Gmail to auto-import your signature</span>
-          )}
-          {gmailStatus.connected && settings.signature && (
+      <SignatureSection
+        signature={settings.signature || ''}
+        onChange={(val) => setSettings({ ...settings, signature: val })}
+        gmailConnected={gmailStatus.connected}
+      />
+    </div>
+  );
+}
+
+// ========================== SIGNATURE SECTION ==========================
+
+function SignatureSection({ signature, onChange, gmailConnected }) {
+  const [showHtml, setShowHtml] = useState(false);
+
+  return (
+    <div className="card p-6">
+      <div className="flex items-center justify-between mb-1">
+        <h3 className="text-sm font-semibold text-white">Email signature</h3>
+        <div className="flex items-center gap-3">
+          {gmailConnected && signature && (
             <span className="text-xs text-rivvra-400">Synced from Gmail</span>
           )}
+          {signature && (
+            <button
+              onClick={() => setShowHtml(!showHtml)}
+              className="flex items-center gap-1.5 text-xs text-dark-500 hover:text-dark-300 transition-colors"
+            >
+              {showHtml ? <Eye className="w-3.5 h-3.5" /> : <Code className="w-3.5 h-3.5" />}
+              {showHtml ? 'Preview' : 'Edit HTML'}
+            </button>
+          )}
         </div>
-        <p className="text-xs text-dark-400 mb-4">This signature will be appended to all sequence emails. It is automatically fetched from your connected Gmail account.</p>
-
-        <textarea
-          value={settings.signature || ''}
-          onChange={(e) => setSettings({ ...settings, signature: e.target.value })}
-          rows={6}
-          maxLength={5000}
-          placeholder="Enter your email signature (HTML supported)..."
-          className="w-full px-3 py-2 bg-dark-800 border border-dark-700 rounded-lg text-sm text-white font-mono resize-none focus:outline-none focus:border-rivvra-500"
-        />
-
-        {settings.signature && (
-          <div className="mt-4 pt-4 border-t border-dark-800">
-            <p className="text-xs text-dark-400 mb-2">Preview:</p>
-            <div
-              className="p-4 bg-white rounded-lg text-sm text-gray-900"
-              dangerouslySetInnerHTML={{ __html: settings.signature }}
-            />
-          </div>
-        )}
       </div>
+      <p className="text-xs text-dark-400 mb-4">This signature will be appended to all sequence emails. It is automatically fetched from your connected Gmail account.</p>
+
+      {/* Show rendered preview by default, raw HTML editor on toggle */}
+      {signature ? (
+        showHtml ? (
+          <textarea
+            value={signature}
+            onChange={(e) => onChange(e.target.value)}
+            rows={8}
+            maxLength={5000}
+            className="w-full px-3 py-2 bg-dark-800 border border-dark-700 rounded-lg text-sm text-white font-mono resize-none focus:outline-none focus:border-rivvra-500"
+          />
+        ) : (
+          <div
+            className="p-5 bg-white rounded-lg text-sm"
+            style={{ fontFamily: 'Arial, Helvetica, sans-serif', color: '#222', lineHeight: '1.5' }}
+            dangerouslySetInnerHTML={{ __html: signature }}
+          />
+        )
+      ) : (
+        <textarea
+          value=""
+          onChange={(e) => onChange(e.target.value)}
+          rows={4}
+          maxLength={5000}
+          placeholder={gmailConnected ? 'Your Gmail signature will appear here after reconnecting...' : 'Connect your Gmail to auto-import your signature, or enter it manually (HTML supported)...'}
+          className="w-full px-3 py-2 bg-dark-800 border border-dark-700 rounded-lg text-sm text-white resize-none focus:outline-none focus:border-rivvra-500"
+        />
+      )}
     </div>
   );
 }

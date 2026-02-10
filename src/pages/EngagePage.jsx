@@ -216,8 +216,25 @@ function EngagePage() {
   return (
     <Layout>
       <div className="p-6 lg:p-8 max-w-7xl mx-auto">
-        {/* Gmail Connection Banner */}
-        {!gmailLoading && !gmailStatus.connected && (
+        {/* Gmail Connection Banner - Never connected */}
+        {!gmailLoading && !gmailStatus.connected && !gmailStatus.wasConnected && (
+          <div className="flex items-center gap-3 px-4 py-3 mb-6 bg-rivvra-500/5 border border-rivvra-500/20 rounded-xl">
+            <Mail className="w-5 h-5 text-rivvra-400 flex-shrink-0" />
+            <div className="flex-1">
+              <span className="text-sm text-white font-medium">Connect your email to start sending. </span>
+              <span className="text-sm text-dark-400">Link your Gmail account to send personalized emails from your own address.</span>
+            </div>
+            <button
+              onClick={handleConnectGmail}
+              className="px-4 py-1.5 text-sm font-medium text-rivvra-400 border border-rivvra-500/30 rounded-lg hover:bg-rivvra-500/10 transition-colors whitespace-nowrap"
+            >
+              Connect email
+            </button>
+          </div>
+        )}
+
+        {/* Gmail Connection Banner - Was connected, now disconnected */}
+        {!gmailLoading && !gmailStatus.connected && gmailStatus.wasConnected && (
           <div className="flex items-center gap-3 px-4 py-3 mb-6 bg-red-500/10 border border-red-500/20 rounded-xl">
             <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
             <div className="flex-1">

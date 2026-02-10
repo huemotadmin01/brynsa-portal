@@ -211,7 +211,8 @@ function EngagePage() {
     try {
       if (currentStatus === 'active') {
         await api.pauseSequence(id);
-      } else if (currentStatus === 'paused') {
+      } else {
+        // Works for both 'paused' and 'draft' statuses
         await api.resumeSequence(id);
       }
       loadSequences();
@@ -616,16 +617,12 @@ function SequencesTab({
                           <span className="inline-flex items-center px-2.5 py-1 text-xs font-medium text-green-400 bg-green-500/10 border border-green-500/20 rounded-full">
                             Completed
                           </span>
-                        ) : seq.status !== 'draft' ? (
+                        ) : (
                           <ToggleSwitch
                             checked={isActive}
                             onChange={() => onToggle(seq._id, seq.status)}
                             size="small"
                           />
-                        ) : (
-                          <span className="inline-flex items-center px-2.5 py-1 text-xs font-medium text-dark-400 bg-dark-700/50 border border-dark-600 rounded-full">
-                            Draft
-                          </span>
                         )}
                       </td>
                       <td className="py-3 px-4 text-right" onClick={e => e.stopPropagation()}>

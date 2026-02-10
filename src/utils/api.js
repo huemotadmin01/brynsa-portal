@@ -308,6 +308,50 @@ class ApiClient {
       method: 'DELETE',
     });
   }
+
+  // Gmail OAuth
+  async getGmailOAuthUrl() {
+    return this.request('/api/engage/oauth-url');
+  }
+
+  async connectGmail(code) {
+    return this.request('/api/engage/connect-gmail', {
+      method: 'POST',
+      body: JSON.stringify({ code }),
+    });
+  }
+
+  async disconnectGmail() {
+    return this.request('/api/engage/disconnect-gmail', {
+      method: 'POST',
+    });
+  }
+
+  async getGmailStatus() {
+    return this.request('/api/engage/gmail-status');
+  }
+
+  // Engage Settings
+  async getEngageSettings() {
+    return this.request('/api/engage/settings');
+  }
+
+  async updateEngageSettings(settings) {
+    return this.request('/api/engage/settings', {
+      method: 'PUT',
+      body: JSON.stringify(settings),
+    });
+  }
+
+  // Engage Stats
+  async getEmailsSentToday() {
+    return this.request('/api/engage/emails-sent-today');
+  }
+
+  // Sequence Email Log
+  async getSequenceEmailLog(sequenceId, page = 1, limit = 50) {
+    return this.request(`/api/sequences/${sequenceId}/email-log?page=${page}&limit=${limit}`);
+  }
 }
 
 export const api = new ApiClient();

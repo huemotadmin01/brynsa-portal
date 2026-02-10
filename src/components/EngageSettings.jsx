@@ -8,7 +8,8 @@ function EngageSettings({ gmailStatus }) {
     dailySendLimit: 50,
     hourlySendLimit: 6,
     unsubscribe: { enabled: false, message: 'If you no longer wish to receive emails from me, you can unsubscribe at any time' },
-    signature: ''
+    signature: '',
+    fromName: ''
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -52,7 +53,8 @@ function EngageSettings({ gmailStatus }) {
       dailySendLimit: 50,
       hourlySendLimit: 6,
       unsubscribe: { enabled: false, message: 'If you no longer wish to receive emails from me, you can unsubscribe at any time' },
-      signature: ''
+      signature: '',
+      fromName: ''
     });
   }
 
@@ -83,6 +85,26 @@ function EngageSettings({ gmailStatus }) {
                 <span className="text-sm text-dark-500">Not connected</span>
               )}
             </div>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-dark-400">Display name:</span>
+              <div className="group relative">
+                <Info className="w-3.5 h-3.5 text-dark-500 cursor-help" />
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-dark-700 text-xs text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
+                  Name shown in the "From" field. Leave empty to use your profile name.
+                </div>
+              </div>
+            </div>
+            <input
+              type="text"
+              value={settings.fromName || ''}
+              onChange={(e) => setSettings({ ...settings, fromName: e.target.value })}
+              placeholder="e.g., John from Acme"
+              maxLength={100}
+              className="w-48 px-3 py-1.5 bg-dark-800 border border-dark-700 rounded-lg text-sm text-white placeholder-dark-500 text-right focus:outline-none focus:border-rivvra-500"
+            />
           </div>
 
           <div className="flex items-center justify-between">

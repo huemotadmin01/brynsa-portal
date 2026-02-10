@@ -427,6 +427,49 @@ class ApiClient {
     const token = localStorage.getItem('rivvra_token');
     return `${this.baseUrl}/api/sequences/${sequenceId}/export-csv?token=${token}`;
   }
+
+  // Reconcile sequence stats
+  async reconcileStats(sequenceId) {
+    return this.request(`/api/sequences/${sequenceId}/reconcile-stats`, {
+      method: 'POST',
+    });
+  }
+
+  // Send test email
+  async sendTestEmail(sequenceId, stepIndex, testEmail) {
+    return this.request(`/api/sequences/${sequenceId}/send-test`, {
+      method: 'POST',
+      body: JSON.stringify({ stepIndex, testEmail }),
+    });
+  }
+
+  // Update automation rules
+  async updateAutomationRules(sequenceId, automationRules) {
+    return this.request(`/api/sequences/${sequenceId}/automation-rules`, {
+      method: 'PUT',
+      body: JSON.stringify({ automationRules }),
+    });
+  }
+
+  // Suppression list
+  async getSuppressions(page = 1, limit = 50, search = '') {
+    let url = `/api/engage/suppressions?page=${page}&limit=${limit}`;
+    if (search) url += `&search=${encodeURIComponent(search)}`;
+    return this.request(url);
+  }
+
+  async addSuppression(email, reason = 'manual') {
+    return this.request('/api/engage/suppressions', {
+      method: 'POST',
+      body: JSON.stringify({ email, reason }),
+    });
+  }
+
+  async removeSuppression(id) {
+    return this.request(`/api/engage/suppressions/${id}`, {
+      method: 'DELETE',
+    });
+  }
 }
 
 export const api = new ApiClient();

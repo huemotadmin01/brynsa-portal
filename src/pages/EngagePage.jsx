@@ -6,6 +6,8 @@ import SequenceDetailPage from '../components/SequenceDetailPage';
 import EngageSettings from '../components/EngageSettings';
 import ToggleSwitch from '../components/ToggleSwitch';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
+import ConfirmModal from '../components/ConfirmModal';
 import api from '../utils/api';
 import {
   Plus,
@@ -33,6 +35,7 @@ import {
 
 function EngagePage() {
   const { user } = useAuth();
+  const { showToast } = useToast();
 
   // View state
   const [view, setView] = useState('list'); // 'list' | 'detail'
@@ -56,6 +59,7 @@ function EngagePage() {
   const [showBuilder, setShowBuilder] = useState(false);
   const [editingSequence, setEditingSequence] = useState(null);
   const [actionMenuId, setActionMenuId] = useState(null);
+  const [activateConfirm, setActivateConfirm] = useState(null); // { id, name }
 
   // Load data on mount
   useEffect(() => {
@@ -165,9 +169,10 @@ function EngagePage() {
       if (res.success) {
         setShowBuilder(false);
         loadSequences();
+        showToast('Sequence created');
       }
     } catch (err) {
-      console.error('Create sequence error:', err);
+      showToast(err.message || 'Failed to create sequence', 'error');
     }
   }
 
@@ -179,9 +184,10 @@ function EngagePage() {
         setEditingSequence(null);
         setShowBuilder(false);
         loadSequences();
+        showToast('Sequence updated');
       }
     } catch (err) {
-      console.error('Update sequence error:', err);
+      showToast(err.message || 'Failed to update sequence', 'error');
     }
   }
 
@@ -191,9 +197,10 @@ function EngagePage() {
       if (res.success) {
         setActionMenuId(null);
         loadSequences();
+        showToast('Sequence duplicated');
       }
     } catch (err) {
-      console.error('Duplicate sequence error:', err);
+      showToast(err.message || 'Failed to duplicate sequence', 'error');
     }
   }
 
@@ -203,22 +210,38 @@ function EngagePage() {
       await api.deleteSequence(id);
       setActionMenuId(null);
       loadSequences();
+      showToast('Sequence deleted');
     } catch (err) {
-      console.error('Delete sequence error:', err);
+      showToast(err.message || 'Failed to delete sequence', 'error');
     }
   }
 
   async function handleToggleSequence(id, currentStatus) {
+    if (currentStatus !== 'active') {
+      // Activating — show confirmation
+      const seq = sequences.find(s => s._id === id);
+      setActivateConfirm({ id, name: seq?.name || 'this sequence', enrolled: seq?.stats?.enrolled || 0 });
+      return;
+    }
+    // Pausing — immediate
     try {
-      if (currentStatus === 'active') {
-        await api.pauseSequence(id);
-      } else {
-        // Works for both 'paused' and 'draft' statuses
-        await api.resumeSequence(id);
-      }
+      await api.pauseSequence(id);
       loadSequences();
+      showToast('Sequence paused');
     } catch (err) {
-      console.error('Toggle sequence error:', err);
+      showToast(err.message || 'Failed to pause sequence', 'error');
+    }
+  }
+
+  async function confirmActivation() {
+    if (!activateConfirm) return;
+    try {
+      await api.resumeSequence(activateConfirm.id);
+      setActivateConfirm(null);
+      loadSequences();
+      showToast('Sequence activated');
+    } catch (err) {
+      showToast(err.message || 'Failed to activate sequence', 'error');
     }
   }
 
@@ -377,6 +400,17 @@ function EngagePage() {
             onClose={() => { setShowBuilder(false); setEditingSequence(null); }}
             onSave={editingSequence ? handleUpdateSequence : handleCreateSequence}
             sequence={editingSequence}
+          />
+        )}
+
+        {/* Activation confirmation modal */}
+        {activateConfirm && (
+          <ConfirmModal
+            title="Activate Sequence"
+            message={`Activate "${activateConfirm.name}"? ${activateConfirm.enrolled > 0 ? `${activateConfirm.enrolled} contacts will start receiving emails based on the schedule.` : 'No contacts are enrolled yet.'}`}
+            confirmLabel="Activate"
+            onConfirm={confirmActivation}
+            onCancel={() => setActivateConfirm(null)}
           />
         )}
       </div>

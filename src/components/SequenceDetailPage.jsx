@@ -10,6 +10,8 @@ import {
 import api from '../utils/api';
 import ToggleSwitch from './ToggleSwitch';
 import AddToSequenceModal from './AddToSequenceModal';
+import ConfirmModal from './ConfirmModal';
+import { useToast } from '../context/ToastContext';
 
 const ENROLLMENT_STATUS = {
   active: { text: 'text-green-400', label: 'Active' },
@@ -32,6 +34,7 @@ const PLACEHOLDERS = [
 ];
 
 function SequenceDetailPage({ sequenceId, onBack }) {
+  const { showToast } = useToast();
   const [sequence, setSequence] = useState(null);
   const [stepStats, setStepStats] = useState([]);
   const [activeTab, setActiveTab] = useState('overview');
@@ -52,6 +55,8 @@ function SequenceDetailPage({ sequenceId, onBack }) {
   const [showAddContacts, setShowAddContacts] = useState(false);
   const [showStepEditor, setShowStepEditor] = useState(null); // { stepIndex, step }
   const [showAddEmail, setShowAddEmail] = useState(false);
+  const [showActivateConfirm, setShowActivateConfirm] = useState(false);
+  const [showSendTest, setShowSendTest] = useState(null); // { stepIndex }
 
   const loadSequence = useCallback(async () => {
     try {
@@ -108,15 +113,29 @@ function SequenceDetailPage({ sequenceId, onBack }) {
   }, [activeTab, emailLog.length, loadEmailLog]);
 
   async function handleToggleSequence(active) {
+    if (active && sequence?.status !== 'active') {
+      // Show confirmation for activation
+      setShowActivateConfirm(true);
+      return;
+    }
+    // Pausing is immediate
     try {
-      if (active) {
-        await api.resumeSequence(sequenceId);
-      } else {
-        await api.pauseSequence(sequenceId);
-      }
+      await api.pauseSequence(sequenceId);
       loadSequence();
+      showToast('Sequence paused');
     } catch (err) {
-      console.error('Toggle failed:', err);
+      showToast(err.message || 'Failed to pause sequence', 'error');
+    }
+  }
+
+  async function confirmActivation() {
+    try {
+      await api.resumeSequence(sequenceId);
+      setShowActivateConfirm(false);
+      loadSequence();
+      showToast('Sequence activated');
+    } catch (err) {
+      showToast(err.message || 'Failed to activate sequence', 'error');
     }
   }
 
@@ -127,7 +146,7 @@ function SequenceDetailPage({ sequenceId, onBack }) {
       setEnrollmentTotal(prev => prev - 1);
       loadSequence();
     } catch (err) {
-      console.error('Remove enrollment failed:', err);
+      showToast(err.message || 'Failed to remove enrollment', 'error');
     }
   }
 
@@ -140,7 +159,7 @@ function SequenceDetailPage({ sequenceId, onBack }) {
         ));
       }
     } catch (err) {
-      console.error('Pause enrollment failed:', err);
+      showToast(err.message || 'Failed to pause enrollment', 'error');
     }
   }
 
@@ -149,8 +168,9 @@ function SequenceDetailPage({ sequenceId, onBack }) {
       await api.markEnrollmentReplied(sequenceId, enrollmentId, replyType);
       loadEnrollments(1);
       loadSequence();
+      showToast(replyType === 'not_interested' ? 'Marked as not interested' : 'Marked as replied');
     } catch (err) {
-      console.error('Mark replied failed:', err);
+      showToast(err.message || 'Failed to update status', 'error');
     }
   }
 
@@ -162,7 +182,7 @@ function SequenceDetailPage({ sequenceId, onBack }) {
         setSequence(res.sequence);
       }
     } catch (err) {
-      console.error('Toggle step failed:', err);
+      showToast(err.message || 'Failed to toggle step', 'error');
     }
   }
 
@@ -172,9 +192,10 @@ function SequenceDetailPage({ sequenceId, onBack }) {
       if (res.success) {
         setSequence(res.sequence);
         setShowStepEditor(null);
+        showToast('Step updated');
       }
     } catch (err) {
-      console.error('Update step failed:', err);
+      showToast(err.message || 'Failed to update step', 'error');
     }
   }
 
@@ -184,9 +205,10 @@ function SequenceDetailPage({ sequenceId, onBack }) {
       const res = await api.deleteStep(sequenceId, stepIndex);
       if (res.success) {
         setSequence(res.sequence);
+        showToast('Step deleted');
       }
     } catch (err) {
-      console.error('Delete step failed:', err);
+      showToast(err.message || 'Failed to delete step', 'error');
     }
   }
 
@@ -204,7 +226,7 @@ function SequenceDetailPage({ sequenceId, onBack }) {
         setShowStepEditor({ stepIndex: newIndex, step: res.sequence.steps[newIndex] });
       }
     } catch (err) {
-      console.error('Add step failed:', err);
+      showToast(err.message || 'Failed to add step', 'error');
     }
   }
 
@@ -214,8 +236,9 @@ function SequenceDetailPage({ sequenceId, onBack }) {
       await api.bulkPauseEnrollments(sequenceId, Array.from(enrollmentIds));
       loadEnrollments(1);
       loadSequence();
+      showToast(`${enrollmentIds.size} enrollments paused`);
     } catch (err) {
-      console.error('Bulk pause failed:', err);
+      showToast(err.message || 'Bulk pause failed', 'error');
     }
   }
 
@@ -225,8 +248,9 @@ function SequenceDetailPage({ sequenceId, onBack }) {
       await api.bulkRemoveEnrollments(sequenceId, Array.from(enrollmentIds));
       loadEnrollments(1);
       loadSequence();
+      showToast(`${enrollmentIds.size} contacts removed`);
     } catch (err) {
-      console.error('Bulk remove failed:', err);
+      showToast(err.message || 'Bulk remove failed', 'error');
     }
   }
 
@@ -249,6 +273,7 @@ function SequenceDetailPage({ sequenceId, onBack }) {
     { id: 'overview', label: 'Overview' },
     { id: 'contacts', label: 'Contacts' },
     { id: 'emails', label: 'Emails' },
+    { id: 'automation', label: 'Automation' },
     { id: 'schedule', label: 'Schedule' },
   ];
 
@@ -327,6 +352,7 @@ function SequenceDetailPage({ sequenceId, onBack }) {
           onToggleStep={handleToggleStep}
           onEditStep={(stepIndex, step) => setShowStepEditor({ stepIndex, step })}
           onDeleteStep={handleDeleteStep}
+          onSendTest={(stepIndex) => setShowSendTest({ stepIndex })}
         />
       )}
       {activeTab === 'contacts' && (
@@ -355,6 +381,9 @@ function SequenceDetailPage({ sequenceId, onBack }) {
           onReloadEnrollments={loadEnrollments}
         />
       )}
+      {activeTab === 'automation' && (
+        <AutomationTab sequence={sequence} sequenceId={sequenceId} onUpdate={loadSequence} />
+      )}
       {activeTab === 'schedule' && (
         <ScheduleTab sequence={sequence} sequenceId={sequenceId} onUpdate={loadSequence} />
       )}
@@ -379,6 +408,26 @@ function SequenceDetailPage({ sequenceId, onBack }) {
           stepIndex={showStepEditor.stepIndex}
           onSave={handleUpdateStep}
           onClose={() => setShowStepEditor(null)}
+        />
+      )}
+
+      {/* Activation Confirmation Modal */}
+      {showActivateConfirm && (
+        <ConfirmModal
+          title="Activate Sequence"
+          message={`Activate "${sequence.name}"? ${enrollmentTotal > 0 ? `${enrollmentTotal} contacts will start receiving emails based on the schedule.` : 'No contacts are enrolled yet.'}`}
+          confirmLabel="Activate"
+          onConfirm={confirmActivation}
+          onCancel={() => setShowActivateConfirm(false)}
+        />
+      )}
+
+      {/* Send Test Email Modal */}
+      {showSendTest !== null && (
+        <SendTestModal
+          sequenceId={sequenceId}
+          stepIndex={showSendTest.stepIndex}
+          onClose={() => setShowSendTest(null)}
         />
       )}
     </>
@@ -514,7 +563,7 @@ function StepEditorModal({ step, stepIndex, onSave, onClose }) {
 
 // ========================== OVERVIEW TAB ==========================
 
-function OverviewTab({ sequence, stepStats, onToggleStep, onEditStep, onDeleteStep }) {
+function OverviewTab({ sequence, stepStats, onToggleStep, onEditStep, onDeleteStep, onSendTest }) {
   const [openMenuIndex, setOpenMenuIndex] = useState(null);
   const steps = sequence.steps || [];
   let cumulativeDay = 1;
@@ -594,6 +643,13 @@ function OverviewTab({ sequence, stepStats, onToggleStep, onEditStep, onDeleteSt
                         >
                           <Edit3 className="w-3.5 h-3.5" />
                           Edit
+                        </button>
+                        <button
+                          onClick={() => { setOpenMenuIndex(null); onSendTest(index); }}
+                          className="w-full flex items-center gap-2 px-3 py-2 text-sm text-dark-200 hover:bg-dark-700 hover:text-white transition-colors"
+                        >
+                          <Send className="w-3.5 h-3.5" />
+                          Send Test
                         </button>
                         <button
                           onClick={() => { onDeleteStep(index); setOpenMenuIndex(null); }}
@@ -1569,6 +1625,236 @@ function getRelativeTime(date) {
   if (days === 1) return 'yesterday';
   if (days < 7) return `${days}d ago`;
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+// ========================== SEND TEST MODAL ==========================
+
+function SendTestModal({ sequenceId, stepIndex, onClose }) {
+  const [email, setEmail] = useState('');
+  const [sending, setSending] = useState(false);
+  const { showToast } = useToast();
+
+  async function handleSend() {
+    if (!email.trim()) return;
+    setSending(true);
+    try {
+      const res = await api.sendTestEmail(sequenceId, stepIndex, email.trim());
+      if (res.success) {
+        showToast(`Test email sent to ${email}`);
+        onClose();
+      }
+    } catch (err) {
+      showToast(err.message || 'Failed to send test email', 'error');
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-dark-950/80 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-dark-900 border border-dark-700 rounded-2xl w-full max-w-sm shadow-2xl p-6 animate-slide-up">
+        <h3 className="text-lg font-semibold text-white mb-1">Send Test Email</h3>
+        <p className="text-sm text-dark-400 mb-4">Placeholders will be filled with sample data (Jane Doe, Acme Corp).</p>
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="Enter email address"
+          className="w-full px-3 py-2 bg-dark-800 border border-dark-600 rounded-lg text-sm text-white placeholder-dark-500 focus:outline-none focus:border-rivvra-500 mb-4"
+          autoFocus
+          onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+        />
+        <div className="flex items-center justify-end gap-3">
+          <button onClick={onClose} className="px-4 py-2 text-sm text-dark-300 hover:text-white transition-colors">
+            Cancel
+          </button>
+          <button
+            onClick={handleSend}
+            disabled={!email.trim() || sending}
+            className="px-5 py-2 text-sm font-medium rounded-lg bg-rivvra-500 text-dark-950 hover:bg-rivvra-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+          >
+            {sending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+            Send Test
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ========================== AUTOMATION TAB ==========================
+
+const TRIGGER_CONFIG = [
+  { key: 'onReplied', label: 'On Reply', statusLabel: 'Replied', borderCls: 'border-emerald-500/40', dotCls: 'bg-emerald-400', badgeCls: 'bg-emerald-500/10 text-emerald-400' },
+  { key: 'onRepliedNotInterested', label: 'On Not Interested', statusLabel: 'Not Interested', borderCls: 'border-purple-500/40', dotCls: 'bg-purple-400', badgeCls: 'bg-purple-500/10 text-purple-400' },
+  { key: 'onNoResponse', label: 'On No Response', statusLabel: 'No Response', borderCls: 'border-orange-500/40', dotCls: 'bg-orange-400', badgeCls: 'bg-orange-500/10 text-orange-400' },
+  { key: 'onBounced', label: 'On Bounce', statusLabel: 'Bounced', borderCls: 'border-red-500/40', dotCls: 'bg-red-400', badgeCls: 'bg-red-500/10 text-red-400' },
+];
+
+const DEFAULT_RULES = {
+  onReplied: { updateStatus: true, moveToList: '', addTags: [] },
+  onRepliedNotInterested: { updateStatus: true, moveToList: '', addTags: [] },
+  onNoResponse: { updateStatus: true, moveToList: '', addTags: [] },
+  onBounced: { updateStatus: true, moveToList: '', addTags: [] },
+};
+
+function AutomationTab({ sequence, sequenceId, onUpdate }) {
+  const { showToast } = useToast();
+  const [rules, setRules] = useState(() => {
+    const existing = sequence.automationRules || {};
+    return {
+      onReplied: { ...DEFAULT_RULES.onReplied, ...existing.onReplied },
+      onRepliedNotInterested: { ...DEFAULT_RULES.onRepliedNotInterested, ...existing.onRepliedNotInterested },
+      onNoResponse: { ...DEFAULT_RULES.onNoResponse, ...existing.onNoResponse },
+      onBounced: { ...DEFAULT_RULES.onBounced, ...existing.onBounced },
+    };
+  });
+  const [saving, setSaving] = useState(false);
+  const [lists, setLists] = useState([]);
+
+  useEffect(() => {
+    api.getLists?.().then(res => {
+      if (res?.success) setLists(res.lists || []);
+    }).catch(() => {});
+  }, []);
+
+  const updateRule = (triggerKey, field, value) => {
+    setRules(prev => ({
+      ...prev,
+      [triggerKey]: { ...prev[triggerKey], [field]: value }
+    }));
+  };
+
+  async function handleSave() {
+    setSaving(true);
+    try {
+      const res = await api.updateAutomationRules(sequenceId, rules);
+      if (res.success) {
+        showToast('Automation rules saved');
+        onUpdate();
+      }
+    } catch (err) {
+      showToast(err.message || 'Failed to save automation rules', 'error');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between mb-2">
+        <div>
+          <h3 className="text-sm font-semibold text-white">Automation Rules</h3>
+          <p className="text-xs text-dark-400 mt-0.5">Configure actions when enrollment status changes</p>
+        </div>
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="flex items-center gap-2 px-4 py-2 bg-rivvra-500 text-dark-950 rounded-lg text-sm font-medium hover:bg-rivvra-400 disabled:opacity-50 transition-colors"
+        >
+          {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+          Save Rules
+        </button>
+      </div>
+
+      {TRIGGER_CONFIG.map(({ key, label, statusLabel, borderCls, dotCls, badgeCls }) => {
+        const rule = rules[key] || DEFAULT_RULES[key];
+        return (
+          <div key={key} className={`card p-4 border-l-2 ${borderCls}`}>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <span className={`w-2 h-2 rounded-full ${dotCls}`} />
+                <span className="text-sm font-medium text-white">{label}</span>
+              </div>
+              <span className={`text-xs px-2 py-0.5 rounded-full ${badgeCls}`}>
+                {statusLabel}
+              </span>
+            </div>
+
+            <div className="space-y-3 ml-4">
+              {/* Update outreach status */}
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={rule.updateStatus !== false}
+                  onChange={(e) => updateRule(key, 'updateStatus', e.target.checked)}
+                  className="w-4 h-4 rounded border-dark-600 bg-dark-800 text-rivvra-500 focus:ring-rivvra-500/50"
+                />
+                <span className="text-sm text-dark-300">Update lead outreach status to "{statusLabel}"</span>
+              </label>
+
+              {/* Move to list */}
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-dark-400 w-24 shrink-0">Move to list:</span>
+                <select
+                  value={rule.moveToList || ''}
+                  onChange={(e) => updateRule(key, 'moveToList', e.target.value)}
+                  className="flex-1 px-3 py-1.5 bg-dark-800 border border-dark-600 rounded-lg text-sm text-white focus:outline-none focus:border-rivvra-500"
+                >
+                  <option value="">None</option>
+                  {lists.map(list => (
+                    <option key={list._id || list.name} value={list.name}>{list.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Add tags */}
+              <div className="flex items-start gap-2">
+                <span className="text-sm text-dark-400 w-24 shrink-0 mt-1.5">Add tags:</span>
+                <TagInput
+                  tags={rule.addTags || []}
+                  onChange={(tags) => updateRule(key, 'addTags', tags)}
+                />
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function TagInput({ tags, onChange }) {
+  const [inputValue, setInputValue] = useState('');
+
+  function handleKeyDown(e) {
+    if ((e.key === 'Enter' || e.key === ',') && inputValue.trim()) {
+      e.preventDefault();
+      const newTag = inputValue.trim();
+      if (!tags.includes(newTag)) {
+        onChange([...tags, newTag]);
+      }
+      setInputValue('');
+    }
+    if (e.key === 'Backspace' && !inputValue && tags.length > 0) {
+      onChange(tags.slice(0, -1));
+    }
+  }
+
+  function removeTag(index) {
+    onChange(tags.filter((_, i) => i !== index));
+  }
+
+  return (
+    <div className="flex-1 flex flex-wrap items-center gap-1.5 px-2 py-1.5 bg-dark-800 border border-dark-600 rounded-lg min-h-[36px]">
+      {tags.map((tag, idx) => (
+        <span key={idx} className="flex items-center gap-1 px-2 py-0.5 bg-dark-700 rounded text-xs text-dark-200">
+          {tag}
+          <button onClick={() => removeTag(idx)} className="text-dark-400 hover:text-white">
+            <X className="w-3 h-3" />
+          </button>
+        </span>
+      ))}
+      <input
+        value={inputValue}
+        onChange={(e) => setInputValue(e.target.value)}
+        onKeyDown={handleKeyDown}
+        placeholder={tags.length === 0 ? 'Type and press Enter' : ''}
+        className="flex-1 min-w-[80px] bg-transparent text-sm text-white placeholder-dark-500 focus:outline-none"
+      />
+    </div>
+  );
 }
 
 export default SequenceDetailPage;

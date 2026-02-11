@@ -641,7 +641,7 @@ function LeadsPage() {
               </div>
               <div>
                 <h2 className="text-xl font-bold text-white">
-                  {deleteTarget ? 'Delete Lead' : `Delete ${selectedLeads.length} Leads`}
+                  {deleteTarget ? 'Delete Contact' : `Delete ${selectedLeads.length} Contacts`}
                 </h2>
                 <p className="text-dark-400 text-sm">This action cannot be undone</p>
               </div>

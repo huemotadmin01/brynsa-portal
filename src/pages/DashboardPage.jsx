@@ -707,7 +707,7 @@ function DashboardPage() {
                 {searchLoading ? (
                   <div className="flex flex-col items-center justify-center py-20">
                     <Loader2 className="w-8 h-8 text-rivvra-400 animate-spin mb-4" />
-                    <p className="text-dark-400">Searching leads...</p>
+                    <p className="text-dark-400">Searching contacts...</p>
                   </div>
                 ) : searchResults.length === 0 ? (
                   <div className="text-center py-20">
@@ -769,7 +769,7 @@ function DashboardPage() {
               <div className="mb-8">
                 <div className="flex items-center gap-2 mb-6">
                   <Sparkles className="w-5 h-5 text-amber-400" />
-                  <h2 className="text-lg font-semibold text-white">Recommended leads tailored just for you</h2>
+                  <h2 className="text-lg font-semibold text-white">Recommended contacts tailored just for you</h2>
                   <span className="px-2 py-0.5 text-xs font-medium rounded bg-rivvra-500/20 text-rivvra-400">Beta</span>
                 </div>
 
@@ -801,7 +801,7 @@ function DashboardPage() {
                           </div>
                         </>
                       ) : (
-                        <p className="text-sm text-dark-500 text-center py-4">Extract leads to see recommendations</p>
+                        <p className="text-sm text-dark-500 text-center py-4">Extract contacts to see recommendations</p>
                       )}
                     </div>
                     <button className="w-full mt-4 text-sm text-rivvra-400 hover:text-rivvra-300 transition-colors">
@@ -866,7 +866,7 @@ function DashboardPage() {
               {/* Quick Stats Row */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
                 {[
-                  { label: 'Leads Scraped', value: savedLeadsCount || 0, icon: Users, color: 'rivvra' },
+                  { label: 'Contacts Saved', value: savedLeadsCount || 0, icon: Users, color: 'rivvra' },
                   { label: 'Emails Generated', value: features?.usage?.emailsGenerated || 0, icon: Mail, color: 'blue', locked: !isPro },
                   { label: 'DMs Generated', value: features?.usage?.dmsGenerated || 0, icon: MessageSquare, color: 'purple', locked: !isPro },
                   { label: 'CRM Exports', value: features?.usage?.crmExports || 0, icon: Building2, color: 'orange', locked: !isPro },
@@ -921,7 +921,7 @@ function DashboardPage() {
                           className="flex items-center justify-between p-3 bg-dark-800/30 rounded-lg hover:bg-dark-800/50 transition-colors"
                         >
                           <span className="text-white">{list.name}</span>
-                          <span className="text-sm text-dark-400">{list.count || 0} leads</span>
+                          <span className="text-sm text-dark-400">{list.count || 0} contacts</span>
                         </Link>
                       ))}
                     </div>
@@ -936,11 +936,11 @@ function DashboardPage() {
                     </div>
                     <div>
                       <h3 className="font-semibold text-white">Chrome Extension</h3>
-                      <p className="text-sm text-dark-400">Extract leads directly from LinkedIn</p>
+                      <p className="text-sm text-dark-400">Extract contacts directly from LinkedIn</p>
                     </div>
                   </div>
                   <p className="text-dark-400 text-sm mb-4">
-                    Install our Chrome extension to start extracting leads from LinkedIn profiles, searches, and Sales Navigator.
+                    Install our Chrome extension to start extracting contacts from LinkedIn profiles, searches, and Sales Navigator.
                   </p>
                   <a
                     href="#"

@@ -44,7 +44,7 @@ function PrivacyPage() {
             <ul className="list-disc list-inside space-y-2 ml-2">
               <li>Account information (name, email address) when you sign up</li>
               <li>Profile type preferences (client or candidate) you select</li>
-              <li>Notes and tags you add to leads</li>
+              <li>Notes and tags you add to contacts</li>
             </ul>
 
             <h3 className="text-lg font-medium text-dark-200 mb-3 mt-6">2.2 Information Collected Automatically</h3>
@@ -66,9 +66,9 @@ function PrivacyPage() {
             <h2 className="text-xl font-semibold text-white mb-4">3. How We Use Your Information</h2>
             <ul className="list-disc list-inside space-y-2 ml-2">
               <li>To provide and maintain our Service</li>
-              <li>To extract and organize LinkedIn lead data as requested by you</li>
+              <li>To extract and organize LinkedIn contact data as requested by you</li>
               <li>To generate AI-powered email and message suggestions</li>
-              <li>To enrich lead data with email discovery and verification</li>
+              <li>To enrich contact data with email discovery and verification</li>
               <li>To sync your data across devices via our portal</li>
               <li>To improve and optimize our Service</li>
             </ul>
@@ -88,8 +88,8 @@ function PrivacyPage() {
             <p className="mb-4">We do not sell or transfer your personal data to third parties. Your data may be shared only in the following cases:</p>
             <ul className="list-disc list-inside space-y-2 ml-2">
               <li><strong className="text-dark-200">Google Sheets Integration:</strong> When you choose to export data to Google Sheets, data is sent to your connected Google account</li>
-              <li><strong className="text-dark-200">CRM Export:</strong> When you explicitly export leads to a CRM system (e.g., Odoo), data is sent to your configured CRM</li>
-              <li><strong className="text-dark-200">AI Services:</strong> Lead data may be processed by AI services (OpenAI) to generate personalized messages, subject to their privacy policies</li>
+              <li><strong className="text-dark-200">CRM Export:</strong> When you explicitly export contacts to a CRM system (e.g., Odoo), data is sent to your configured CRM</li>
+              <li><strong className="text-dark-200">AI Services:</strong> Contact data may be processed by AI services (OpenAI) to generate personalized messages, subject to their privacy policies</li>
               <li><strong className="text-dark-200">Legal Requirements:</strong> We may disclose data if required by law or in response to valid legal requests</li>
             </ul>
           </section>

@@ -918,7 +918,7 @@ function ContactsTab({ sequence, enrollments, enrollmentTotal, onLoadMore, onRem
         <Users className="w-8 h-8 text-dark-600 mx-auto mb-2" />
         <p className="text-dark-400 text-sm">No contacts enrolled yet</p>
         <p className="text-dark-500 text-xs mt-1">
-          Enroll leads from My Contacts or My Lists
+          Enroll contacts from My Contacts or My Lists
         </p>
       </div>
     );
@@ -1866,7 +1866,7 @@ function CriteriaTab({ sequence, sequenceId, onUpdate }) {
       <div className="flex items-center justify-between mb-2">
         <div>
           <h3 className="text-sm font-semibold text-white">Entering Criteria</h3>
-          <p className="text-xs text-dark-400 mt-0.5">Define which leads are eligible to be enrolled in this sequence</p>
+          <p className="text-xs text-dark-400 mt-0.5">Define which contacts are eligible to be enrolled in this sequence</p>
         </div>
         <button
           onClick={handleSave}
@@ -1887,7 +1887,7 @@ function CriteriaTab({ sequence, sequenceId, onUpdate }) {
           <div>
             <p className="text-xs font-medium text-blue-400">Enrollment Filtering</p>
             <p className="text-xs text-dark-400 mt-0.5">
-              Leads that don't meet these criteria will be automatically skipped when enrolling contacts. Each skipped lead will show a clear reason.
+              Contacts that don't meet these criteria will be automatically skipped when enrolling. Each skipped contact will show a clear reason.
             </p>
           </div>
         </div>
@@ -2175,7 +2175,7 @@ function AutomationTab({ sequence, sequenceId, onUpdate }) {
                   onChange={(e) => updateRule(key, 'updateStatus', e.target.checked)}
                   className="w-4 h-4 rounded border-dark-600 bg-dark-800 text-rivvra-500 focus:ring-rivvra-500/50"
                 />
-                <span className="text-sm text-dark-300">Update lead outreach status to "{statusLabel}"</span>
+                <span className="text-sm text-dark-300">Update contact outreach status to "{statusLabel}"</span>
               </label>
 
               {/* Move to list */}

@@ -52,12 +52,12 @@ function LandingPage() {
               {/* Badge */}
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-rivvra-500/10 border border-rivvra-500/20">
                 <Zap className="w-4 h-4 text-rivvra-400" />
-                <span className="text-sm text-rivvra-300">Free LinkedIn Lead Extraction</span>
+                <span className="text-sm text-rivvra-300">Free LinkedIn Contact Extraction</span>
               </div>
 
               {/* Headline */}
               <h1 className="text-5xl lg:text-6xl font-bold leading-tight">
-                <span className="text-white">Extract leads from</span>
+                <span className="text-white">Extract contacts from</span>
                 <br />
                 <span className="text-gradient">LinkedIn — free forever</span>
               </h1>
@@ -71,7 +71,7 @@ function LandingPage() {
               {/* CTA Buttons */}
               <div className="flex flex-col sm:flex-row gap-4">
                 <Link to="/signup" className="btn-primary text-lg px-8 py-4 flex items-center justify-center gap-2">
-                  Start extracting leads
+                  Start extracting contacts
                   <ArrowRight className="w-5 h-5" />
                 </Link>
                 <a 
@@ -105,7 +105,7 @@ function LandingPage() {
               <div className="relative card p-8 space-y-6 animate-float">
                 {/* Header */}
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-rivvra-400 uppercase tracking-wider">Lead Preview</span>
+                  <span className="text-xs font-semibold text-rivvra-400 uppercase tracking-wider">Contact Preview</span>
                   <span className="px-3 py-1 rounded-full bg-rivvra-500/20 text-rivvra-300 text-xs font-medium">
                     97% fit
                   </span>
@@ -168,7 +168,7 @@ function LandingPage() {
                 Everything you need to grow your pipeline
               </h2>
               <p className="text-dark-400 text-lg max-w-2xl mx-auto">
-                From lead extraction to personalized outreach, Rivvra gives you the tools to find and convert more prospects.
+                From contact extraction to personalized outreach, Rivvra gives you the tools to find and convert more prospects.
               </p>
             </div>
 
@@ -189,7 +189,7 @@ function LandingPage() {
                 {
                   icon: Users,
                   title: 'CRM Integration',
-                  description: 'Export leads directly to Odoo, HubSpot, or your favorite CRM.',
+                  description: 'Export contacts directly to Odoo, HubSpot, or your favorite CRM.',
                   highlight: 'PRO'
                 },
                 {

@@ -40,7 +40,7 @@ const TEAM_SIZES = [
 ];
 
 const USE_CASES = [
-  { id: 'lead_gen', label: 'Lead Generation', description: 'Find and reach potential customers', icon: Target },
+  { id: 'lead_gen', label: 'Contact Generation', description: 'Find and reach potential customers', icon: Target },
   { id: 'recruiting', label: 'Recruiting', description: 'Source and hire talent', icon: Users },
   { id: 'sales', label: 'Sales Outreach', description: 'Book more meetings', icon: Briefcase },
   { id: 'marketing', label: 'Marketing Research', description: 'Analyze prospects and markets', icon: Building2 },
@@ -454,7 +454,7 @@ function SignupPage() {
                   Create your account
                 </h1>
                 <p className="text-dark-400">
-                  Start extracting leads from LinkedIn in minutes.
+                  Start extracting contacts from LinkedIn in minutes.
                 </p>
               </div>
 
@@ -1009,7 +1009,7 @@ function SignupPage() {
               </div>
               <div>
                 <h3 className="font-semibold text-white">Chrome Extension</h3>
-                <p className="text-sm text-dark-400">Extract leads directly from LinkedIn</p>
+                <p className="text-sm text-dark-400">Extract contacts directly from LinkedIn</p>
               </div>
             </div>
             <div className="space-y-2">
@@ -1026,7 +1026,7 @@ function SignupPage() {
           <div className="grid grid-cols-3 gap-6">
             {[
               { value: '2.5K+', label: 'Active Users' },
-              { value: '100K+', label: 'Leads Extracted' },
+              { value: '100K+', label: 'Contacts Extracted' },
               { value: '4.9/5', label: 'User Rating' },
             ].map((stat, i) => (
               <div key={i} className="text-center">

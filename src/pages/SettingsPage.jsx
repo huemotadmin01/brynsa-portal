@@ -151,7 +151,7 @@ function SettingsPage() {
                   <h2 className="text-lg font-semibold text-white mb-4">Account Statistics</h2>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     {[
-                      { label: 'Leads Scraped', value: user?.usage?.leadsScraped || 0 },
+                      { label: 'Contacts Saved', value: user?.usage?.leadsScraped || 0 },
                       { label: 'Emails Generated', value: user?.usage?.emailsGenerated || 0 },
                       { label: 'DMs Generated', value: user?.usage?.dmsGenerated || 0 },
                       { label: 'CRM Exports', value: user?.usage?.crmExports || 0 },
@@ -261,7 +261,7 @@ function SettingsPage() {
               </p>
               <ul className="text-dark-400 text-sm space-y-1 mb-4">
                 <li>• Your profile and settings</li>
-                <li>• All saved leads</li>
+                <li>• All saved contacts</li>
                 <li>• Generated emails and messages</li>
                 <li>• Usage history and statistics</li>
               </ul>

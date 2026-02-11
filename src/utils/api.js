@@ -290,6 +290,12 @@ class ApiClient {
     });
   }
 
+  async shareSequence(id) {
+    return this.request(`/api/sequences/${id}/share`, {
+      method: 'POST',
+    });
+  }
+
   async removeEnrollment(sequenceId, enrollmentId) {
     return this.request(`/api/sequences/${sequenceId}/enrollments/${enrollmentId}`, {
       method: 'DELETE',

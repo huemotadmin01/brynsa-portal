@@ -31,6 +31,8 @@ import {
   Copy,
   Download,
   ArrowUpDown,
+  Share2,
+  Users,
 } from 'lucide-react';
 
 function EngagePage() {
@@ -184,6 +186,19 @@ function EngagePage() {
       showToast('Sequence deleted');
     } catch (err) {
       showToast(err.message || 'Failed to delete sequence', 'error');
+    }
+  }
+
+  async function handleShareSequence(id) {
+    try {
+      const res = await api.shareSequence(id);
+      if (res.success) {
+        setActionMenuId(null);
+        loadSequences();
+        showToast(res.shared ? 'Sequence shared with team' : 'Sequence unshared from team');
+      }
+    } catch (err) {
+      showToast(err.message || 'Failed to share sequence', 'error');
     }
   }
 
@@ -355,6 +370,7 @@ function EngagePage() {
             onEdit={(seq) => { navigate(`/engage/edit-sequence/${seq._id}`); setActionMenuId(null); }}
             onDuplicate={handleDuplicateSequence}
             onDelete={handleDeleteSequence}
+            onShare={handleShareSequence}
             onToggle={handleToggleSequence}
             onPause={(id) => handleToggleSequence(id, 'active')}
             onResume={(id) => handleToggleSequence(id, 'paused')}
@@ -406,7 +422,7 @@ function SequencesTab({
   sequences, loading, emailsSentToday, searchQuery, filterStatus,
   actionMenuId, user,
   onSearch, onFilter, onNewSequence, onOpenDetail,
-  onEdit, onDuplicate, onDelete, onToggle, onPause, onResume, onToggleMenu,
+  onEdit, onDuplicate, onDelete, onShare, onToggle, onPause, onResume, onToggleMenu,
 }) {
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
   const [sort, setSort] = useState({ key: 'updatedAt', dir: 'desc' });
@@ -592,11 +608,21 @@ function SequencesTab({
                       onClick={() => onOpenDetail(seq)}
                     >
                       <td className="py-3 px-4">
-                        <div className="text-white font-medium">{seq.name}</div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-white font-medium">{seq.name}</span>
+                          {seq.sharedWithCompany && (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium text-blue-400 bg-blue-500/10 border border-blue-500/20 rounded">
+                              <Users className="w-2.5 h-2.5" />
+                              Shared
+                            </span>
+                          )}
+                        </div>
                         <div className="text-dark-500 text-xs">{emailSteps} Email{emailSteps !== 1 ? 's' : ''}</div>
                       </td>
                       <td className="py-3 px-4 text-dark-300 text-xs">
-                        {user?.name ? `${user.name.split(' ')[0]} ${user.name.split(' ')[1]?.charAt(0) || ''}.`.trim() : '—'}
+                        {seq.isOwner === false
+                          ? <span className="text-blue-400">{seq.ownerName || 'Teammate'}</span>
+                          : user?.name ? `${user.name.split(' ')[0]} ${user.name.split(' ')[1]?.charAt(0) || ''}.`.trim() : '—'}
                       </td>
                       <td className="py-3 px-4 text-dark-300">{stats.enrolled || 0}</td>
                       <td className="py-3 px-4 text-dark-300">{Math.max(active, 0)}/{finished}</td>
@@ -609,7 +635,9 @@ function SequencesTab({
                       </td>
                       <td className="py-3 px-4 text-dark-300">{bounceRate}</td>
                       <td className="py-3 px-4 text-center" onClick={e => e.stopPropagation()}>
-                        {seq.status === 'completed' ? (
+                        {seq.isOwner === false ? (
+                          <span className="text-dark-500 text-xs italic">View only</span>
+                        ) : seq.status === 'completed' ? (
                           <span className="inline-flex items-center px-2.5 py-1 text-xs font-medium text-green-400 bg-green-500/10 border border-green-500/20 rounded-full">
                             Completed
                           </span>
@@ -649,15 +677,26 @@ function SequencesTab({
                                   <Copy className="w-3.5 h-3.5" />
                                   Duplicate
                                 </button>
-                                <button
-                                  onClick={() => onEdit(seq)}
-                                  disabled={seq.status === 'active'}
-                                  className="w-full flex items-center gap-2 px-4 py-2 text-sm text-dark-200 hover:bg-dark-700 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                                >
-                                  <Edit3 className="w-3.5 h-3.5" />
-                                  Edit
-                                </button>
-                                {seq.status === 'active' && (
+                                {seq.isOwner !== false && user?.companyId && (
+                                  <button
+                                    onClick={() => onShare(seq._id)}
+                                    className="w-full flex items-center gap-2 px-4 py-2 text-sm text-blue-400 hover:bg-dark-700 transition-colors"
+                                  >
+                                    <Share2 className="w-3.5 h-3.5" />
+                                    {seq.sharedWithCompany ? 'Unshare from team' : 'Share with team'}
+                                  </button>
+                                )}
+                                {seq.isOwner !== false && (
+                                  <button
+                                    onClick={() => onEdit(seq)}
+                                    disabled={seq.status === 'active'}
+                                    className="w-full flex items-center gap-2 px-4 py-2 text-sm text-dark-200 hover:bg-dark-700 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                                  >
+                                    <Edit3 className="w-3.5 h-3.5" />
+                                    Edit
+                                  </button>
+                                )}
+                                {seq.isOwner !== false && seq.status === 'active' && (
                                   <button
                                     onClick={() => onPause(seq._id)}
                                     className="w-full flex items-center gap-2 px-4 py-2 text-sm text-amber-400 hover:bg-dark-700 transition-colors"
@@ -666,7 +705,7 @@ function SequencesTab({
                                     Pause
                                   </button>
                                 )}
-                                {(seq.status === 'paused' || seq.status === 'draft') && (
+                                {seq.isOwner !== false && (seq.status === 'paused' || seq.status === 'draft') && (
                                   <button
                                     onClick={() => onResume(seq._id)}
                                     className="w-full flex items-center gap-2 px-4 py-2 text-sm text-green-400 hover:bg-dark-700 transition-colors"
@@ -675,13 +714,15 @@ function SequencesTab({
                                     Activate
                                   </button>
                                 )}
-                                <button
-                                  onClick={() => onDelete(seq._id)}
-                                  className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-400 hover:bg-dark-700 transition-colors"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                  Delete
-                                </button>
+                                {seq.isOwner !== false && (
+                                  <button
+                                    onClick={() => onDelete(seq._id)}
+                                    className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-400 hover:bg-dark-700 transition-colors"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                    Delete
+                                  </button>
+                                )}
                               </div>
                             </>,
                             document.body

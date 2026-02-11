@@ -5,7 +5,7 @@ import {
   AlertTriangle, XCircle, ChevronDown, ChevronUp, ThumbsDown, Loader2,
   Calendar, MoreVertical, Search, Linkedin, UserPlus, Pause, Play,
   ArrowUpDown, ChevronLeft, ChevronRight, Save, Check, X, Edit3, Trash2,
-  UserMinus, Zap, Filter, Info, Plus
+  UserMinus, Zap, Filter, Info, Plus, Share2
 } from 'lucide-react';
 import api from '../utils/api';
 import ToggleSwitch from './ToggleSwitch';
@@ -303,6 +303,7 @@ function SequenceDetailPage({ sequenceId, onBack }) {
   if (!sequence) return null;
 
   const isActive = sequence.status === 'active';
+  const isOwner = sequence.isOwner !== false; // true for owner or legacy sequences without isOwner field
   const createdDate = sequence.createdAt ? new Date(sequence.createdAt).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }) : '';
   const updatedDate = sequence.updatedAt ? new Date(sequence.updatedAt).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }) : '';
 
@@ -310,9 +311,11 @@ function SequenceDetailPage({ sequenceId, onBack }) {
     { id: 'overview', label: 'Overview' },
     { id: 'contacts', label: 'Contacts' },
     { id: 'emails', label: 'Emails' },
-    { id: 'automation', label: 'Automation' },
-    { id: 'criteria', label: 'Criteria' },
-    { id: 'schedule', label: 'Schedule' },
+    ...(isOwner ? [
+      { id: 'automation', label: 'Automation' },
+      { id: 'criteria', label: 'Criteria' },
+      { id: 'schedule', label: 'Schedule' },
+    ] : []),
   ];
 
   return (
@@ -326,13 +329,25 @@ function SequenceDetailPage({ sequenceId, onBack }) {
           <ArrowLeft className="w-4 h-4" />
         </button>
 
+        {!isOwner && (
+          <div className="flex items-center gap-2 px-3 py-2 mb-3 text-sm text-blue-400 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+            <Users className="w-4 h-4 flex-shrink-0" />
+            Shared by {sequence.ownerName || 'Teammate'} — you can view and enroll contacts
+          </div>
+        )}
+
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <h1 className="text-xl font-bold text-white">{sequence.name}</h1>
-            <ToggleSwitch
-              checked={isActive}
-              onChange={handleToggleSequence}
-            />
+            {isOwner && (
+              <ToggleSwitch
+                checked={isActive}
+                onChange={handleToggleSequence}
+              />
+            )}
+            {!isOwner && (
+              <span className="text-xs text-dark-500 italic">View only</span>
+            )}
           </div>
           <div className="flex items-center gap-4 text-xs text-dark-500">
             {createdDate && <span>Launched on: {createdDate}</span>}
@@ -381,6 +396,7 @@ function SequenceDetailPage({ sequenceId, onBack }) {
           sequence={sequence}
           sequenceId={sequenceId}
           stepStats={stepStats}
+          isOwner={isOwner}
           onToggleStep={handleToggleStep}
           onEditStep={handleUpdateStep}
           onDeleteStep={handleDeleteStep}
@@ -605,7 +621,7 @@ function StepEditorModal({ step, stepIndex, onSave, onClose }) {
 
 // ========================== OVERVIEW TAB ==========================
 
-function OverviewTab({ sequence, sequenceId, stepStats, onToggleStep, onEditStep, onDeleteStep, onSendTest, onUpdateWaitDays, onAddEmail }) {
+function OverviewTab({ sequence, sequenceId, stepStats, isOwner, onToggleStep, onEditStep, onDeleteStep, onSendTest, onUpdateWaitDays, onAddEmail }) {
   const [editingIndex, setEditingIndex] = useState(null);
   const [editBackup, setEditBackup] = useState(null);
   const steps = sequence.steps || [];
@@ -679,8 +695,9 @@ function OverviewTab({ sequence, sequenceId, stepStats, onToggleStep, onEditStep
             min={1}
             max={30}
             value={item.days}
-            onChange={(e) => onUpdateWaitDays(item.index, e.target.value)}
-            className="w-10 px-1.5 py-0.5 bg-dark-900 border border-dark-600 rounded text-center text-xs text-white focus:outline-none focus:border-rivvra-500"
+            onChange={(e) => isOwner && onUpdateWaitDays(item.index, e.target.value)}
+            readOnly={!isOwner}
+            className={`w-10 px-1.5 py-0.5 bg-dark-900 border border-dark-600 rounded text-center text-xs text-white focus:outline-none ${isOwner ? 'focus:border-rivvra-500' : 'cursor-default'}`}
           />
           <span className="text-xs text-dark-400">days - if no reply</span>
         </div>
@@ -726,11 +743,13 @@ function OverviewTab({ sequence, sequenceId, stepStats, onToggleStep, onEditStep
                 {/* Card header */}
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-3">
-                    <ToggleSwitch
-                      checked={stepEnabled}
-                      onChange={() => onToggleStep(index)}
-                      size="small"
-                    />
+                    {isOwner && (
+                      <ToggleSwitch
+                        checked={stepEnabled}
+                        onChange={() => onToggleStep(index)}
+                        size="small"
+                      />
+                    )}
                     <div className="flex items-center gap-1.5 text-xs text-dark-400">
                       <Mail className="w-3.5 h-3.5" />
                       <span className="font-semibold text-dark-300">Email {emailNum}</span>
@@ -748,31 +767,33 @@ function OverviewTab({ sequence, sequenceId, stepStats, onToggleStep, onEditStep
                       </div>
                     )}
                   </div>
-                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button
-                      onClick={() => onSendTest(index)}
-                      className="p-1.5 text-dark-400 hover:text-white hover:bg-dark-700 rounded-lg transition-colors"
-                      title="Send Test"
-                    >
-                      <Send className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      onClick={() => startEditing(index)}
-                      className="p-1.5 text-dark-400 hover:text-white hover:bg-dark-700 rounded-lg transition-colors"
-                      title="Edit"
-                    >
-                      <Edit3 className="w-3.5 h-3.5" />
-                    </button>
-                    {emailSteps.length > 1 && (
+                  {isOwner && (
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button
-                        onClick={() => onDeleteStep(index)}
-                        className="p-1.5 text-dark-400 hover:text-red-400 hover:bg-dark-700 rounded-lg transition-colors"
-                        title="Delete"
+                        onClick={() => onSendTest(index)}
+                        className="p-1.5 text-dark-400 hover:text-white hover:bg-dark-700 rounded-lg transition-colors"
+                        title="Send Test"
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
+                        <Send className="w-3.5 h-3.5" />
                       </button>
-                    )}
-                  </div>
+                      <button
+                        onClick={() => startEditing(index)}
+                        className="p-1.5 text-dark-400 hover:text-white hover:bg-dark-700 rounded-lg transition-colors"
+                        title="Edit"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                      </button>
+                      {emailSteps.length > 1 && (
+                        <button
+                          onClick={() => onDeleteStep(index)}
+                          className="p-1.5 text-dark-400 hover:text-red-400 hover:bg-dark-700 rounded-lg transition-colors"
+                          title="Delete"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Subject */}
@@ -799,16 +820,18 @@ function OverviewTab({ sequence, sequenceId, stepStats, onToggleStep, onEditStep
         })}
       </div>
 
-      {/* Add email button — same as wizard compose */}
-      <div className="mt-4">
-        <button
-          onClick={onAddEmail}
-          className="flex items-center gap-2 px-4 py-2.5 border border-dashed border-dark-600 rounded-xl text-sm text-dark-400 hover:border-rivvra-500/40 hover:text-rivvra-400 transition-colors w-full justify-center"
-        >
-          <Plus className="w-4 h-4" />
-          Add email
-        </button>
-      </div>
+      {/* Add email button — same as wizard compose (owner only) */}
+      {isOwner && (
+        <div className="mt-4">
+          <button
+            onClick={onAddEmail}
+            className="flex items-center gap-2 px-4 py-2.5 border border-dashed border-dark-600 rounded-xl text-sm text-dark-400 hover:border-rivvra-500/40 hover:text-rivvra-400 transition-colors w-full justify-center"
+          >
+            <Plus className="w-4 h-4" />
+            Add email
+          </button>
+        </div>
+      )}
     </div>
   );
 }

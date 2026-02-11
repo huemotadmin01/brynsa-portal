@@ -2,6 +2,15 @@ import { useState, useEffect } from 'react';
 import { X, Save, Loader2 } from 'lucide-react';
 import api from '../utils/api';
 
+const OUTREACH_STATUS_OPTIONS = [
+  { value: 'not_contacted', label: 'Not Contacted', cls: 'bg-dark-700 text-dark-400' },
+  { value: 'in_sequence', label: 'In Sequence', cls: 'bg-blue-500/10 text-blue-400' },
+  { value: 'replied', label: 'Replied', cls: 'bg-emerald-500/10 text-emerald-400' },
+  { value: 'replied_not_interested', label: 'Not Interested', cls: 'bg-purple-500/10 text-purple-400' },
+  { value: 'no_response', label: 'No Response', cls: 'bg-orange-500/10 text-orange-400' },
+  { value: 'bounced', label: 'Bounced', cls: 'bg-red-500/10 text-red-400' },
+];
+
 function EditContactModal({ lead, isOpen, onClose, onLeadUpdate }) {
   const [form, setForm] = useState({
     name: '',
@@ -10,6 +19,7 @@ function EditContactModal({ lead, isOpen, onClose, onLeadUpdate }) {
     phone: '',
     company: '',
     location: '',
+    outreachStatus: 'not_contacted',
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -24,6 +34,7 @@ function EditContactModal({ lead, isOpen, onClose, onLeadUpdate }) {
         phone: lead.phone || '',
         company: lead.company || lead.companyName || '',
         location: lead.location || '',
+        outreachStatus: lead.outreachStatus || 'not_contacted',
       });
       setError('');
     }
@@ -55,6 +66,7 @@ function EditContactModal({ lead, isOpen, onClose, onLeadUpdate }) {
         company: form.company.trim(),
         companyName: form.company.trim(),
         location: form.location.trim(),
+        outreachStatus: form.outreachStatus,
       };
 
       await api.updateLead(lead._id, updateData);
@@ -119,6 +131,25 @@ function EditContactModal({ lead, isOpen, onClose, onLeadUpdate }) {
               />
             </div>
           ))}
+
+          {/* Outreach Status */}
+          <div>
+            <label className="block text-xs font-medium text-dark-400 mb-1.5">
+              Outreach Status
+            </label>
+            <select
+              value={form.outreachStatus}
+              onChange={(e) => handleChange('outreachStatus', e.target.value)}
+              className="w-full px-3 py-2.5 bg-dark-800 border border-dark-600 rounded-xl text-white text-sm focus:outline-none focus:border-rivvra-500 transition-colors appearance-none cursor-pointer"
+            >
+              {OUTREACH_STATUS_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+            <p className="text-[10px] text-dark-500 mt-1">
+              Useful when leads reply via LinkedIn DM or other channels
+            </p>
+          </div>
 
           {error && (
             <p className="text-red-400 text-xs">{error}</p>

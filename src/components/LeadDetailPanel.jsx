@@ -16,6 +16,8 @@ function LeadDetailPanel({ lead, onClose, onUpdate }) {
   const [tags, setTags] = useState(lead?.tags || []);
   const [newTag, setNewTag] = useState('');
   const [savingTags, setSavingTags] = useState(false);
+  const [outreachStatus, setOutreachStatus] = useState(lead?.outreachStatus || 'not_contacted');
+  const [savingOutreachStatus, setSavingOutreachStatus] = useState(false);
 
   // Sync notes when lead changes
   useEffect(() => {
@@ -31,6 +33,11 @@ function LeadDetailPanel({ lead, onClose, onUpdate }) {
   useEffect(() => {
     setTags(lead?.tags || []);
   }, [lead?._id, lead?.tags]);
+
+  // Sync outreachStatus when lead changes
+  useEffect(() => {
+    setOutreachStatus(lead?.outreachStatus || 'not_contacted');
+  }, [lead?._id, lead?.outreachStatus]);
 
   if (!lead) return null;
 
@@ -109,6 +116,24 @@ function LeadDetailPanel({ lead, onClose, onUpdate }) {
       setProfileType(lead?.profileType || '');
     } finally {
       setSavingProfileType(false);
+    }
+  };
+
+  const handleOutreachStatusChange = async (newStatus) => {
+    const oldStatus = outreachStatus;
+    setOutreachStatus(newStatus);
+    try {
+      setSavingOutreachStatus(true);
+      await api.updateLead(lead._id, { outreachStatus: newStatus });
+      console.log('Outreach status saved to API successfully');
+      if (onUpdate) {
+        onUpdate({ ...lead, outreachStatus: newStatus });
+      }
+    } catch (err) {
+      console.error('Failed to save outreach status:', err);
+      setOutreachStatus(oldStatus);
+    } finally {
+      setSavingOutreachStatus(false);
     }
   };
 
@@ -284,6 +309,36 @@ function LeadDetailPanel({ lead, onClose, onUpdate }) {
             <option value="candidate">Candidate</option>
             <option value="client">Client</option>
           </select>
+        </div>
+
+        {/* Outreach Status */}
+        <div className="p-4 border-b border-dark-700">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold text-dark-300 uppercase tracking-wider">
+              Outreach Status
+            </h3>
+            {savingOutreachStatus && (
+              <div className="flex items-center gap-1 text-xs text-dark-500">
+                <RefreshCw className="w-3 h-3 animate-spin" />
+                Saving...
+              </div>
+            )}
+          </div>
+          <select
+            value={outreachStatus}
+            onChange={(e) => handleOutreachStatusChange(e.target.value)}
+            className="w-full px-3 py-2.5 bg-dark-800 border border-dark-600 rounded-xl text-white focus:outline-none focus:border-rivvra-500 appearance-none cursor-pointer"
+          >
+            <option value="not_contacted">Not Contacted</option>
+            <option value="in_sequence">In Sequence</option>
+            <option value="replied">Replied</option>
+            <option value="replied_not_interested">Not Interested</option>
+            <option value="no_response">No Response</option>
+            <option value="bounced">Bounced</option>
+          </select>
+          <p className="text-[10px] text-dark-500 mt-1.5">
+            Override status when leads reply via LinkedIn DM or other channels
+          </p>
         </div>
 
         {/* Tags */}

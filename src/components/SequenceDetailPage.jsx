@@ -595,129 +595,130 @@ function StepEditorModal({ step, stepIndex, onSave, onClose }) {
 function OverviewTab({ sequence, stepStats, onToggleStep, onEditStep, onDeleteStep, onSendTest }) {
   const [openMenuIndex, setOpenMenuIndex] = useState(null);
   const steps = sequence.steps || [];
+  let emailCounter = 0;
   let cumulativeDay = 1;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-0">
       {steps.map((step, index) => {
+        // Wait step — inline divider (like wizard compose)
         if (step.type === 'wait') {
           cumulativeDay += step.days;
-          return null;
+          return (
+            <div key={`wait-${index}`} className="flex items-center justify-center gap-3 py-3">
+              <div className="flex-1 h-px bg-dark-700" />
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-dark-800/50 border border-dark-700 rounded-full">
+                <Clock className="w-3 h-3 text-dark-500" />
+                <span className="text-xs text-dark-400">Wait {step.days} day{step.days !== 1 ? 's' : ''} - if no reply</span>
+              </div>
+              <div className="flex-1 h-px bg-dark-700" />
+            </div>
+          );
         }
 
+        emailCounter++;
+        const emailNum = emailCounter;
         const stepEnabled = step.enabled !== false;
         const text = (step.subject || '') + ' ' + (step.body || '');
         const placeholders = (text.match(/\{\{[^}]+\}\}/g) || []).length;
-
-        const prevStep = index > 0 ? steps[index - 1] : null;
-        const isFirstEmail = steps.filter((s, i) => s.type === 'email' && i < index).length === 0;
-        const emailNumber = steps.filter((s, i) => s.type === 'email' && i <= index).length;
-
         const stat = stepStats.find(s => s._id === index) || {};
-
-        const schedulingText = isFirstEmail
-          ? 'Automatically'
-          : prevStep?.type === 'wait'
-            ? `${prevStep.days} Days after the previous email - if no reply`
-            : '1 Day after the previous email - if no reply';
-
         const day = cumulativeDay;
 
         return (
-          <div key={index} className={`card p-5 ${!stepEnabled ? 'opacity-50' : ''}`}>
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-3">
-                <ToggleSwitch
-                  checked={stepEnabled}
-                  onChange={() => onToggleStep(index)}
-                  size="small"
-                />
-                <span className="text-sm font-semibold text-white">Email {emailNumber}</span>
-                <span className="text-dark-700">|</span>
-                <div className="flex items-center gap-1.5 text-xs text-dark-400">
-                  <Calendar className="w-3 h-3" />
-                  Day {day}
-                </div>
-                {placeholders > 0 && (
-                  <>
-                    <span className="text-dark-700">|</span>
-                    <span className="text-xs text-amber-400">{placeholders} placeholders to customize</span>
-                  </>
-                )}
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="text-xs text-dark-500">{schedulingText}</span>
-                <div className="relative">
-                  <button
-                    onClick={() => setOpenMenuIndex(openMenuIndex === index ? null : index)}
-                    className="p-1 text-dark-500 hover:text-white transition-colors"
-                  >
-                    <MoreVertical className="w-4 h-4" />
-                  </button>
-
-                  {openMenuIndex === index && (
-                    <>
-                      <div className="fixed inset-0 z-10" onClick={() => setOpenMenuIndex(null)} />
-                      <div className="absolute right-0 top-full mt-1 w-40 bg-dark-800 border border-dark-600 rounded-xl shadow-xl py-1 z-20">
-                        <button
-                          onClick={() => { onToggleStep(index); setOpenMenuIndex(null); }}
-                          className="w-full flex items-center gap-2 px-3 py-2 text-sm text-dark-200 hover:bg-dark-700 hover:text-white transition-colors"
-                        >
-                          {stepEnabled ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
-                          {stepEnabled ? 'Pause' : 'Resume'}
-                        </button>
-                        <button
-                          onClick={() => { onEditStep(index, step); setOpenMenuIndex(null); }}
-                          className="w-full flex items-center gap-2 px-3 py-2 text-sm text-dark-200 hover:bg-dark-700 hover:text-white transition-colors"
-                        >
-                          <Edit3 className="w-3.5 h-3.5" />
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => { setOpenMenuIndex(null); onSendTest(index); }}
-                          className="w-full flex items-center gap-2 px-3 py-2 text-sm text-dark-200 hover:bg-dark-700 hover:text-white transition-colors"
-                        >
-                          <Send className="w-3.5 h-3.5" />
-                          Send Test
-                        </button>
-                        <button
-                          onClick={() => { onDeleteStep(index); setOpenMenuIndex(null); }}
-                          className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-dark-700 transition-colors"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                          Delete
-                        </button>
-                      </div>
-                    </>
+          <div key={index} className="py-2">
+            <div className={`bg-dark-800/40 border border-dark-700 rounded-2xl p-4 hover:border-dark-600 transition-colors group ${!stepEnabled ? 'opacity-50' : ''}`}>
+              {/* Card header */}
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-3">
+                  <ToggleSwitch
+                    checked={stepEnabled}
+                    onChange={() => onToggleStep(index)}
+                    size="small"
+                  />
+                  <div className="flex items-center gap-1.5 text-xs text-dark-400">
+                    <Mail className="w-3.5 h-3.5" />
+                    <span className="font-semibold text-dark-300">Email {emailNum}</span>
+                  </div>
+                  <span className="text-xs text-dark-500">Day {day}</span>
+                  {placeholders > 0 && (
+                    <span className="text-xs text-amber-400">{placeholders} placeholders</span>
                   )}
                 </div>
-              </div>
-            </div>
+                <div className="flex items-center gap-2">
+                  {/* Stats inline */}
+                  {(stat.sent > 0 || stat.opened > 0) && (
+                    <div className="flex items-center gap-3 text-xs text-dark-500 mr-2">
+                      <span className="flex items-center gap-1"><Send className="w-3 h-3" />{stat.sent || 0}</span>
+                      <span className="flex items-center gap-1"><Eye className="w-3 h-3" />{stat.opened || 0}</span>
+                      {stat.bounced > 0 && <span className="flex items-center gap-1 text-red-400"><AlertTriangle className="w-3 h-3" />{stat.bounced}</span>}
+                    </div>
+                  )}
+                  {/* 3-dot menu */}
+                  <div className="relative">
+                    <button
+                      onClick={() => setOpenMenuIndex(openMenuIndex === index ? null : index)}
+                      className="p-1.5 text-dark-500 hover:text-white hover:bg-dark-700 rounded-lg transition-colors"
+                    >
+                      <MoreVertical className="w-4 h-4" />
+                    </button>
 
-            <div className="ml-11">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-xs text-dark-500 font-medium">Subject</span>
-                <span className="text-sm text-white">{step.subject || 'No subject'}</span>
+                    {openMenuIndex === index && (
+                      <>
+                        <div className="fixed inset-0 z-10" onClick={() => setOpenMenuIndex(null)} />
+                        <div className="absolute right-0 top-full mt-1 w-40 bg-dark-800 border border-dark-600 rounded-xl shadow-xl py-1 z-20">
+                          <button
+                            onClick={() => { onToggleStep(index); setOpenMenuIndex(null); }}
+                            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-dark-200 hover:bg-dark-700 hover:text-white transition-colors"
+                          >
+                            {stepEnabled ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
+                            {stepEnabled ? 'Pause' : 'Resume'}
+                          </button>
+                          <button
+                            onClick={() => { onEditStep(index, step); setOpenMenuIndex(null); }}
+                            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-dark-200 hover:bg-dark-700 hover:text-white transition-colors"
+                          >
+                            <Edit3 className="w-3.5 h-3.5" />
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => { setOpenMenuIndex(null); onSendTest(index); }}
+                            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-dark-200 hover:bg-dark-700 hover:text-white transition-colors"
+                          >
+                            <Send className="w-3.5 h-3.5" />
+                            Send Test
+                          </button>
+                          <button
+                            onClick={() => { onDeleteStep(index); setOpenMenuIndex(null); }}
+                            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-dark-700 transition-colors"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            Delete
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
               </div>
+
+              {/* Subject */}
+              <div className="flex items-start gap-2 mb-1">
+                <span className="text-xs text-dark-500 w-14 flex-shrink-0 pt-0.5">Subject</span>
+                <p className="text-sm text-white truncate">{step.subject || <span className="text-dark-500 italic">No subject</span>}</p>
+              </div>
+
+              {/* Body preview */}
               <div className="flex items-start gap-2">
-                <span className="text-xs text-dark-500 font-medium mt-0.5">Content</span>
+                <span className="text-xs text-dark-500 w-14 flex-shrink-0 pt-0.5">Content</span>
                 {step.body && !isBodyEmpty(step.body) ? (
                   <div
-                    className="rich-body-preview text-sm text-dark-400 line-clamp-2"
+                    className="rich-body-preview text-xs text-dark-400 line-clamp-2 leading-relaxed"
                     dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(step.body) }}
                   />
                 ) : (
-                  <p className="text-sm text-dark-400">No content</p>
+                  <span className="text-dark-500 italic text-xs">No content</span>
                 )}
               </div>
-
-              {(stat.sent > 0 || stat.opened > 0) && (
-                <div className="flex items-center gap-4 mt-3 text-xs text-dark-500">
-                  <span className="flex items-center gap-1"><Send className="w-3 h-3" />{stat.sent || 0} sent</span>
-                  <span className="flex items-center gap-1"><Eye className="w-3 h-3" />{stat.opened || 0} opened</span>
-                  {stat.bounced > 0 && <span className="flex items-center gap-1 text-red-400"><AlertTriangle className="w-3 h-3" />{stat.bounced} bounced</span>}
-                </div>
-              )}
             </div>
           </div>
         );

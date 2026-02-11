@@ -5,7 +5,7 @@ import {
   AlertTriangle, XCircle, ChevronDown, ChevronUp, ThumbsDown, Loader2,
   Calendar, MoreVertical, Search, Linkedin, UserPlus, Pause, Play,
   ArrowUpDown, ChevronLeft, ChevronRight, Save, Check, X, Edit3, Trash2,
-  UserMinus, Zap, Filter, Info
+  UserMinus, Zap, Filter, Info, Plus
 } from 'lucide-react';
 import api from '../utils/api';
 import ToggleSwitch from './ToggleSwitch';
@@ -19,8 +19,11 @@ import {
   TIMEZONE_OPTIONS,
   DAY_LABELS,
   tzLabel,
+  computeEmailDay,
+  countPlaceholders,
 } from './wizard/wizardConstants';
 import RichBodyEditor, { isBodyEmpty, stripHtml } from './wizard/RichBodyEditor';
+import EmailStepEditor from './wizard/EmailStepEditor';
 
 const ENROLLMENT_STATUS = {
   active: { text: 'text-green-400', label: 'Active' },
@@ -241,12 +244,21 @@ function SequenceDetailPage({ sequenceId, onBack }) {
       });
       if (res.success) {
         setSequence(res.sequence);
-        // Open editor for the newly added step
-        const newIndex = res.sequence.steps.length - 1;
-        setShowStepEditor({ stepIndex: newIndex, step: res.sequence.steps[newIndex] });
+        showToast('Email step added');
       }
     } catch (err) {
       showToast(err.message || 'Failed to add step', 'error');
+    }
+  }
+
+  async function handleUpdateWaitDays(stepIndex, days) {
+    try {
+      const res = await api.updateStep(sequenceId, stepIndex, { days: Math.max(1, parseInt(days) || 1) });
+      if (res.success) {
+        setSequence(res.sequence);
+      }
+    } catch (err) {
+      showToast(err.message || 'Failed to update wait days', 'error');
     }
   }
 
@@ -346,21 +358,14 @@ function SequenceDetailPage({ sequenceId, onBack }) {
           ))}
 
           <div className="ml-auto pb-3">
-            {activeTab === 'contacts' ? (
+            {activeTab === 'contacts' && (
               <button
                 onClick={() => setShowAddContacts(true)}
                 className="flex items-center gap-2 px-4 py-1.5 text-sm font-medium bg-rivvra-500 text-dark-950 rounded-lg hover:bg-rivvra-400 transition-colors"
               >
                 + Add contacts
               </button>
-            ) : activeTab === 'overview' ? (
-              <button
-                onClick={handleAddEmailStep}
-                className="flex items-center gap-2 px-4 py-1.5 text-sm font-medium bg-rivvra-500 text-dark-950 rounded-lg hover:bg-rivvra-400 transition-colors"
-              >
-                + Add email
-              </button>
-            ) : null}
+            )}
           </div>
         </div>
       </div>
@@ -369,11 +374,14 @@ function SequenceDetailPage({ sequenceId, onBack }) {
       {activeTab === 'overview' && (
         <OverviewTab
           sequence={sequence}
+          sequenceId={sequenceId}
           stepStats={stepStats}
           onToggleStep={handleToggleStep}
-          onEditStep={(stepIndex, step) => setShowStepEditor({ stepIndex, step })}
+          onEditStep={handleUpdateStep}
           onDeleteStep={handleDeleteStep}
           onSendTest={(stepIndex) => setShowSendTest({ stepIndex })}
+          onUpdateWaitDays={handleUpdateWaitDays}
+          onAddEmail={handleAddEmailStep}
         />
       )}
       {activeTab === 'contacts' && (
@@ -592,137 +600,173 @@ function StepEditorModal({ step, stepIndex, onSave, onClose }) {
 
 // ========================== OVERVIEW TAB ==========================
 
-function OverviewTab({ sequence, stepStats, onToggleStep, onEditStep, onDeleteStep, onSendTest }) {
-  const [openMenuIndex, setOpenMenuIndex] = useState(null);
+function OverviewTab({ sequence, sequenceId, stepStats, onToggleStep, onEditStep, onDeleteStep, onSendTest, onUpdateWaitDays, onAddEmail }) {
+  const [editingIndex, setEditingIndex] = useState(null);
+  const [editBackup, setEditBackup] = useState(null);
   const steps = sequence.steps || [];
+
+  // Get only email steps with their original indices (for counting)
+  const emailSteps = steps.map((s, i) => ({ step: s, index: i })).filter(e => e.step.type === 'email');
+
+  function startEditing(stepIndex) {
+    setEditBackup({ ...steps[stepIndex] });
+    setEditingIndex(stepIndex);
+  }
+
+  async function saveEdit({ subject, body }) {
+    await onEditStep(editingIndex, { subject, body });
+    setEditingIndex(null);
+    setEditBackup(null);
+  }
+
+  function cancelEdit() {
+    setEditingIndex(null);
+    setEditBackup(null);
+  }
+
+  // Track email number for display
   let emailCounter = 0;
-  let cumulativeDay = 1;
 
   return (
-    <div className="space-y-0">
-      {steps.map((step, index) => {
-        // Wait step — inline divider (like wizard compose)
-        if (step.type === 'wait') {
-          cumulativeDay += step.days;
-          return (
-            <div key={`wait-${index}`} className="flex items-center justify-center gap-3 py-3">
-              <div className="flex-1 h-px bg-dark-700" />
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-dark-800/50 border border-dark-700 rounded-full">
-                <Clock className="w-3 h-3 text-dark-500" />
-                <span className="text-xs text-dark-400">Wait {step.days} day{step.days !== 1 ? 's' : ''} - if no reply</span>
-              </div>
-              <div className="flex-1 h-px bg-dark-700" />
-            </div>
-          );
-        }
-
-        emailCounter++;
-        const emailNum = emailCounter;
-        const stepEnabled = step.enabled !== false;
-        const text = (step.subject || '') + ' ' + (step.body || '');
-        const placeholders = (text.match(/\{\{[^}]+\}\}/g) || []).length;
-        const stat = stepStats.find(s => s._id === index) || {};
-        const day = cumulativeDay;
-
-        return (
-          <div key={index} className="py-2">
-            <div className={`bg-dark-800/40 border border-dark-700 rounded-2xl p-4 hover:border-dark-600 transition-colors group ${!stepEnabled ? 'opacity-50' : ''}`}>
-              {/* Card header */}
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-3">
-                  <ToggleSwitch
-                    checked={stepEnabled}
-                    onChange={() => onToggleStep(index)}
-                    size="small"
+    <div>
+      <div className="space-y-0">
+        {steps.map((step, index) => {
+          // Wait step — inline editable divider (same as wizard compose)
+          if (step.type === 'wait') {
+            return (
+              <div key={`wait-${index}`} className="flex items-center justify-center gap-3 py-3">
+                <div className="flex-1 h-px bg-dark-700" />
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-dark-800/50 border border-dark-700 rounded-full">
+                  <Clock className="w-3 h-3 text-dark-500" />
+                  <span className="text-xs text-dark-400">Wait</span>
+                  <input
+                    type="number"
+                    min={1}
+                    max={30}
+                    value={step.days}
+                    onChange={(e) => onUpdateWaitDays(index, e.target.value)}
+                    className="w-10 px-1.5 py-0.5 bg-dark-900 border border-dark-600 rounded text-center text-xs text-white focus:outline-none focus:border-rivvra-500"
                   />
-                  <div className="flex items-center gap-1.5 text-xs text-dark-400">
-                    <Mail className="w-3.5 h-3.5" />
-                    <span className="font-semibold text-dark-300">Email {emailNum}</span>
-                  </div>
-                  <span className="text-xs text-dark-500">Day {day}</span>
-                  {placeholders > 0 && (
-                    <span className="text-xs text-amber-400">{placeholders} placeholders</span>
-                  )}
+                  <span className="text-xs text-dark-400">days - if no reply</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  {/* Stats inline */}
-                  {(stat.sent > 0 || stat.opened > 0) && (
-                    <div className="flex items-center gap-3 text-xs text-dark-500 mr-2">
-                      <span className="flex items-center gap-1"><Send className="w-3 h-3" />{stat.sent || 0}</span>
-                      <span className="flex items-center gap-1"><Eye className="w-3 h-3" />{stat.opened || 0}</span>
-                      {stat.bounced > 0 && <span className="flex items-center gap-1 text-red-400"><AlertTriangle className="w-3 h-3" />{stat.bounced}</span>}
-                    </div>
-                  )}
-                  {/* 3-dot menu */}
-                  <div className="relative">
-                    <button
-                      onClick={() => setOpenMenuIndex(openMenuIndex === index ? null : index)}
-                      className="p-1.5 text-dark-500 hover:text-white hover:bg-dark-700 rounded-lg transition-colors"
-                    >
-                      <MoreVertical className="w-4 h-4" />
-                    </button>
+                <div className="flex-1 h-px bg-dark-700" />
+              </div>
+            );
+          }
 
-                    {openMenuIndex === index && (
-                      <>
-                        <div className="fixed inset-0 z-10" onClick={() => setOpenMenuIndex(null)} />
-                        <div className="absolute right-0 top-full mt-1 w-40 bg-dark-800 border border-dark-600 rounded-xl shadow-xl py-1 z-20">
-                          <button
-                            onClick={() => { onToggleStep(index); setOpenMenuIndex(null); }}
-                            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-dark-200 hover:bg-dark-700 hover:text-white transition-colors"
-                          >
-                            {stepEnabled ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
-                            {stepEnabled ? 'Pause' : 'Resume'}
-                          </button>
-                          <button
-                            onClick={() => { onEditStep(index, step); setOpenMenuIndex(null); }}
-                            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-dark-200 hover:bg-dark-700 hover:text-white transition-colors"
-                          >
-                            <Edit3 className="w-3.5 h-3.5" />
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => { setOpenMenuIndex(null); onSendTest(index); }}
-                            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-dark-200 hover:bg-dark-700 hover:text-white transition-colors"
-                          >
-                            <Send className="w-3.5 h-3.5" />
-                            Send Test
-                          </button>
-                          <button
-                            onClick={() => { onDeleteStep(index); setOpenMenuIndex(null); }}
-                            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-dark-700 transition-colors"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                            Delete
-                          </button>
-                        </div>
-                      </>
+          // Email step
+          emailCounter++;
+          const emailNum = emailCounter;
+          const day = computeEmailDay(steps, index);
+          const placeholderCount = countPlaceholders(step.subject) + countPlaceholders(step.body);
+          const stepEnabled = step.enabled !== false;
+          const stat = stepStats.find(s => s._id === index) || {};
+          const isEditing = editingIndex === index;
+
+          // Inline editor (same as wizard compose)
+          if (isEditing) {
+            return (
+              <div key={`email-${index}`} className="py-2">
+                <EmailStepEditor
+                  step={step}
+                  emailNumber={emailNum}
+                  sequenceId={sequenceId}
+                  onSave={saveEdit}
+                  onCancel={cancelEdit}
+                />
+              </div>
+            );
+          }
+
+          return (
+            <div key={`email-${index}`} className="py-2">
+              <div className={`bg-dark-800/40 border border-dark-700 rounded-2xl p-4 hover:border-dark-600 transition-colors group ${!stepEnabled ? 'opacity-50' : ''}`}>
+                {/* Card header */}
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-3">
+                    <ToggleSwitch
+                      checked={stepEnabled}
+                      onChange={() => onToggleStep(index)}
+                      size="small"
+                    />
+                    <div className="flex items-center gap-1.5 text-xs text-dark-400">
+                      <Mail className="w-3.5 h-3.5" />
+                      <span className="font-semibold text-dark-300">Email {emailNum}</span>
+                    </div>
+                    <span className="text-xs text-dark-500">Day {day}</span>
+                    {placeholderCount > 0 && (
+                      <span className="text-xs text-rivvra-400">{placeholderCount} placeholders</span>
+                    )}
+                    {/* Stats inline */}
+                    {(stat.sent > 0 || stat.opened > 0) && (
+                      <div className="flex items-center gap-3 text-xs text-dark-500 ml-2">
+                        <span className="flex items-center gap-1"><Send className="w-3 h-3" />{stat.sent || 0}</span>
+                        <span className="flex items-center gap-1"><Eye className="w-3 h-3" />{stat.opened || 0}</span>
+                        {stat.bounced > 0 && <span className="flex items-center gap-1 text-red-400"><AlertTriangle className="w-3 h-3" />{stat.bounced}</span>}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={() => onSendTest(index)}
+                      className="p-1.5 text-dark-400 hover:text-white hover:bg-dark-700 rounded-lg transition-colors"
+                      title="Send Test"
+                    >
+                      <Send className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => startEditing(index)}
+                      className="p-1.5 text-dark-400 hover:text-white hover:bg-dark-700 rounded-lg transition-colors"
+                      title="Edit"
+                    >
+                      <Edit3 className="w-3.5 h-3.5" />
+                    </button>
+                    {emailSteps.length > 1 && (
+                      <button
+                        onClick={() => onDeleteStep(index)}
+                        className="p-1.5 text-dark-400 hover:text-red-400 hover:bg-dark-700 rounded-lg transition-colors"
+                        title="Delete"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     )}
                   </div>
                 </div>
-              </div>
 
-              {/* Subject */}
-              <div className="flex items-start gap-2 mb-1">
-                <span className="text-xs text-dark-500 w-14 flex-shrink-0 pt-0.5">Subject</span>
-                <p className="text-sm text-white truncate">{step.subject || <span className="text-dark-500 italic">No subject</span>}</p>
-              </div>
+                {/* Subject */}
+                <div className="flex items-start gap-2 mb-1">
+                  <span className="text-xs text-dark-500 w-14 flex-shrink-0 pt-0.5">Subject</span>
+                  <p className="text-sm text-white truncate">{step.subject || <span className="text-dark-500 italic">No subject</span>}</p>
+                </div>
 
-              {/* Body preview */}
-              <div className="flex items-start gap-2">
-                <span className="text-xs text-dark-500 w-14 flex-shrink-0 pt-0.5">Content</span>
-                {step.body && !isBodyEmpty(step.body) ? (
-                  <div
-                    className="rich-body-preview text-xs text-dark-400 line-clamp-2 leading-relaxed"
-                    dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(step.body) }}
-                  />
-                ) : (
-                  <span className="text-dark-500 italic text-xs">No content</span>
-                )}
+                {/* Body preview */}
+                <div className="flex items-start gap-2">
+                  <span className="text-xs text-dark-500 w-14 flex-shrink-0 pt-0.5">Content</span>
+                  {step.body && !isBodyEmpty(step.body) ? (
+                    <div
+                      className="rich-body-preview text-xs text-dark-400 line-clamp-2 leading-relaxed"
+                      dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(step.body) }}
+                    />
+                  ) : (
+                    <span className="text-dark-500 italic text-xs">No content</span>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
+
+      {/* Add email button — same as wizard compose */}
+      <div className="mt-4">
+        <button
+          onClick={onAddEmail}
+          className="flex items-center gap-2 px-4 py-2.5 border border-dashed border-dark-600 rounded-xl text-sm text-dark-400 hover:border-rivvra-500/40 hover:text-rivvra-400 transition-colors w-full justify-center"
+        >
+          <Plus className="w-4 h-4" />
+          Add email
+        </button>
+      </div>
     </div>
   );
 }

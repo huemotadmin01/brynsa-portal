@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { Mail, Trash2, Edit3, Plus, Clock, ChevronLeft, ChevronRight, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import DOMPurify from 'dompurify';
 import EmailStepEditor from './EmailStepEditor';
 import { countPlaceholders, computeEmailDay } from './wizardConstants';
+import { isBodyEmpty } from './RichBodyEditor';
 
 function ComposeStep({ steps, name, description, onStepsChange, onNameChange, onDescChange, onNext, onBack, onSaveDraft, saving, sequenceId }) {
   const [editingIndex, setEditingIndex] = useState(null);
@@ -88,7 +90,7 @@ function ComposeStep({ steps, name, description, onStepsChange, onNameChange, on
         setError(`Email ${num}: Subject is required`);
         return false;
       }
-      if (!step.body?.trim()) {
+      if (isBodyEmpty(step.body)) {
         setError(`Email ${num}: Content is required`);
         return false;
       }
@@ -235,7 +237,14 @@ function ComposeStep({ steps, name, description, onStepsChange, onNameChange, on
                 {/* Body preview */}
                 <div className="flex items-start gap-2">
                   <span className="text-xs text-dark-500 w-14 flex-shrink-0 pt-0.5">Content</span>
-                  <p className="text-xs text-dark-400 line-clamp-2 leading-relaxed">{step.body || <span className="text-dark-500 italic">No content</span>}</p>
+                  {step.body && !isBodyEmpty(step.body) ? (
+                    <div
+                      className="rich-body-preview text-xs text-dark-400 line-clamp-2 leading-relaxed"
+                      dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(step.body) }}
+                    />
+                  ) : (
+                    <span className="text-dark-500 italic text-xs">No content</span>
+                  )}
                 </div>
               </div>
             </div>

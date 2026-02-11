@@ -194,3 +194,52 @@
 .animate-slide-in {
   animation: slideIn 0.3s ease-out;
 }
+
+/* Rich text editor — contentEditable placeholder */
+[contenteditable]:empty:before {
+  content: attr(data-placeholder);
+  color: #64748b;
+  pointer-events: none;
+  display: block;
+}
+
+/* Rich text editor & preview — dark theme overrides */
+.rich-body-editor a,
+.rich-body-preview a {
+  color: #4ade80;
+  text-decoration: underline;
+}
+
+.rich-body-editor table,
+.rich-body-preview table {
+  border-collapse: collapse;
+  max-width: 100%;
+}
+
+.rich-body-editor td,
+.rich-body-editor th,
+.rich-body-preview td,
+.rich-body-preview th {
+  border: 1px solid #334155;
+  padding: 4px 8px;
+}
+
+.rich-body-editor img,
+.rich-body-preview img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Override Gmail inline styles that assume white background */
+.rich-body-editor [style*="color: rgb(0, 0, 0)"],
+.rich-body-editor [style*="color:#000"],
+.rich-body-editor [style*="color:black"] {
+  color: inherit !important;
+}
+
+.rich-body-editor [style*="background-color: rgb(255, 255, 255)"],
+.rich-body-editor [style*="background:#fff"],
+.rich-body-editor [style*="background:white"],
+.rich-body-editor [style*="background-color:#ffffff"] {
+  background-color: transparent !important;
+}

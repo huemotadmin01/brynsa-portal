@@ -12,6 +12,7 @@ import ToggleSwitch from './ToggleSwitch';
 import AddToSequenceModal from './AddToSequenceModal';
 import ConfirmModal from './ConfirmModal';
 import { useToast } from '../context/ToastContext';
+import DOMPurify from 'dompurify';
 import {
   DEFAULT_SCHEDULE,
   TIME_OPTIONS,
@@ -19,6 +20,7 @@ import {
   DAY_LABELS,
   tzLabel,
 } from './wizard/wizardConstants';
+import RichBodyEditor, { isBodyEmpty, stripHtml } from './wizard/RichBodyEditor';
 
 const ENROLLMENT_STATUS = {
   active: { text: 'text-green-400', label: 'Active' },
@@ -464,12 +466,13 @@ function StepEditorModal({ step, stepIndex, onSave, onClose }) {
   const [days, setDays] = useState(step.days || 1);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const bodyEditorRef = useRef(null);
 
   async function handleSave() {
     setError('');
     if (step.type === 'email') {
       if (!subject.trim()) { setError('Subject is required'); return; }
-      if (!body.trim()) { setError('Body is required'); return; }
+      if (isBodyEmpty(body)) { setError('Body is required'); return; }
     }
     if (step.type === 'wait' && (!days || days < 1)) {
       setError('Wait days must be at least 1'); return;
@@ -479,7 +482,7 @@ function StepEditorModal({ step, stepIndex, onSave, onClose }) {
     try {
       await onSave(stepIndex, {
         subject: subject.trim(),
-        body: body.trim(),
+        body,
         days,
       });
     } catch (err) {
@@ -490,7 +493,11 @@ function StepEditorModal({ step, stepIndex, onSave, onClose }) {
   }
 
   function insertPlaceholder(placeholder) {
-    setBody(prev => prev + placeholder);
+    if (bodyEditorRef.current) {
+      bodyEditorRef.current.insertAtCursor(placeholder);
+    } else {
+      setBody(prev => prev + placeholder);
+    }
   }
 
   return (
@@ -528,12 +535,12 @@ function StepEditorModal({ step, stepIndex, onSave, onClose }) {
               </div>
               <div>
                 <label className="block text-xs font-medium text-dark-400 mb-1">Body</label>
-                <textarea
+                <RichBodyEditor
+                  ref={bodyEditorRef}
                   value={body}
-                  onChange={(e) => setBody(e.target.value)}
+                  onChange={setBody}
                   placeholder="Email body..."
-                  rows={8}
-                  className="w-full px-3 py-2 bg-dark-800 border border-dark-600 rounded-lg text-white placeholder-dark-500 focus:outline-none focus:border-rivvra-500 text-sm resize-none"
+                  className="min-h-[160px]"
                 />
                 <div className="flex flex-wrap gap-1.5 mt-2">
                   {PLACEHOLDERS.map((p) => (
@@ -694,7 +701,14 @@ function OverviewTab({ sequence, stepStats, onToggleStep, onEditStep, onDeleteSt
               </div>
               <div className="flex items-start gap-2">
                 <span className="text-xs text-dark-500 font-medium mt-0.5">Content</span>
-                <p className="text-sm text-dark-400 line-clamp-2">{step.body ? step.body.substring(0, 200) + (step.body.length > 200 ? '...' : '') : 'No content'}</p>
+                {step.body && !isBodyEmpty(step.body) ? (
+                  <div
+                    className="rich-body-preview text-sm text-dark-400 line-clamp-2"
+                    dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(step.body) }}
+                  />
+                ) : (
+                  <p className="text-sm text-dark-400">No content</p>
+                )}
               </div>
 
               {(stat.sent > 0 || stat.opened > 0) && (
@@ -1440,13 +1454,14 @@ function EmailsTab({ sequenceId, sequence, enrollments, emails, total, loading, 
                       </div>
 
                       {/* Content preview */}
-                      {email.body && (
+                      {email.body && !isBodyEmpty(email.body) && (
                         <div className="mt-2">
                           <span className="text-xs text-dark-500">Content</span>
-                          <p className={`text-xs text-dark-400 mt-1 ${!isExpanded ? 'line-clamp-2' : ''}`}>
-                            {email.body}
-                          </p>
-                          {email.body.length > 120 && (
+                          <div
+                            className={`rich-body-preview text-xs text-dark-400 mt-1 ${!isExpanded ? 'line-clamp-2' : ''}`}
+                            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(email.body) }}
+                          />
+                          {stripHtml(email.body).length > 120 && (
                             <button
                               onClick={() => toggleExpandEmail(i)}
                               className="text-xs text-rivvra-400 hover:text-rivvra-300 mt-1 font-medium"

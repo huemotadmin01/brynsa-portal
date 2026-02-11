@@ -1,6 +1,7 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { X, Send } from 'lucide-react';
 import { PLACEHOLDERS } from './wizardConstants';
+import RichBodyEditor, { stripHtml } from './RichBodyEditor';
 import api from '../../utils/api';
 
 function EmailStepEditor({ step, emailNumber, onSave, onCancel, sequenceId }) {
@@ -11,33 +12,40 @@ function EmailStepEditor({ step, emailNumber, onSave, onCancel, sequenceId }) {
   const [testResult, setTestResult] = useState(null);
 
   const subjectRef = useRef(null);
-  const bodyRef = useRef(null);
+  const bodyEditorRef = useRef(null);
   const lastFocusedRef = useRef('body'); // default to body
 
-  // Word and char counts
-  const bodyText = body || '';
-  const wordCount = bodyText.trim() ? bodyText.trim().split(/\s+/).length : 0;
-  const charCount = bodyText.length;
+  // Word and char counts (strip HTML for accurate counting)
+  const plainText = stripHtml(body);
+  const wordCount = plainText.trim() ? plainText.trim().split(/\s+/).length : 0;
+  const charCount = plainText.length;
 
   function insertPlaceholder(placeholder) {
     const field = lastFocusedRef.current;
-    const ref = field === 'subject' ? subjectRef : bodyRef;
-    const setter = field === 'subject' ? setSubject : setBody;
-    const currentValue = field === 'subject' ? subject : body;
 
-    if (ref.current) {
-      const start = ref.current.selectionStart || currentValue.length;
-      const end = ref.current.selectionEnd || currentValue.length;
-      const newValue = currentValue.substring(0, start) + placeholder + currentValue.substring(end);
-      setter(newValue);
-      // Restore cursor position after placeholder
-      setTimeout(() => {
-        ref.current.focus();
-        const newPos = start + placeholder.length;
-        ref.current.setSelectionRange(newPos, newPos);
-      }, 0);
+    if (field === 'subject') {
+      // Subject is still a plain input — use selectionStart/End
+      const ref = subjectRef;
+      if (ref.current) {
+        const start = ref.current.selectionStart || subject.length;
+        const end = ref.current.selectionEnd || subject.length;
+        const newValue = subject.substring(0, start) + placeholder + subject.substring(end);
+        setSubject(newValue);
+        setTimeout(() => {
+          ref.current.focus();
+          const newPos = start + placeholder.length;
+          ref.current.setSelectionRange(newPos, newPos);
+        }, 0);
+      } else {
+        setSubject(subject + placeholder);
+      }
     } else {
-      setter(currentValue + placeholder);
+      // Body is contentEditable — use insertAtCursor via ref
+      if (bodyEditorRef.current) {
+        bodyEditorRef.current.insertAtCursor(placeholder);
+      } else {
+        setBody(body + placeholder);
+      }
     }
   }
 
@@ -92,17 +100,15 @@ function EmailStepEditor({ step, emailNumber, onSave, onCancel, sequenceId }) {
         ))}
       </div>
 
-      {/* Body */}
+      {/* Body — Rich text editor */}
       <div>
         <label className="block text-xs text-dark-400 mb-1.5">Content:</label>
-        <textarea
-          ref={bodyRef}
+        <RichBodyEditor
+          ref={bodyEditorRef}
           value={body}
-          onChange={(e) => setBody(e.target.value)}
+          onChange={setBody}
           onFocus={() => { lastFocusedRef.current = 'body'; }}
-          rows={12}
-          placeholder="Start typing..."
-          className="w-full px-3 py-2.5 bg-dark-900 border border-dark-600 rounded-xl text-white text-sm placeholder-dark-500 focus:outline-none focus:border-rivvra-500 transition-colors resize-none font-mono leading-relaxed"
+          placeholder="Start typing or paste content from Gmail..."
         />
       </div>
 

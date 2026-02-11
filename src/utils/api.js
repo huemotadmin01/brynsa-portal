@@ -451,6 +451,13 @@ class ApiClient {
     });
   }
 
+  async updateEnteringCriteria(sequenceId, enteringCriteria) {
+    return this.request(`/api/sequences/${sequenceId}/entering-criteria`, {
+      method: 'PUT',
+      body: JSON.stringify({ enteringCriteria }),
+    });
+  }
+
   // Suppression list
   async getSuppressions(page = 1, limit = 50, search = '') {
     let url = `/api/engage/suppressions?page=${page}&limit=${limit}`;

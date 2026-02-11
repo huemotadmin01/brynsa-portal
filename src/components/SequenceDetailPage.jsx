@@ -5,7 +5,7 @@ import {
   AlertTriangle, XCircle, ChevronDown, ChevronUp, ThumbsDown, Loader2,
   Calendar, MoreVertical, Search, Linkedin, UserPlus, Pause, Play,
   ArrowUpDown, ChevronLeft, ChevronRight, Save, Check, X, Edit3, Trash2,
-  UserMinus, Zap
+  UserMinus, Zap, Filter, Info
 } from 'lucide-react';
 import api from '../utils/api';
 import ToggleSwitch from './ToggleSwitch';
@@ -285,6 +285,7 @@ function SequenceDetailPage({ sequenceId, onBack }) {
     { id: 'contacts', label: 'Contacts' },
     { id: 'emails', label: 'Emails' },
     { id: 'automation', label: 'Automation' },
+    { id: 'criteria', label: 'Criteria' },
     { id: 'schedule', label: 'Schedule' },
   ];
 
@@ -394,6 +395,9 @@ function SequenceDetailPage({ sequenceId, onBack }) {
       )}
       {activeTab === 'automation' && (
         <AutomationTab sequence={sequence} sequenceId={sequenceId} onUpdate={loadSequence} />
+      )}
+      {activeTab === 'criteria' && (
+        <CriteriaTab sequence={sequence} sequenceId={sequenceId} onUpdate={loadSequence} />
       )}
       {activeTab === 'schedule' && (
         <ScheduleTab sequence={sequence} sequenceId={sequenceId} onUpdate={loadSequence} />
@@ -1714,6 +1718,277 @@ function SendTestModal({ sequenceId, stepIndex, onClose }) {
 }
 
 // ========================== AUTOMATION TAB ==========================
+
+// ========================== CRITERIA TAB ==========================
+
+const OUTREACH_STATUS_OPTIONS = [
+  { value: 'not_contacted', label: 'Not Contacted' },
+  { value: 'in_sequence', label: 'In Sequence' },
+  { value: 'replied', label: 'Replied' },
+  { value: 'replied_not_interested', label: 'Not Interested' },
+  { value: 'no_response', label: 'No Response' },
+  { value: 'bounced', label: 'Bounced' },
+];
+
+const DEFAULT_ENTERING_CRITERIA = {
+  profileType: { enabled: false, value: 'any' },
+  mustHaveEmail: { enabled: true },
+  mustHaveVerifiedEmail: { enabled: false },
+  allowedOutreachStatuses: { enabled: false, value: ['not_contacted'] },
+  mustHaveCompany: { enabled: false },
+  mustHaveTitle: { enabled: false },
+  mustBeInList: { enabled: false, value: '' },
+  mustHaveTags: { enabled: false, value: [] },
+};
+
+function CriteriaTab({ sequence, sequenceId, onUpdate }) {
+  const { showToast } = useToast();
+  const [criteria, setCriteria] = useState(() => {
+    const existing = sequence.enteringCriteria || {};
+    return {
+      profileType: { ...DEFAULT_ENTERING_CRITERIA.profileType, ...existing.profileType },
+      mustHaveEmail: { ...DEFAULT_ENTERING_CRITERIA.mustHaveEmail, ...existing.mustHaveEmail },
+      mustHaveVerifiedEmail: { ...DEFAULT_ENTERING_CRITERIA.mustHaveVerifiedEmail, ...existing.mustHaveVerifiedEmail },
+      allowedOutreachStatuses: { ...DEFAULT_ENTERING_CRITERIA.allowedOutreachStatuses, ...existing.allowedOutreachStatuses },
+      mustHaveCompany: { ...DEFAULT_ENTERING_CRITERIA.mustHaveCompany, ...existing.mustHaveCompany },
+      mustHaveTitle: { ...DEFAULT_ENTERING_CRITERIA.mustHaveTitle, ...existing.mustHaveTitle },
+      mustBeInList: { ...DEFAULT_ENTERING_CRITERIA.mustBeInList, ...existing.mustBeInList },
+      mustHaveTags: { ...DEFAULT_ENTERING_CRITERIA.mustHaveTags, ...existing.mustHaveTags },
+    };
+  });
+  const [saving, setSaving] = useState(false);
+  const [lists, setLists] = useState([]);
+
+  useEffect(() => {
+    api.getLists?.().then(res => {
+      if (res?.success) setLists(res.lists || []);
+    }).catch(() => {});
+  }, []);
+
+  const updateCriteria = (key, field, value) => {
+    setCriteria(prev => ({
+      ...prev,
+      [key]: { ...prev[key], [field]: value }
+    }));
+  };
+
+  async function handleSave() {
+    setSaving(true);
+    try {
+      const res = await api.updateEnteringCriteria(sequenceId, criteria);
+      if (res.success) {
+        showToast('Entering criteria saved');
+        onUpdate();
+      }
+    } catch (err) {
+      showToast(err.message || 'Failed to save criteria', 'error');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between mb-2">
+        <div>
+          <h3 className="text-sm font-semibold text-white">Entering Criteria</h3>
+          <p className="text-xs text-dark-400 mt-0.5">Define which leads are eligible to be enrolled in this sequence</p>
+        </div>
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="flex items-center gap-2 px-4 py-2 bg-rivvra-500 text-dark-950 rounded-lg text-sm font-medium hover:bg-rivvra-400 disabled:opacity-50 transition-colors"
+        >
+          {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+          Save Criteria
+        </button>
+      </div>
+
+      {/* Info banner */}
+      <div className="card p-3 border border-blue-500/20 bg-blue-500/5">
+        <div className="flex items-start gap-2">
+          <div className="w-5 h-5 rounded-full bg-blue-500/20 flex items-center justify-center shrink-0 mt-0.5">
+            <Filter className="w-3 h-3 text-blue-400" />
+          </div>
+          <div>
+            <p className="text-xs font-medium text-blue-400">Enrollment Filtering</p>
+            <p className="text-xs text-dark-400 mt-0.5">
+              Leads that don't meet these criteria will be automatically skipped when enrolling contacts. Each skipped lead will show a clear reason.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Profile Type */}
+      <div className="card p-4">
+        <div className="flex items-center gap-3">
+          <input
+            type="checkbox"
+            checked={criteria.profileType.enabled}
+            onChange={(e) => updateCriteria('profileType', 'enabled', e.target.checked)}
+            className="w-4 h-4 rounded border-dark-600 bg-dark-800 text-rivvra-500 focus:ring-rivvra-500/50"
+          />
+          <span className="text-sm text-dark-300 w-32 shrink-0">Profile type is</span>
+          <select
+            value={criteria.profileType.value}
+            onChange={(e) => updateCriteria('profileType', 'value', e.target.value)}
+            disabled={!criteria.profileType.enabled}
+            className="flex-1 px-3 py-1.5 bg-dark-800 border border-dark-600 rounded-lg text-sm text-white focus:outline-none focus:border-rivvra-500 disabled:opacity-40"
+          >
+            <option value="any">Any</option>
+            <option value="client">Client</option>
+            <option value="candidate">Candidate</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Must have email */}
+      <div className="card p-4">
+        <label className="flex items-center gap-3 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={criteria.mustHaveEmail.enabled}
+            onChange={(e) => updateCriteria('mustHaveEmail', 'enabled', e.target.checked)}
+            className="w-4 h-4 rounded border-dark-600 bg-dark-800 text-rivvra-500 focus:ring-rivvra-500/50"
+          />
+          <span className="text-sm text-dark-300">Must have a valid email address</span>
+        </label>
+      </div>
+
+      {/* Must have verified email */}
+      <div className="card p-4">
+        <label className="flex items-center gap-3 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={criteria.mustHaveVerifiedEmail.enabled}
+            onChange={(e) => updateCriteria('mustHaveVerifiedEmail', 'enabled', e.target.checked)}
+            className="w-4 h-4 rounded border-dark-600 bg-dark-800 text-rivvra-500 focus:ring-rivvra-500/50"
+          />
+          <span className="text-sm text-dark-300">Must have a verified email</span>
+        </label>
+      </div>
+
+      {/* Allowed Outreach Statuses */}
+      <div className="card p-4 space-y-3">
+        <label className="flex items-center gap-3 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={criteria.allowedOutreachStatuses.enabled}
+            onChange={(e) => updateCriteria('allowedOutreachStatuses', 'enabled', e.target.checked)}
+            className="w-4 h-4 rounded border-dark-600 bg-dark-800 text-rivvra-500 focus:ring-rivvra-500/50"
+          />
+          <span className="text-sm text-dark-300">Only allow specific outreach statuses</span>
+        </label>
+        {criteria.allowedOutreachStatuses.enabled && (
+          <div className="ml-7 flex flex-wrap gap-2">
+            {OUTREACH_STATUS_OPTIONS.map(({ value, label }) => {
+              const isSelected = (criteria.allowedOutreachStatuses.value || []).includes(value);
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => {
+                    const current = criteria.allowedOutreachStatuses.value || [];
+                    const next = isSelected
+                      ? current.filter(s => s !== value)
+                      : [...current, value];
+                    updateCriteria('allowedOutreachStatuses', 'value', next);
+                  }}
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                    isSelected
+                      ? 'bg-rivvra-500/10 text-rivvra-400 border-rivvra-500/30'
+                      : 'bg-dark-800 text-dark-400 border-dark-600 hover:border-dark-500'
+                  }`}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Must have company */}
+      <div className="card p-4">
+        <label className="flex items-center gap-3 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={criteria.mustHaveCompany.enabled}
+            onChange={(e) => updateCriteria('mustHaveCompany', 'enabled', e.target.checked)}
+            className="w-4 h-4 rounded border-dark-600 bg-dark-800 text-rivvra-500 focus:ring-rivvra-500/50"
+          />
+          <span className="text-sm text-dark-300">Must have a company name</span>
+        </label>
+      </div>
+
+      {/* Must have title */}
+      <div className="card p-4">
+        <label className="flex items-center gap-3 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={criteria.mustHaveTitle.enabled}
+            onChange={(e) => updateCriteria('mustHaveTitle', 'enabled', e.target.checked)}
+            className="w-4 h-4 rounded border-dark-600 bg-dark-800 text-rivvra-500 focus:ring-rivvra-500/50"
+          />
+          <span className="text-sm text-dark-300">Must have a job title</span>
+        </label>
+      </div>
+
+      {/* Must be in list */}
+      <div className="card p-4">
+        <div className="flex items-center gap-3">
+          <input
+            type="checkbox"
+            checked={criteria.mustBeInList.enabled}
+            onChange={(e) => updateCriteria('mustBeInList', 'enabled', e.target.checked)}
+            className="w-4 h-4 rounded border-dark-600 bg-dark-800 text-rivvra-500 focus:ring-rivvra-500/50"
+          />
+          <span className="text-sm text-dark-300 w-28 shrink-0">Must be in list</span>
+          <select
+            value={criteria.mustBeInList.value}
+            onChange={(e) => updateCriteria('mustBeInList', 'value', e.target.value)}
+            disabled={!criteria.mustBeInList.enabled}
+            className="flex-1 px-3 py-1.5 bg-dark-800 border border-dark-600 rounded-lg text-sm text-white focus:outline-none focus:border-rivvra-500 disabled:opacity-40"
+          >
+            <option value="">Select a list...</option>
+            {lists.map(list => (
+              <option key={list._id || list.name} value={list.name}>{list.name}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* Must have tags */}
+      <div className="card p-4 space-y-3">
+        <label className="flex items-center gap-3 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={criteria.mustHaveTags.enabled}
+            onChange={(e) => updateCriteria('mustHaveTags', 'enabled', e.target.checked)}
+            className="w-4 h-4 rounded border-dark-600 bg-dark-800 text-rivvra-500 focus:ring-rivvra-500/50"
+          />
+          <span className="text-sm text-dark-300">Must have all of these tags</span>
+        </label>
+        {criteria.mustHaveTags.enabled && (
+          <div className="ml-7">
+            <TagInput
+              tags={criteria.mustHaveTags.value || []}
+              onChange={(tags) => updateCriteria('mustHaveTags', 'value', tags)}
+            />
+          </div>
+        )}
+      </div>
+
+      {/* Summary info */}
+      <div className="flex items-start gap-2 px-1">
+        <Info className="w-3.5 h-3.5 text-dark-500 flex-shrink-0 mt-0.5" />
+        <p className="text-xs text-dark-500">
+          These criteria are checked when enrolling contacts. Existing enrollments are not affected by changes to criteria.
+        </p>
+      </div>
+    </div>
+  );
+}
 
 const TRIGGER_CONFIG = [
   { key: 'onReplied', label: 'On Reply', statusLabel: 'Replied', borderCls: 'border-emerald-500/40', dotCls: 'bg-emerald-400', badgeCls: 'bg-emerald-500/10 text-emerald-400' },

@@ -150,15 +150,33 @@ function AddToSequenceModal({ isOpen, onClose, leadIds = [], leadNames = [], pre
                     enrolled!
                   </p>
                   {result.skipped > 0 && (
-                    <p className="mt-1 text-xs opacity-80">
-                      {result.skipped} skipped (no email or already enrolled)
-                    </p>
-                  )}
-                  {result.errors?.some((e) => e.reason === 'no_email') && (
-                    <p className="mt-1 text-xs opacity-80 flex items-center gap-1">
-                      <AlertCircle className="w-3 h-3" />
-                      Some contacts don't have email addresses
-                    </p>
+                    <div className="mt-1 space-y-0.5">
+                      <p className="text-xs opacity-80">{result.skipped} skipped:</p>
+                      {result.errors?.some((e) => e.reason === 'no_email') && (
+                        <p className="text-xs opacity-70 flex items-center gap-1 ml-2">
+                          <AlertCircle className="w-3 h-3" />
+                          {result.errors.filter(e => e.reason === 'no_email').length} without valid email
+                        </p>
+                      )}
+                      {result.errors?.some((e) => e.reason === 'already_enrolled') && (
+                        <p className="text-xs opacity-70 flex items-center gap-1 ml-2">
+                          <AlertCircle className="w-3 h-3" />
+                          {result.errors.filter(e => e.reason === 'already_enrolled').length} already enrolled
+                        </p>
+                      )}
+                      {result.errors?.some((e) => e.reason === 'suppressed') && (
+                        <p className="text-xs opacity-70 flex items-center gap-1 ml-2">
+                          <AlertCircle className="w-3 h-3" />
+                          {result.errors.filter(e => e.reason === 'suppressed').length} on suppression list
+                        </p>
+                      )}
+                      {result.errors?.some((e) => e.reason?.startsWith('criteria_')) && (
+                        <p className="text-xs opacity-70 flex items-center gap-1 ml-2">
+                          <AlertCircle className="w-3 h-3" />
+                          {result.errors.filter(e => e.reason?.startsWith('criteria_')).length} didn't meet entering criteria
+                        </p>
+                      )}
+                    </div>
                   )}
                 </div>
               ) : (

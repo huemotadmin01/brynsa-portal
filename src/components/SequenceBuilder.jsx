@@ -237,6 +237,18 @@ function SequenceBuilder({ isOpen, onClose, onSave, sequence = null }) {
           days: s.days,
         })),
         automationRules,
+        schedule: {
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York',
+          days: {
+            mon: { enabled: true, start: '08:00', end: '18:00' },
+            tue: { enabled: true, start: '08:00', end: '18:00' },
+            wed: { enabled: true, start: '08:00', end: '18:00' },
+            thu: { enabled: true, start: '08:00', end: '18:00' },
+            fri: { enabled: true, start: '08:00', end: '18:00' },
+            sat: { enabled: false, start: '08:00', end: '18:00' },
+            sun: { enabled: false, start: '08:00', end: '18:00' },
+          }
+        },
       });
       onClose();
     } catch (err) {

@@ -1432,7 +1432,7 @@ function EmailsTab({ sequenceId, sequence, enrollments, emails, total, loading, 
 // ========================== SCHEDULE TAB (LUSHA STYLE) ==========================
 
 const DEFAULT_SCHEDULE = {
-  timezone: 'America/New_York',
+  timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York',
   days: {
     mon: { enabled: true, start: '08:00', end: '18:00' },
     tue: { enabled: true, start: '08:00', end: '18:00' },

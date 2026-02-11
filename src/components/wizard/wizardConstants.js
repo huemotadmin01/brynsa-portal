@@ -43,7 +43,7 @@ export const DEFAULT_RULES = {
 };
 
 export const TRIGGER_CONFIG = [
-  { key: 'onReplied', label: 'On Reply (Interested)', statusLabel: 'Replied', color: 'emerald' },
+  { key: 'onReplied', label: 'On Reply (Interested)', statusLabel: 'Interested', color: 'emerald' },
   { key: 'onRepliedNotInterested', label: 'On Reply (Not Interested)', statusLabel: 'Not Interested', color: 'purple' },
   { key: 'onNoResponse', label: 'On No Response', statusLabel: 'No Response', color: 'orange' },
   { key: 'onBounced', label: 'On Bounce', statusLabel: 'Bounced', color: 'red' },
@@ -53,7 +53,7 @@ export const TRIGGER_CONFIG = [
 export const OUTREACH_STATUS_OPTIONS = [
   { value: 'not_contacted', label: 'Not Contacted' },
   { value: 'in_sequence', label: 'In Sequence' },
-  { value: 'replied', label: 'Replied' },
+  { value: 'replied', label: 'Interested' },
   { value: 'replied_not_interested', label: 'Not Interested' },
   { value: 'no_response', label: 'No Response' },
   { value: 'bounced', label: 'Bounced' },

@@ -5,7 +5,7 @@ import api from '../utils/api';
 const OUTREACH_STATUS_OPTIONS = [
   { value: 'not_contacted', label: 'Not Contacted', cls: 'bg-dark-700 text-dark-400' },
   { value: 'in_sequence', label: 'In Sequence', cls: 'bg-blue-500/10 text-blue-400' },
-  { value: 'replied', label: 'Replied', cls: 'bg-emerald-500/10 text-emerald-400' },
+  { value: 'replied', label: 'Interested', cls: 'bg-emerald-500/10 text-emerald-400' },
   { value: 'replied_not_interested', label: 'Not Interested', cls: 'bg-purple-500/10 text-purple-400' },
   { value: 'no_response', label: 'No Response', cls: 'bg-orange-500/10 text-orange-400' },
   { value: 'bounced', label: 'Bounced', cls: 'bg-red-500/10 text-red-400' },

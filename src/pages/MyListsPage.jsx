@@ -707,7 +707,7 @@ function MyListsPage() {
                                 {(() => {
                                   const statusConfig = {
                                     in_sequence: { label: 'In Sequence', cls: 'bg-blue-500/10 text-blue-400' },
-                                    replied: { label: 'Replied', cls: 'bg-emerald-500/10 text-emerald-400' },
+                                    replied: { label: 'Interested', cls: 'bg-emerald-500/10 text-emerald-400' },
                                     replied_not_interested: { label: 'Not Interested', cls: 'bg-purple-500/10 text-purple-400' },
                                     no_response: { label: 'No Response', cls: 'bg-orange-500/10 text-orange-400' },
                                     bounced: { label: 'Bounced', cls: 'bg-red-500/10 text-red-400' },

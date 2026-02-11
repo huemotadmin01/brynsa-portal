@@ -28,7 +28,7 @@ import EmailStepEditor from './wizard/EmailStepEditor';
 const ENROLLMENT_STATUS = {
   active: { text: 'text-green-400', label: 'Active' },
   completed: { text: 'text-blue-400', label: 'Completed' },
-  replied: { text: 'text-emerald-400', label: 'Replied' },
+  replied: { text: 'text-emerald-400', label: 'Interested' },
   replied_not_interested: { text: 'text-purple-400', label: 'Not Interested' },
   lost_no_response: { text: 'text-orange-400', label: 'No Response' },
   paused: { text: 'text-amber-400', label: 'Paused' },
@@ -191,7 +191,7 @@ function SequenceDetailPage({ sequenceId, onBack }) {
       await api.markEnrollmentReplied(sequenceId, enrollmentId, replyType);
       loadEnrollments(1);
       loadSequence();
-      showToast(replyType === 'not_interested' ? 'Marked as not interested' : 'Marked as replied');
+      showToast(replyType === 'not_interested' ? 'Marked as not interested' : 'Marked as interested');
     } catch (err) {
       showToast(err.message || 'Failed to update status', 'error');
     }
@@ -902,7 +902,7 @@ function ContactsTab({ sequence, enrollments, enrollmentTotal, onLoadMore, onRem
   const contactFilterLabel = contactFilter === 'all' ? 'All contacts'
     : contactFilter === 'active' ? 'Active'
     : contactFilter === 'completed' ? 'Completed'
-    : contactFilter === 'replied' ? 'Replied'
+    : contactFilter === 'replied' ? 'Interested'
     : contactFilter === 'bounced' ? 'Bounced'
     : 'All contacts';
 
@@ -976,7 +976,7 @@ function ContactsTab({ sequence, enrollments, enrollmentTotal, onLoadMore, onRem
                     { value: 'all', label: 'All contacts' },
                     { value: 'active', label: 'Active' },
                     { value: 'completed', label: 'Completed' },
-                    { value: 'replied', label: 'Replied' },
+                    { value: 'replied', label: 'Interested' },
                     { value: 'bounced', label: 'Bounced' },
                   ].map(opt => (
                     <button
@@ -1798,7 +1798,7 @@ function SendTestModal({ sequenceId, stepIndex, onClose }) {
 const OUTREACH_STATUS_OPTIONS = [
   { value: 'not_contacted', label: 'Not Contacted' },
   { value: 'in_sequence', label: 'In Sequence' },
-  { value: 'replied', label: 'Replied' },
+  { value: 'replied', label: 'Interested' },
   { value: 'replied_not_interested', label: 'Not Interested' },
   { value: 'no_response', label: 'No Response' },
   { value: 'bounced', label: 'Bounced' },
@@ -2065,7 +2065,7 @@ function CriteriaTab({ sequence, sequenceId, onUpdate }) {
 }
 
 const TRIGGER_CONFIG = [
-  { key: 'onReplied', label: 'On Reply', statusLabel: 'Replied', borderCls: 'border-emerald-500/40', dotCls: 'bg-emerald-400', badgeCls: 'bg-emerald-500/10 text-emerald-400' },
+  { key: 'onReplied', label: 'On Reply', statusLabel: 'Interested', borderCls: 'border-emerald-500/40', dotCls: 'bg-emerald-400', badgeCls: 'bg-emerald-500/10 text-emerald-400' },
   { key: 'onRepliedNotInterested', label: 'On Not Interested', statusLabel: 'Not Interested', borderCls: 'border-purple-500/40', dotCls: 'bg-purple-400', badgeCls: 'bg-purple-500/10 text-purple-400' },
   { key: 'onNoResponse', label: 'On No Response', statusLabel: 'No Response', borderCls: 'border-orange-500/40', dotCls: 'bg-orange-400', badgeCls: 'bg-orange-500/10 text-orange-400' },
   { key: 'onBounced', label: 'On Bounce', statusLabel: 'Bounced', borderCls: 'border-red-500/40', dotCls: 'bg-red-400', badgeCls: 'bg-red-500/10 text-red-400' },

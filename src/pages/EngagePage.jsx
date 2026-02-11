@@ -552,7 +552,7 @@ function SequencesTab({
                     <SortableHeader label="Opened" sortKey="opened" currentSort={sort} onSort={handleSort} />
                   </th>
                   <th className="text-left py-3 px-4">
-                    <SortableHeader label="Replied" sortKey="replied" currentSort={sort} onSort={handleSort} />
+                    <SortableHeader label="Interested" sortKey="replied" currentSort={sort} onSort={handleSort} />
                   </th>
                   <th className="text-left py-3 px-4">
                     <SortableHeader label="Bounced" sortKey="bounced" currentSort={sort} onSort={handleSort} />

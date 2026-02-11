@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
-import SequenceBuilder from '../components/SequenceBuilder';
 import SequenceDetailPage from '../components/SequenceDetailPage';
 import EngageSettings from '../components/EngageSettings';
 import ToggleSwitch from '../components/ToggleSwitch';
@@ -36,6 +36,7 @@ import {
 function EngagePage() {
   const { user } = useAuth();
   const { showToast } = useToast();
+  const navigate = useNavigate();
 
   // View state
   const [view, setView] = useState('list'); // 'list' | 'detail'
@@ -56,8 +57,6 @@ function EngagePage() {
   const [filterStatus, setFilterStatus] = useState('all');
 
   // Modals
-  const [showBuilder, setShowBuilder] = useState(false);
-  const [editingSequence, setEditingSequence] = useState(null);
   const [actionMenuId, setActionMenuId] = useState(null);
   const [activateConfirm, setActivateConfirm] = useState(null); // { id, name }
 
@@ -162,35 +161,7 @@ function EngagePage() {
     }
   }
 
-  // Sequence CRUD
-  async function handleCreateSequence(data) {
-    try {
-      const res = await api.createSequence(data);
-      if (res.success) {
-        setShowBuilder(false);
-        loadSequences();
-        showToast('Sequence created');
-      }
-    } catch (err) {
-      showToast(err.message || 'Failed to create sequence', 'error');
-    }
-  }
-
-  async function handleUpdateSequence(data) {
-    if (!editingSequence) return;
-    try {
-      const res = await api.updateSequence(editingSequence._id, data);
-      if (res.success) {
-        setEditingSequence(null);
-        setShowBuilder(false);
-        loadSequences();
-        showToast('Sequence updated');
-      }
-    } catch (err) {
-      showToast(err.message || 'Failed to update sequence', 'error');
-    }
-  }
-
+  // Sequence actions
   async function handleDuplicateSequence(id) {
     try {
       const res = await api.duplicateSequence(id);
@@ -379,9 +350,9 @@ function EngagePage() {
             user={user}
             onSearch={setSearchQuery}
             onFilter={setFilterStatus}
-            onNewSequence={() => { setEditingSequence(null); setShowBuilder(true); }}
+            onNewSequence={() => navigate('/engage/new-sequence')}
             onOpenDetail={handleOpenDetail}
-            onEdit={(seq) => { setEditingSequence(seq); setShowBuilder(true); setActionMenuId(null); }}
+            onEdit={(seq) => { navigate(`/engage/edit-sequence/${seq._id}`); setActionMenuId(null); }}
             onDuplicate={handleDuplicateSequence}
             onDelete={handleDeleteSequence}
             onToggle={handleToggleSequence}
@@ -391,16 +362,6 @@ function EngagePage() {
           />
         ) : (
           <EngageSettings gmailStatus={gmailStatus} />
-        )}
-
-        {/* Sequence Builder Modal */}
-        {showBuilder && (
-          <SequenceBuilder
-            isOpen={showBuilder}
-            onClose={() => { setShowBuilder(false); setEditingSequence(null); }}
-            onSave={editingSequence ? handleUpdateSequence : handleCreateSequence}
-            sequence={editingSequence}
-          />
         )}
 
         {/* Activation confirmation modal */}

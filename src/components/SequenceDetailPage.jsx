@@ -12,6 +12,13 @@ import ToggleSwitch from './ToggleSwitch';
 import AddToSequenceModal from './AddToSequenceModal';
 import ConfirmModal from './ConfirmModal';
 import { useToast } from '../context/ToastContext';
+import {
+  DEFAULT_SCHEDULE,
+  TIME_OPTIONS,
+  TIMEZONE_OPTIONS,
+  DAY_LABELS,
+  tzLabel,
+} from './wizard/wizardConstants';
 
 const ENROLLMENT_STATUS = {
   active: { text: 'text-green-400', label: 'Active' },
@@ -1466,65 +1473,6 @@ function EmailsTab({ sequenceId, sequence, enrollments, emails, total, loading, 
 }
 
 // ========================== SCHEDULE TAB (LUSHA STYLE) ==========================
-
-const DEFAULT_SCHEDULE = {
-  timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York',
-  days: {
-    mon: { enabled: true, start: '08:00', end: '18:00' },
-    tue: { enabled: true, start: '08:00', end: '18:00' },
-    wed: { enabled: true, start: '08:00', end: '18:00' },
-    thu: { enabled: true, start: '08:00', end: '18:00' },
-    fri: { enabled: true, start: '08:00', end: '18:00' },
-    sat: { enabled: false, start: '08:00', end: '18:00' },
-    sun: { enabled: false, start: '08:00', end: '18:00' },
-  }
-};
-
-const TIME_OPTIONS = [];
-for (let h = 0; h < 24; h++) {
-  for (let m = 0; m < 60; m += 30) {
-    const hh = h.toString().padStart(2, '0');
-    const mm = m.toString().padStart(2, '0');
-    TIME_OPTIONS.push({ value: `${hh}:${mm}`, label: `${hh}:${mm}` });
-  }
-}
-
-// Build timezone label dynamically with correct UTC offset
-function tzLabel(tz) {
-  try {
-    const now = new Date();
-    const fmt = new Intl.DateTimeFormat('en-US', { timeZone: tz, timeZoneName: 'shortOffset' });
-    const parts = fmt.formatToParts(now);
-    const offset = parts.find(p => p.type === 'timeZoneName')?.value || '';
-    return `(${offset}) ${tz.replace(/_/g, ' ')}`;
-  } catch { return tz; }
-}
-
-const BASE_TIMEZONES = [
-  'Pacific/Honolulu', 'America/Anchorage', 'America/Los_Angeles',
-  'America/Denver', 'America/Chicago', 'America/New_York',
-  'America/Sao_Paulo', 'Europe/London', 'Europe/Paris', 'Europe/Berlin',
-  'Europe/Moscow', 'Asia/Dubai', 'Asia/Kolkata', 'Asia/Shanghai',
-  'Asia/Tokyo', 'Australia/Sydney', 'Pacific/Auckland',
-];
-
-// Auto-detect user's timezone and ensure it's in the list
-const USER_TZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
-const ALL_TIMEZONES = BASE_TIMEZONES.includes(USER_TZ)
-  ? BASE_TIMEZONES
-  : [USER_TZ, ...BASE_TIMEZONES];
-
-const TIMEZONE_OPTIONS = ALL_TIMEZONES.map(tz => ({ value: tz, label: tzLabel(tz) }));
-
-const DAY_LABELS = {
-  mon: 'Monday',
-  tue: 'Tuesday',
-  wed: 'Wednesday',
-  thu: 'Thursday',
-  fri: 'Friday',
-  sat: 'Saturday',
-  sun: 'Sunday',
-};
 
 function ScheduleTab({ sequence, sequenceId, onUpdate }) {
   const existingSchedule = sequence?.schedule

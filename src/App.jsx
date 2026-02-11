@@ -9,6 +9,7 @@ import LeadsPage from './pages/LeadsPage';
 import MyListsPage from './pages/MyListsPage';
 import SettingsPage from './pages/SettingsPage';
 import EngagePage from './pages/EngagePage';
+import SequenceWizardPage from './pages/SequenceWizardPage';
 import PrivacyPage from './pages/PrivacyPage';
 import ProtectedRoute from './components/ProtectedRoute';
 
@@ -36,6 +37,22 @@ function App() {
           {/* Redirects for removed pages */}
           <Route path="/onboarding" element={<Navigate to="/dashboard" replace />} />
           <Route path="/search" element={<Navigate to="/dashboard" replace />} />
+          <Route
+            path="/engage/new-sequence"
+            element={
+              <ProtectedRoute>
+                <SequenceWizardPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/engage/edit-sequence/:sequenceId"
+            element={
+              <ProtectedRoute>
+                <SequenceWizardPage />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/engage"
             element={

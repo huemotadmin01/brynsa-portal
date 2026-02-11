@@ -633,12 +633,14 @@ function OverviewTab({ sequence, sequenceId, stepStats, onToggleStep, onEditStep
   // This handles both new format (explicit wait steps) and old format (days on email steps)
   const displayItems = [];
   let emailCounter = 0;
+  let cumulativeDay = 1;
 
   for (let i = 0; i < steps.length; i++) {
     const step = steps[i];
 
     if (step.type === 'wait') {
       // Explicit wait step — show editable divider
+      cumulativeDay += step.days || 0;
       displayItems.push({ kind: 'wait', index: i, days: step.days || 2 });
       continue;
     }
@@ -651,6 +653,7 @@ function OverviewTab({ sequence, sequenceId, stepStats, onToggleStep, onEditStep
     // and the previous step is NOT a wait step, show a synthetic wait divider
     if (emailNum > 1 && (i === 0 || steps[i - 1]?.type !== 'wait')) {
       const waitDays = step.days || 2;
+      cumulativeDay += waitDays;
       displayItems.push({ kind: 'wait-on-email', index: i, days: waitDays });
     }
 
@@ -659,6 +662,7 @@ function OverviewTab({ sequence, sequenceId, stepStats, onToggleStep, onEditStep
       index: i,
       step,
       emailNum,
+      day: cumulativeDay,
     });
   }
 
@@ -695,8 +699,7 @@ function OverviewTab({ sequence, sequenceId, stepStats, onToggleStep, onEditStep
           }
 
           // Email step
-          const { step, emailNum, index } = item;
-          const day = computeEmailDay(steps, index);
+          const { step, emailNum, index, day } = item;
           const placeholderCount = countPlaceholders(step.subject) + countPlaceholders(step.body);
           const stepEnabled = step.enabled !== false;
           const stat = stepStats.find(s => s._id === index) || {};

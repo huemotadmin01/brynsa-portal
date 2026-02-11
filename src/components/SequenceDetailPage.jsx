@@ -237,6 +237,11 @@ function SequenceDetailPage({ sequenceId, onBack }) {
 
   async function handleAddEmailStep() {
     try {
+      // Add a wait step before the new email (like wizard compose does)
+      const steps = sequence.steps || [];
+      if (steps.length > 0) {
+        await api.addStep(sequenceId, { type: 'wait', days: 2 });
+      }
       const res = await api.addStep(sequenceId, {
         type: 'email',
         subject: '',
@@ -624,39 +629,73 @@ function OverviewTab({ sequence, sequenceId, stepStats, onToggleStep, onEditStep
     setEditBackup(null);
   }
 
-  // Track email number for display
+  // Build a display list: for each step, decide whether to show a wait divider before it
+  // This handles both new format (explicit wait steps) and old format (days on email steps)
+  const displayItems = [];
   let emailCounter = 0;
+
+  for (let i = 0; i < steps.length; i++) {
+    const step = steps[i];
+
+    if (step.type === 'wait') {
+      // Explicit wait step — show editable divider
+      displayItems.push({ kind: 'wait', index: i, days: step.days || 2 });
+      continue;
+    }
+
+    // Email step
+    emailCounter++;
+    const emailNum = emailCounter;
+
+    // For old-format sequences (no explicit wait steps): if this email has days > 0
+    // and the previous step is NOT a wait step, show a synthetic wait divider
+    if (emailNum > 1 && (i === 0 || steps[i - 1]?.type !== 'wait')) {
+      const waitDays = step.days || 2;
+      displayItems.push({ kind: 'wait-on-email', index: i, days: waitDays });
+    }
+
+    displayItems.push({
+      kind: 'email',
+      index: i,
+      step,
+      emailNum,
+    });
+  }
+
+  // Render a wait divider (works for both explicit wait steps and synthetic ones)
+  function renderWaitDivider(item) {
+    return (
+      <div key={`wait-${item.index}`} className="flex items-center justify-center gap-3 py-3">
+        <div className="flex-1 h-px bg-dark-700" />
+        <div className="flex items-center gap-2 px-3 py-1.5 bg-dark-800/50 border border-dark-700 rounded-full">
+          <Clock className="w-3 h-3 text-dark-500" />
+          <span className="text-xs text-dark-400">Wait</span>
+          <input
+            type="number"
+            min={1}
+            max={30}
+            value={item.days}
+            onChange={(e) => onUpdateWaitDays(item.index, e.target.value)}
+            className="w-10 px-1.5 py-0.5 bg-dark-900 border border-dark-600 rounded text-center text-xs text-white focus:outline-none focus:border-rivvra-500"
+          />
+          <span className="text-xs text-dark-400">days - if no reply</span>
+        </div>
+        <div className="flex-1 h-px bg-dark-700" />
+      </div>
+    );
+  }
 
   return (
     <div>
       <div className="space-y-0">
-        {steps.map((step, index) => {
-          // Wait step — inline editable divider (same as wizard compose)
-          if (step.type === 'wait') {
-            return (
-              <div key={`wait-${index}`} className="flex items-center justify-center gap-3 py-3">
-                <div className="flex-1 h-px bg-dark-700" />
-                <div className="flex items-center gap-2 px-3 py-1.5 bg-dark-800/50 border border-dark-700 rounded-full">
-                  <Clock className="w-3 h-3 text-dark-500" />
-                  <span className="text-xs text-dark-400">Wait</span>
-                  <input
-                    type="number"
-                    min={1}
-                    max={30}
-                    value={step.days}
-                    onChange={(e) => onUpdateWaitDays(index, e.target.value)}
-                    className="w-10 px-1.5 py-0.5 bg-dark-900 border border-dark-600 rounded text-center text-xs text-white focus:outline-none focus:border-rivvra-500"
-                  />
-                  <span className="text-xs text-dark-400">days - if no reply</span>
-                </div>
-                <div className="flex-1 h-px bg-dark-700" />
-              </div>
-            );
+        {displayItems.map((item) => {
+          // Wait divider (explicit or synthetic)
+          if (item.kind === 'wait' || item.kind === 'wait-on-email') {
+            return renderWaitDivider(item);
           }
 
           // Email step
-          emailCounter++;
-          const emailNum = emailCounter;
+          const { step, emailNum, index } = item;
           const day = computeEmailDay(steps, index);
           const placeholderCount = countPlaceholders(step.subject) + countPlaceholders(step.body);
           const stepEnabled = step.enabled !== false;

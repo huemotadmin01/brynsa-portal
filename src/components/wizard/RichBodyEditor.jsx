@@ -1,22 +1,12 @@
 import { useRef, useEffect, useImperativeHandle, forwardRef } from 'react';
 import DOMPurify from 'dompurify';
 
-const ALLOWED_TAGS = [
-  'b', 'i', 'u', 'strong', 'em', 'a', 'p', 'br', 'div', 'span',
-  'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-  'table', 'thead', 'tbody', 'tr', 'td', 'th',
-  'img', 'blockquote', 'pre', 'code', 'hr', 'sub', 'sup',
-];
-
-const ALLOWED_ATTR = [
-  'href', 'target', 'style', 'src', 'alt', 'width', 'height',
-  'cellpadding', 'cellspacing', 'border', 'colspan', 'rowspan',
-];
-
+// Use DOMPurify defaults (very permissive for safe HTML)
+// but block scripts, iframes, forms, and event handlers
 function sanitize(html) {
   return DOMPurify.sanitize(html, {
-    ALLOWED_TAGS,
-    ALLOWED_ATTR,
+    FORBID_TAGS: ['script', 'iframe', 'form', 'input', 'select', 'textarea', 'button', 'object', 'embed'],
+    FORBID_ATTR: ['onerror', 'onclick', 'onload', 'onmouseover', 'onfocus', 'onblur'],
     ALLOW_DATA_ATTR: false,
   });
 }
@@ -95,8 +85,7 @@ const RichBodyEditor = forwardRef(function RichBodyEditor(
       onPaste={handlePaste}
       onFocus={onFocus}
       data-placeholder={placeholder}
-      className={`rich-body-editor w-full px-3 py-2.5 bg-dark-900 border border-dark-600 rounded-xl text-white text-sm focus:outline-none focus:border-rivvra-500 transition-colors leading-relaxed min-h-[240px] overflow-y-auto ${className}`}
-      style={{ whiteSpace: 'pre-wrap', wordWrap: 'break-word' }}
+      className={`rich-body-editor w-full px-4 py-3 bg-white text-gray-900 border border-dark-600 rounded-xl text-sm focus:outline-none focus:border-rivvra-500 transition-colors leading-relaxed min-h-[240px] overflow-y-auto ${className}`}
     />
   );
 });

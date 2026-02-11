@@ -198,48 +198,67 @@
 /* Rich text editor — contentEditable placeholder */
 [contenteditable]:empty:before {
   content: attr(data-placeholder);
-  color: #64748b;
+  color: #94a3b8;
   pointer-events: none;
   display: block;
 }
 
-/* Rich text editor & preview — dark theme overrides */
-.rich-body-editor a,
-.rich-body-preview a {
-  color: #4ade80;
+/* Rich text editor — white background like Gmail compose */
+.rich-body-editor {
+  color: #1a1a1a;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.rich-body-editor a {
+  color: #1a73e8;
   text-decoration: underline;
 }
 
-.rich-body-editor table,
-.rich-body-preview table {
+.rich-body-editor table {
   border-collapse: collapse;
   max-width: 100%;
 }
 
 .rich-body-editor td,
-.rich-body-editor th,
-.rich-body-preview td,
-.rich-body-preview th {
-  border: 1px solid #334155;
+.rich-body-editor th {
   padding: 4px 8px;
 }
 
-.rich-body-editor img,
-.rich-body-preview img {
+.rich-body-editor img {
   max-width: 100%;
   height: auto;
 }
 
-/* Override Gmail inline styles that assume white background */
-.rich-body-editor [style*="color: rgb(0, 0, 0)"],
-.rich-body-editor [style*="color:#000"],
-.rich-body-editor [style*="color:black"] {
-  color: inherit !important;
+.rich-body-editor p {
+  margin: 0 0 8px 0;
 }
 
-.rich-body-editor [style*="background-color: rgb(255, 255, 255)"],
-.rich-body-editor [style*="background:#fff"],
-.rich-body-editor [style*="background:white"],
-.rich-body-editor [style*="background-color:#ffffff"] {
-  background-color: transparent !important;
+.rich-body-editor ul,
+.rich-body-editor ol {
+  padding-left: 24px;
+  margin: 8px 0;
+}
+
+/* Preview in dark theme cards (collapsed email cards, detail page) */
+.rich-body-preview a {
+  color: #4ade80;
+  text-decoration: underline;
+}
+
+.rich-body-preview table {
+  border-collapse: collapse;
+  max-width: 100%;
+}
+
+.rich-body-preview td,
+.rich-body-preview th {
+  border: 1px solid #334155;
+  padding: 2px 6px;
+}
+
+.rich-body-preview img {
+  max-width: 100%;
+  height: auto;
 }

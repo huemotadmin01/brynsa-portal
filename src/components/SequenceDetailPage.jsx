@@ -1476,23 +1476,32 @@ for (let h = 0; h < 24; h++) {
   }
 }
 
-const TIMEZONE_OPTIONS = [
-  { value: 'America/New_York', label: '(UTC-05:00) America/New York' },
-  { value: 'America/Chicago', label: '(UTC-06:00) America/Chicago' },
-  { value: 'America/Denver', label: '(UTC-07:00) America/Denver' },
-  { value: 'America/Los_Angeles', label: '(UTC-08:00) America/Los Angeles' },
-  { value: 'America/Anchorage', label: '(UTC-09:00) America/Anchorage' },
-  { value: 'Pacific/Honolulu', label: '(UTC-10:00) Pacific/Honolulu' },
-  { value: 'Europe/London', label: '(UTC+00:00) Europe/London' },
-  { value: 'Europe/Paris', label: '(UTC+01:00) Europe/Paris' },
-  { value: 'Europe/Berlin', label: '(UTC+01:00) Europe/Berlin' },
-  { value: 'Asia/Dubai', label: '(UTC+04:00) Asia/Dubai' },
-  { value: 'Asia/Kolkata', label: '(UTC+05:30) Asia/Calcutta' },
-  { value: 'Asia/Shanghai', label: '(UTC+08:00) Asia/Shanghai' },
-  { value: 'Asia/Tokyo', label: '(UTC+09:00) Asia/Tokyo' },
-  { value: 'Australia/Sydney', label: '(UTC+11:00) Australia/Sydney' },
-  { value: 'Pacific/Auckland', label: '(UTC+13:00) Pacific/Auckland' },
+// Build timezone label dynamically with correct UTC offset
+function tzLabel(tz) {
+  try {
+    const now = new Date();
+    const fmt = new Intl.DateTimeFormat('en-US', { timeZone: tz, timeZoneName: 'shortOffset' });
+    const parts = fmt.formatToParts(now);
+    const offset = parts.find(p => p.type === 'timeZoneName')?.value || '';
+    return `(${offset}) ${tz.replace(/_/g, ' ')}`;
+  } catch { return tz; }
+}
+
+const BASE_TIMEZONES = [
+  'Pacific/Honolulu', 'America/Anchorage', 'America/Los_Angeles',
+  'America/Denver', 'America/Chicago', 'America/New_York',
+  'America/Sao_Paulo', 'Europe/London', 'Europe/Paris', 'Europe/Berlin',
+  'Europe/Moscow', 'Asia/Dubai', 'Asia/Kolkata', 'Asia/Shanghai',
+  'Asia/Tokyo', 'Australia/Sydney', 'Pacific/Auckland',
 ];
+
+// Auto-detect user's timezone and ensure it's in the list
+const USER_TZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
+const ALL_TIMEZONES = BASE_TIMEZONES.includes(USER_TZ)
+  ? BASE_TIMEZONES
+  : [USER_TZ, ...BASE_TIMEZONES];
+
+const TIMEZONE_OPTIONS = ALL_TIMEZONES.map(tz => ({ value: tz, label: tzLabel(tz) }));
 
 const DAY_LABELS = {
   mon: 'Monday',
@@ -1505,7 +1514,9 @@ const DAY_LABELS = {
 };
 
 function ScheduleTab({ sequence, sequenceId, onUpdate }) {
-  const existingSchedule = sequence?.schedule || DEFAULT_SCHEDULE;
+  const existingSchedule = sequence?.schedule
+    ? { ...DEFAULT_SCHEDULE, ...sequence.schedule, days: { ...DEFAULT_SCHEDULE.days, ...sequence.schedule.days } }
+    : DEFAULT_SCHEDULE;
   const [schedule, setSchedule] = useState(existingSchedule);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);

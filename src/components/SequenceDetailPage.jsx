@@ -1214,6 +1214,19 @@ function EmailsTab({ sequenceId, sequence, enrollments, emails, total, loading, 
     }
   }, [emails.length, selectedContact]);
 
+  // Sync selectedContact with latest enrollment data on refresh
+  useEffect(() => {
+    if (selectedContact && enrollments.length > 0) {
+      const updated = enrollments.find(e => e._id === selectedContact._id);
+      if (updated && (updated.status !== selectedContact.status || updated.currentStepIndex !== selectedContact.currentStepIndex)) {
+        setSelectedContact(updated);
+        // Re-filter emails for the updated contact
+        const filtered = emails.filter(e => e.leadEmail === updated.leadEmail);
+        setContactEmails(filtered);
+      }
+    }
+  }, [enrollments]);
+
   // Auto-select first contact
   useEffect(() => {
     if (!selectedContact && paginatedContacts.length > 0) {

@@ -466,6 +466,7 @@ function SequenceDetailPage({ sequenceId, onBack }) {
           sequence={sequence}
           enrollments={enrollments}
           enrollmentTotal={enrollmentTotal}
+          user={user}
           onLoadMore={() => loadEnrollments(enrollmentPage + 1)}
           onRemoveEnrollment={handleRemoveEnrollment}
           onPauseEnrollment={handlePauseEnrollment}
@@ -1041,7 +1042,7 @@ function SortableHeader({ label, sortKey, currentSort, onSort }) {
 
 // ========================== CONTACTS TAB ==========================
 
-function ContactsTab({ sequence, enrollments, enrollmentTotal, onLoadMore, onRemoveEnrollment, onPauseEnrollment, onMarkReplied, onReloadEnrollments, onBulkPause, onBulkRemove }) {
+function ContactsTab({ sequence, enrollments, enrollmentTotal, user, onLoadMore, onRemoveEnrollment, onPauseEnrollment, onMarkReplied, onReloadEnrollments, onBulkPause, onBulkRemove }) {
   const [contactSearch, setContactSearch] = useState('');
   const [contactFilter, setContactFilter] = useState('all');
   const [showContactFilter, setShowContactFilter] = useState(false);
@@ -1113,6 +1114,10 @@ function ContactsTab({ sequence, enrollments, enrollmentTotal, onLoadMore, onRem
     : contactFilter === 'replied' ? 'Interested'
     : contactFilter === 'bounced' ? 'Bounced'
     : 'All contacts';
+
+  // Show "Owner" column when admin is viewing a sequence with multiple enrolling users
+  const isAdmin = user?.role === 'admin';
+  const showOwner = isAdmin && enrollments.some(e => e.enrolledByName && e.enrolledByName !== user?.name);
 
   const ENGAGEMENT_COLORS = {
     Replied: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
@@ -1242,6 +1247,7 @@ function ContactsTab({ sequence, enrollments, enrollmentTotal, onLoadMore, onRem
                 <th className="text-left py-3 px-4">
                   <SortableHeader label="Contact Status" sortKey="status" currentSort={sort} onSort={handleSort} />
                 </th>
+                {showOwner && <th className="text-left py-3 px-4 font-medium">Owner</th>}
                 <th className="text-left py-3 px-4 font-medium">Engagement</th>
                 <th className="text-left py-3 px-4">
                   <SortableHeader label="Sent" sortKey="sent" currentSort={sort} onSort={handleSort} />
@@ -1291,6 +1297,11 @@ function ContactsTab({ sequence, enrollments, enrollmentTotal, onLoadMore, onRem
                         <span className="text-xs text-dark-300">{enrollStatus.label}</span>
                       </div>
                     </td>
+                    {showOwner && (
+                      <td className="py-3 px-4">
+                        <span className="text-xs text-dark-400">{enrollment.enrolledByName || '—'}</span>
+                      </td>
+                    )}
                     <td className="py-3 px-4">
                       {engagement && (
                         <span className={`inline-flex items-center px-2 py-0.5 text-xs font-medium rounded border ${engagementStyle}`}>
@@ -1498,12 +1509,12 @@ function EmailsTab({ sequenceId, sequence, enrollments, emails, total, loading, 
       if (steps[i].type === 'email') emailNumber++;
     }
 
-    // Replace placeholders client-side
+    // Replace placeholders client-side (use enrolling user's info, not current viewer)
     const nameParts = (selectedContact.leadName || '').trim().split(' ');
     const firstName = nameParts[0] || '';
     const lastName = nameParts.slice(1).join(' ') || '';
-    const senderName = user?.name || user?.email?.split('@')[0] || '';
-    const senderTitle = user?.senderTitle || user?.onboarding?.role || '';
+    const senderName = selectedContact.enrolledByName || user?.name || user?.email?.split('@')[0] || '';
+    const senderTitle = selectedContact.enrolledByTitle || user?.senderTitle || user?.onboarding?.role || '';
     const replacePlaceholders = (text) => {
       if (!text) return '';
       return text
@@ -1647,6 +1658,9 @@ function EmailsTab({ sequenceId, sequence, enrollments, emails, total, loading, 
                 <div className="text-xs text-dark-500 mt-0.5 truncate">
                   {enrollment.leadTitle ? `${enrollment.leadTitle}` : ''}{enrollment.leadTitle && enrollment.leadCompany ? ', ' : ''}{enrollment.leadCompany || ''}
                 </div>
+                {user?.role === 'admin' && enrollment.enrolledByName && enrollment.enrolledByName !== user?.name && (
+                  <div className="text-xs text-dark-600 mt-0.5 truncate">by {enrollment.enrolledByName}</div>
+                )}
                 {lastEngaged && (
                   <div className="text-xs text-dark-600 mt-1">Last engaged: {lastEngaged}</div>
                 )}
@@ -1744,8 +1758,8 @@ function EmailsTab({ sequenceId, sequence, enrollments, emails, total, loading, 
                     const nameParts = (selectedContact.leadName || '').trim().split(' ');
                     const fn = nameParts[0] || '';
                     const ln = nameParts.slice(1).join(' ') || '';
-                    const sn = user?.name || user?.email?.split('@')[0] || '';
-                    const st = user?.senderTitle || user?.onboarding?.role || '';
+                    const sn = selectedContact.enrolledByName || user?.name || user?.email?.split('@')[0] || '';
+                    const st = selectedContact.enrolledByTitle || user?.senderTitle || user?.onboarding?.role || '';
                     emailBody = emailBody
                       .replace(/\{\{firstName\}\}/gi, fn)
                       .replace(/\{\{lastName\}\}/gi, ln)

@@ -18,9 +18,11 @@ import AddToListModal from '../components/AddToListModal';
 import ExportToCRMModal from '../components/ExportToCRMModal';
 import AddToSequenceModal from '../components/AddToSequenceModal';
 import EditContactModal from '../components/EditContactModal';
+import { useToast } from '../context/ToastContext';
 
 function LeadsPage() {
   const { user } = useAuth();
+  const { showToast } = useToast();
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -45,6 +47,7 @@ function LeadsPage() {
   const [outreachStatusFilter, setOutreachStatusFilter] = useState('all');
   const [showEditContact, setShowEditContact] = useState(false);
   const [editContactTarget, setEditContactTarget] = useState(null);
+  const [setupComplete, setSetupComplete] = useState(null);
 
   const leadsPerPage = 10;
   const isPro = user?.plan === 'pro' || user?.plan === 'premium';
@@ -72,6 +75,10 @@ function LeadsPage() {
 
   useEffect(() => {
     loadLeads();
+    // Check setup status for sequence guard
+    api.getSetupStatus().then(res => {
+      setSetupComplete(res.success ? res.allComplete : false);
+    }).catch(() => setSetupComplete(false));
   }, [loadLeads]);
 
   const [lastSeenTimestamp, setLastSeenTimestamp] = useState(0);
@@ -484,6 +491,10 @@ function LeadsPage() {
                                 setShowExportCRM(true);
                               }}
                               onAddToSequence={() => {
+                                if (setupComplete === false) {
+                                  showToast('Complete your setup on the Engage page first (connect Gmail + complete profile)', 'error');
+                                  return;
+                                }
                                 setSequenceTarget(lead);
                                 setShowAddToSequence(true);
                               }}

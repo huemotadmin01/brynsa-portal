@@ -18,11 +18,13 @@ import AddToListModal from '../components/AddToListModal';
 import ExportToCRMModal from '../components/ExportToCRMModal';
 import AddToSequenceModal from '../components/AddToSequenceModal';
 import EditContactModal from '../components/EditContactModal';
+import { useToast } from '../context/ToastContext';
 
 function MyListsPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { user, isAuthenticated } = useAuth();
+  const { showToast } = useToast();
   const [lists, setLists] = useState([]);
   const [selectedList, setSelectedList] = useState(searchParams.get('list') || null);
   const [leads, setLeads] = useState([]);
@@ -53,6 +55,7 @@ function MyListsPage() {
   const [showEditContact, setShowEditContact] = useState(false);
   const [editContactTarget, setEditContactTarget] = useState(null);
   const [showFilters, setShowFilters] = useState(false);
+  const [setupComplete, setSetupComplete] = useState(null);
   const [profileTypeFilter, setProfileTypeFilter] = useState('all');
   const [outreachStatusFilter, setOutreachStatusFilter] = useState('all');
   const filterRef = useRef(null);
@@ -100,6 +103,10 @@ function MyListsPage() {
   useEffect(() => {
     if (isAuthenticated) {
       loadLists();
+      // Check setup status for sequence guard
+      api.getSetupStatus().then(res => {
+        setSetupComplete(res.success ? res.allComplete : false);
+      }).catch(() => setSetupComplete(false));
     }
   }, [isAuthenticated]);
 
@@ -675,6 +682,10 @@ function MyListsPage() {
                                     setShowExportCRM(true);
                                   }}
                                   onAddToSequence={() => {
+                                    if (setupComplete === false) {
+                                      showToast('Complete your setup on the Engage page first (connect Gmail + complete profile)', 'error');
+                                      return;
+                                    }
                                     setSequenceTarget(lead);
                                     setShowAddToSequence(true);
                                   }}

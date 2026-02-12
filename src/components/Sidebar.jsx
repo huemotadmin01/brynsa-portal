@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
   Home, Send, Users, List, Settings, LogOut,
-  ChevronRight, Crown
+  ChevronRight, Crown, BarChart3
 } from 'lucide-react';
 import RivvraLogo from './BrynsaLogo';
 import ComingSoonModal from './ComingSoonModal';
@@ -25,6 +25,9 @@ function Sidebar() {
     { path: '/engage', label: 'Engage', icon: Send },
     { path: '/leads', label: 'My Contacts', icon: Users },
     { path: '/lists', label: 'My Lists', icon: List },
+    ...((user?.role === 'admin' || user?.role === 'team_lead')
+      ? [{ path: '/team-dashboard', label: 'Team Dashboard', icon: BarChart3 }]
+      : []),
   ];
 
   const isActive = (path) => location.pathname === path;

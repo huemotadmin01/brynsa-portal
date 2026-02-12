@@ -11,6 +11,7 @@ import SettingsPage from './pages/SettingsPage';
 import EngagePage from './pages/EngagePage';
 import SequenceWizardPage from './pages/SequenceWizardPage';
 import PrivacyPage from './pages/PrivacyPage';
+import TeamDashboardPage from './pages/TeamDashboardPage';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
@@ -74,6 +75,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <MyListsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/team-dashboard"
+            element={
+              <ProtectedRoute>
+                <TeamDashboardPage />
               </ProtectedRoute>
             }
           />

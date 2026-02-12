@@ -544,6 +544,11 @@ class ApiClient {
     });
   }
 
+  // Team Dashboard
+  async getDashboardStats() {
+    return this.request('/api/dashboard/team');
+  }
+
   // Rename default list (admin only)
   async renameDefaultList(listId, newName) {
     return this.request(`/api/lists/${listId}/rename`, {

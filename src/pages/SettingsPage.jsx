@@ -146,9 +146,11 @@ function SettingsPage() {
   };
 
   const isAdmin = user?.role === 'admin';
+  const isTeamLead = user?.role === 'team_lead';
+  const canViewTeam = isAdmin || isTeamLead;
   const tabs = [
     { id: 'profile', label: 'Profile', icon: User },
-    ...(isAdmin ? [{ id: 'team', label: 'Team', icon: Users }] : []),
+    ...(canViewTeam ? [{ id: 'team', label: 'Team', icon: Users }] : []),
     { id: 'notifications', label: 'Notifications', icon: Bell, comingSoon: true },
     { id: 'billing', label: 'Billing', icon: CreditCard, comingSoon: true },
     { id: 'security', label: 'Security', icon: Shield },
@@ -387,9 +389,9 @@ function SettingsPage() {
               </div>
             )}
 
-            {/* Team Tab (Admin only) */}
-            {activeTab === 'team' && isAdmin && (
-              <TeamManagement user={user} />
+            {/* Team Tab (Admin + Team Lead) */}
+            {activeTab === 'team' && canViewTeam && (
+              <TeamManagement user={user} canChangeRoles={isAdmin} />
             )}
           </div>
         </div>
@@ -489,7 +491,7 @@ function SettingsPage() {
 
 // ========================== TEAM MANAGEMENT ==========================
 
-function TeamManagement({ user }) {
+function TeamManagement({ user, canChangeRoles = false }) {
   const [members, setMembers] = useState([]);
   const [companyName, setCompanyName] = useState('');
   const [loading, setLoading] = useState(true);
@@ -599,45 +601,55 @@ function TeamManagement({ user }) {
                 <div className="relative flex-shrink-0">
                   {updatingRole === member.id ? (
                     <Loader2 className="w-4 h-4 text-rivvra-500 animate-spin" />
-                  ) : (
+                  ) : canChangeRoles ? (
                     <button
                       onClick={() => setOpenDropdown(openDropdown === member.id ? null : member.id)}
                       disabled={isOnlyAdmin && isCurrentUser}
                       className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                         member.role === 'admin'
                           ? 'bg-rivvra-500/10 text-rivvra-400 border border-rivvra-500/20'
+                          : member.role === 'team_lead'
+                          ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
                           : 'bg-dark-700/50 text-dark-300 border border-dark-600'
                       } ${isOnlyAdmin && isCurrentUser ? 'opacity-50 cursor-not-allowed' : 'hover:bg-dark-600 cursor-pointer'}`}
                     >
-                      {member.role === 'admin' ? 'Admin' : 'Member'}
+                      {member.role === 'admin' ? 'Admin' : member.role === 'team_lead' ? 'Team Lead' : 'Member'}
                       {!(isOnlyAdmin && isCurrentUser) && <ChevronDown className="w-3 h-3" />}
                     </button>
+                  ) : (
+                    <span className={`px-3 py-1.5 rounded-lg text-xs font-medium ${
+                      member.role === 'admin'
+                        ? 'bg-rivvra-500/10 text-rivvra-400 border border-rivvra-500/20'
+                        : member.role === 'team_lead'
+                        ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                        : 'bg-dark-700/50 text-dark-300 border border-dark-600'
+                    }`}>
+                      {member.role === 'admin' ? 'Admin' : member.role === 'team_lead' ? 'Team Lead' : 'Member'}
+                    </span>
                   )}
 
-                  {/* Dropdown */}
-                  {openDropdown === member.id && (
+                  {/* Dropdown (admin only) */}
+                  {canChangeRoles && openDropdown === member.id && (
                     <>
                       <div className="fixed inset-0 z-40" onClick={() => setOpenDropdown(null)} />
                       <div className="absolute right-0 top-full mt-1 z-50 bg-dark-800 border border-dark-600 rounded-xl shadow-2xl py-1 min-w-[140px]">
-                        <button
-                          onClick={() => handleRoleChange(member.id, 'admin')}
-                          className={`w-full px-4 py-2 text-left text-xs hover:bg-dark-700 transition-colors flex items-center gap-2 ${
-                            member.role === 'admin' ? 'text-rivvra-400' : 'text-dark-300'
-                          }`}
-                        >
-                          {member.role === 'admin' && <Check className="w-3 h-3" />}
-                          <span className={member.role === 'admin' ? '' : 'ml-5'}>Admin</span>
-                        </button>
-                        <button
-                          onClick={() => handleRoleChange(member.id, 'member')}
-                          disabled={isOnlyAdmin && member.role === 'admin'}
-                          className={`w-full px-4 py-2 text-left text-xs hover:bg-dark-700 transition-colors flex items-center gap-2 ${
-                            member.role === 'member' ? 'text-rivvra-400' : 'text-dark-300'
-                          } ${isOnlyAdmin && member.role === 'admin' ? 'opacity-50 cursor-not-allowed' : ''}`}
-                        >
-                          {member.role === 'member' && <Check className="w-3 h-3" />}
-                          <span className={member.role === 'member' ? '' : 'ml-5'}>Member</span>
-                        </button>
+                        {[
+                          { value: 'admin', label: 'Admin' },
+                          { value: 'team_lead', label: 'Team Lead' },
+                          { value: 'member', label: 'Member' },
+                        ].map((roleOption) => (
+                          <button
+                            key={roleOption.value}
+                            onClick={() => handleRoleChange(member.id, roleOption.value)}
+                            disabled={isOnlyAdmin && member.role === 'admin' && roleOption.value !== 'admin'}
+                            className={`w-full px-4 py-2 text-left text-xs hover:bg-dark-700 transition-colors flex items-center gap-2 ${
+                              member.role === roleOption.value ? 'text-rivvra-400' : 'text-dark-300'
+                            } ${isOnlyAdmin && member.role === 'admin' && roleOption.value !== 'admin' ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          >
+                            {member.role === roleOption.value && <Check className="w-3 h-3" />}
+                            <span className={member.role === roleOption.value ? '' : 'ml-5'}>{roleOption.label}</span>
+                          </button>
+                        ))}
                       </div>
                     </>
                   )}

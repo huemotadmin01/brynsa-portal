@@ -141,6 +141,11 @@ function LeadDetailPanel({ lead, onClose, onUpdate }) {
         showToast(`Contact added to "${res.autoAddedToList}" list`);
       }
 
+      // Show toast if active sequences were stopped
+      if (res.stoppedSequenceCount > 0) {
+        showToast(`${res.stoppedSequenceCount} active sequence${res.stoppedSequenceCount > 1 ? 's' : ''} stopped`, 'info');
+      }
+
       // Update lead with new status and updated lists
       const updatedLead = { ...lead, outreachStatus: newStatus };
       if (res.autoAddedToList) {

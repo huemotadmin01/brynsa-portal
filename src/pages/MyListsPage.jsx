@@ -702,6 +702,7 @@ function MyListsPage() {
                                     setDeleteTarget(lead);
                                     setShowDeleteModal(true);
                                   }}
+                                  removeLabel="Remove from list"
                                 />
                               </td>
                               {/* Scrollable Columns */}

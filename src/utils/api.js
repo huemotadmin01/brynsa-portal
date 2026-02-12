@@ -121,8 +121,8 @@ class ApiClient {
 
   // Leads endpoints
   async getLeads(listName = null) {
-    // Request all leads (limit=1000) since the portal does client-side pagination
-    const baseUrl = '/api/portal/leads?limit=1000';
+    // Request all leads since the portal does client-side pagination
+    const baseUrl = '/api/portal/leads?limit=10000';
     const url = listName ? `${baseUrl}&list=${encodeURIComponent(listName)}` : baseUrl;
     return this.request(url);
   }

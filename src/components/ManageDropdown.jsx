@@ -4,7 +4,7 @@ import {
   ChevronDown, Upload, ListPlus, Pencil, Tag, Trash2
 } from 'lucide-react';
 
-function ManageDropdown({ lead, onExportCRM, onAddToSequence, onAddToList, onEditContact, onTagContact, onRemoveContact }) {
+function ManageDropdown({ lead, onExportCRM, onAddToSequence, onAddToList, onEditContact, onTagContact, onRemoveContact, removeLabel = 'Remove contact' }) {
   const [isOpen, setIsOpen] = useState(false);
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
   const buttonRef = useRef(null);
@@ -86,7 +86,7 @@ function ManageDropdown({ lead, onExportCRM, onAddToSequence, onAddToList, onEdi
     },
     {
       icon: Trash2,
-      label: 'Remove contact',
+      label: removeLabel,
       action: onRemoveContact,
       danger: true,
     },

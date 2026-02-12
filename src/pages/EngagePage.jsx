@@ -150,30 +150,14 @@ function EngagePage() {
     }
   }
 
-  // Gmail connect flow
+  // Gmail connect flow — redirect in same window (works reliably on all OS)
   async function handleConnectGmail() {
     try {
       const res = await api.getGmailOAuthUrl();
       if (!res.success) return;
 
-      // Open popup
-      const popup = window.open(res.url, 'gmail-oauth', 'width=500,height=700,left=200,top=100');
-
-      // Listen for postMessage from callback page
-      const handleMessage = async (event) => {
-        if (event.data?.type === 'gmail-oauth' && event.data.code) {
-          window.removeEventListener('message', handleMessage);
-          const connectRes = await api.connectGmail(event.data.code);
-          if (connectRes.success) {
-            setGmailStatus({ connected: true, email: connectRes.gmailEmail });
-            loadSetupStatus(); // Refresh setup status after connecting
-          }
-        }
-        if (event.data?.type === 'gmail-oauth-error') {
-          window.removeEventListener('message', handleMessage);
-        }
-      };
-      window.addEventListener('message', handleMessage);
+      // Redirect in same window — callback will redirect back to /#/engage?gmail_code=xxx
+      window.location.href = res.url;
     } catch (err) {
       console.error('Connect Gmail error:', err);
     }

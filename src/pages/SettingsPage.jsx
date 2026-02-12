@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import {
   User, Shield, Bell, CreditCard,
   Trash2, AlertTriangle, Loader2, X, LogOut,
-  Mail, Building2, Crown
+  Mail, Building2, Crown, Briefcase, Check
 } from 'lucide-react';
 import Layout from '../components/Layout';
 import api from '../utils/api';
@@ -12,10 +12,31 @@ import ComingSoonModal from '../components/ComingSoonModal';
 
 function SettingsPage() {
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { user, logout, updateUser } = useAuth();
   const [activeTab, setActiveTab] = useState('profile');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
+
+  // Editable title field
+  const [senderTitle, setSenderTitle] = useState(user?.senderTitle || '');
+  const [savingTitle, setSavingTitle] = useState(false);
+  const [titleSaved, setTitleSaved] = useState(false);
+
+  const handleSaveTitle = async () => {
+    setSavingTitle(true);
+    try {
+      const res = await api.updateProfile({ senderTitle });
+      if (res.success) {
+        updateUser({ senderTitle });
+        setTitleSaved(true);
+        setTimeout(() => setTitleSaved(false), 2000);
+      }
+    } catch (err) {
+      setMessage({ type: 'error', text: 'Failed to save title' });
+    } finally {
+      setSavingTitle(false);
+    }
+  };
   
   // Delete account state
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -142,6 +163,30 @@ function SettingsPage() {
                         <Building2 className="w-5 h-5 text-dark-500" />
                         <span className="text-white">{user?.onboarding?.companyName || '-'}</span>
                       </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-dark-400 mb-2">Title / Designation</label>
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-3 px-4 py-3 bg-dark-800/50 border border-dark-700 rounded-xl flex-1">
+                          <Briefcase className="w-5 h-5 text-dark-500 flex-shrink-0" />
+                          <input
+                            type="text"
+                            value={senderTitle}
+                            onChange={(e) => { setSenderTitle(e.target.value); setTitleSaved(false); }}
+                            placeholder="e.g. CEO & Co-Founder"
+                            className="bg-transparent text-white w-full outline-none placeholder:text-dark-600"
+                          />
+                        </div>
+                        <button
+                          onClick={handleSaveTitle}
+                          disabled={savingTitle || senderTitle === (user?.senderTitle || '')}
+                          className="px-4 py-3 bg-rivvra-500 text-dark-950 rounded-xl hover:bg-rivvra-400 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5 text-sm font-medium"
+                        >
+                          {savingTitle ? <Loader2 className="w-4 h-4 animate-spin" /> : titleSaved ? <Check className="w-4 h-4" /> : 'Save'}
+                        </button>
+                      </div>
+                      <p className="text-xs text-dark-600 mt-1">Used as {'{{senderTitle}}'} placeholder in email sequences</p>
                     </div>
                   </div>
                 </div>

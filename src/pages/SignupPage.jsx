@@ -95,6 +95,7 @@ function SignupPage() {
   const [formData, setFormData] = useState({
     companyName: '',
     role: '',
+    senderTitle: '',
     teamSize: '',
     useCase: '',
   });
@@ -866,6 +867,24 @@ function SignupPage() {
                     <span className="font-medium text-white">{role.label}</span>
                   </button>
                 ))}
+              </div>
+
+              {/* Title / Designation (optional) */}
+              <div>
+                <label className="block text-sm font-medium text-dark-300 mb-2">
+                  Your Title / Designation <span className="text-dark-500">(optional)</span>
+                </label>
+                <div className="relative">
+                  <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-dark-500" />
+                  <input
+                    type="text"
+                    value={formData.senderTitle}
+                    onChange={(e) => setFormData({ ...formData, senderTitle: e.target.value })}
+                    placeholder="e.g. CEO & Co-Founder"
+                    className="input-field pl-12"
+                  />
+                </div>
+                <p className="text-xs text-dark-500 mt-1">Used in email templates as {'{{senderTitle}}'}</p>
               </div>
 
               <button

@@ -331,10 +331,9 @@ function LeadDetailPanel({ lead, onClose, onUpdate }) {
           >
             <option value="not_contacted">Not Contacted</option>
             <option value="in_sequence">In Sequence</option>
-            <option value="replied">Replied</option>
+            <option value="replied">Interested</option>
             <option value="replied_not_interested">Not Interested</option>
             <option value="no_response">No Response</option>
-            <option value="bounced">Bounced</option>
           </select>
           <p className="text-[10px] text-dark-500 mt-1.5">
             Override status when leads reply via LinkedIn DM or other channels

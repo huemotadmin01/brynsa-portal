@@ -8,7 +8,7 @@ const STATUS_COLORS = {
   paused: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
 };
 
-function AddToSequenceModal({ isOpen, onClose, leadIds = [], leadNames = [], preSelectedSequenceId = null }) {
+function AddToSequenceModal({ isOpen, onClose, onEnrolled, leadIds = [], leadNames = [], preSelectedSequenceId = null }) {
   const [sequences, setSequences] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -91,6 +91,14 @@ function AddToSequenceModal({ isOpen, onClose, leadIds = [], leadNames = [], pre
         skipped: response.skipped,
         errors: response.errors,
       });
+      // Notify parent immediately so it can refresh data
+      if (response.enrolled > 0 && onEnrolled) {
+        onEnrolled({ enrolled: response.enrolled, leadIds: idsToEnroll, sequenceId: seqId });
+      }
+      // Auto-close after a brief delay so user sees the result
+      if (response.enrolled > 0) {
+        setTimeout(() => onClose?.(), 1500);
+      }
     } catch (err) {
       setResult({ success: false, error: err.message });
     } finally {

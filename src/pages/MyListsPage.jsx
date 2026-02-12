@@ -958,6 +958,15 @@ function MyListsPage() {
           setShowAddToSequence(false);
           setSequenceTarget(null);
         }}
+        onEnrolled={({ leadIds: enrolledIds }) => {
+          // Instantly update local state so status reflects without waiting for API
+          setLeads(prev => prev.map(l =>
+            enrolledIds.includes(l._id) ? { ...l, outreachStatus: 'in_sequence' } : l
+          ));
+          if (selectedLead && enrolledIds.includes(selectedLead._id)) {
+            setSelectedLead(prev => ({ ...prev, outreachStatus: 'in_sequence' }));
+          }
+        }}
         leadIds={sequenceTarget ? [sequenceTarget._id] : []}
         leadNames={sequenceTarget ? [sequenceTarget.name] : []}
       />

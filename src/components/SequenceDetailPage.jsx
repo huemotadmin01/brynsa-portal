@@ -12,6 +12,7 @@ import ToggleSwitch from './ToggleSwitch';
 import AddToSequenceModal from './AddToSequenceModal';
 import ConfirmModal from './ConfirmModal';
 import { useToast } from '../context/ToastContext';
+import { useAuth } from '../context/AuthContext';
 import DOMPurify from 'dompurify';
 import {
   DEFAULT_SCHEDULE,
@@ -48,6 +49,7 @@ const PLACEHOLDERS = [
 
 function SequenceDetailPage({ sequenceId, onBack }) {
   const { showToast } = useToast();
+  const { user } = useAuth();
   const [sequence, setSequence] = useState(null);
   const [stepStats, setStepStats] = useState([]);
   const [activeTab, setActiveTab] = useState('overview');
@@ -483,6 +485,7 @@ function SequenceDetailPage({ sequenceId, onBack }) {
           loading={emailLogLoading}
           onLoadMore={() => loadEmailLog(emailLogPage + 1)}
           onReloadEnrollments={loadEnrollments}
+          user={user}
         />
       )}
       {activeTab === 'automation' && (
@@ -1300,7 +1303,7 @@ function ContactsTab({ sequence, enrollments, enrollmentTotal, onLoadMore, onRem
 
 // ========================== EMAILS TAB (SPLIT-PANE - LUSHA STYLE) ==========================
 
-function EmailsTab({ sequenceId, sequence, enrollments, emails, total, loading, onLoadMore, onReloadEnrollments }) {
+function EmailsTab({ sequenceId, sequence, enrollments, emails, total, loading, onLoadMore, onReloadEnrollments, user }) {
   const [selectedContact, setSelectedContact] = useState(null);
   const [contactEmails, setContactEmails] = useState([]);
   const [contactEmailsLoading, setContactEmailsLoading] = useState(false);
@@ -1371,6 +1374,8 @@ function EmailsTab({ sequenceId, sequence, enrollments, emails, total, loading, 
     const nameParts = (selectedContact.leadName || '').trim().split(' ');
     const firstName = nameParts[0] || '';
     const lastName = nameParts.slice(1).join(' ') || '';
+    const senderName = user?.name || user?.email?.split('@')[0] || '';
+    const senderTitle = user?.senderTitle || user?.onboarding?.role || '';
     const replacePlaceholders = (text) => {
       if (!text) return '';
       return text
@@ -1379,7 +1384,9 @@ function EmailsTab({ sequenceId, sequence, enrollments, emails, total, loading, 
         .replace(/\{\{name\}\}/gi, selectedContact.leadName || '')
         .replace(/\{\{company\}\}/gi, selectedContact.leadCompany || '')
         .replace(/\{\{title\}\}/gi, selectedContact.leadTitle || '')
-        .replace(/\{\{email\}\}/gi, selectedContact.leadEmail || '');
+        .replace(/\{\{email\}\}/gi, selectedContact.leadEmail || '')
+        .replace(/\{\{senderName\}\}/gi, senderName)
+        .replace(/\{\{senderTitle\}\}/gi, senderTitle);
     };
 
     return {
@@ -1389,7 +1396,7 @@ function EmailsTab({ sequenceId, sequence, enrollments, emails, total, loading, 
       scheduledAt: nextActionDate,
       stepIndex: nextEmailStepIndex,
     };
-  }, [selectedContact, sequence]);
+  }, [selectedContact, sequence, user]);
 
   // Re-filter contact emails when email log data arrives
   useEffect(() => {
@@ -1559,10 +1566,13 @@ function EmailsTab({ sequenceId, sequence, enrollments, emails, total, loading, 
                         })}
                       </span>
                     </div>
-                    {scheduledEmail.body && (
+                    {scheduledEmail.body && !isBodyEmpty(scheduledEmail.body) && (
                       <div className="mt-2">
                         <span className="text-xs text-dark-500">Content</span>
-                        <p className="text-xs text-dark-400 mt-1 line-clamp-2">{scheduledEmail.body}</p>
+                        <div
+                          className="rich-body-preview text-xs text-dark-300 mt-1"
+                          dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(scheduledEmail.body) }}
+                        />
                       </div>
                     )}
                   </div>
@@ -1599,6 +1609,26 @@ function EmailsTab({ sequenceId, sequence, enrollments, emails, total, loading, 
                   });
                   const displayNum = emailIdx >= 0 ? emailIdx + 1 : emailNumber;
 
+                  // Reconstruct email body from sequence step template + contact data
+                  const step = email.stepIndex !== undefined ? (sequence?.steps || [])[email.stepIndex] : null;
+                  let emailBody = email.body || (step?.body) || '';
+                  if (emailBody && selectedContact) {
+                    const nameParts = (selectedContact.leadName || '').trim().split(' ');
+                    const fn = nameParts[0] || '';
+                    const ln = nameParts.slice(1).join(' ') || '';
+                    const sn = user?.name || user?.email?.split('@')[0] || '';
+                    const st = user?.senderTitle || user?.onboarding?.role || '';
+                    emailBody = emailBody
+                      .replace(/\{\{firstName\}\}/gi, fn)
+                      .replace(/\{\{lastName\}\}/gi, ln)
+                      .replace(/\{\{name\}\}/gi, selectedContact.leadName || '')
+                      .replace(/\{\{company\}\}/gi, selectedContact.leadCompany || '')
+                      .replace(/\{\{title\}\}/gi, selectedContact.leadTitle || '')
+                      .replace(/\{\{email\}\}/gi, selectedContact.leadEmail || '')
+                      .replace(/\{\{senderName\}\}/gi, sn)
+                      .replace(/\{\{senderTitle\}\}/gi, st);
+                  }
+
                   return (
                     <div key={i} className="bg-dark-800/40 rounded-xl p-4 border border-dark-700/50">
                       <div className="flex items-center justify-between mb-2">
@@ -1617,20 +1647,20 @@ function EmailsTab({ sequenceId, sequence, enrollments, emails, total, loading, 
                         </div>
                       </div>
 
-                      {/* Content preview */}
-                      {email.body && !isBodyEmpty(email.body) && (
+                      {/* Email content — rendered HTML with placeholders replaced */}
+                      {emailBody && !isBodyEmpty(emailBody) && (
                         <div className="mt-2">
                           <span className="text-xs text-dark-500">Content</span>
                           <div
-                            className={`rich-body-preview text-xs text-dark-400 mt-1 ${!isExpanded ? 'line-clamp-2' : ''}`}
-                            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(email.body) }}
+                            className={`rich-body-preview text-xs text-dark-300 mt-1 ${!isExpanded ? 'line-clamp-3' : ''}`}
+                            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(emailBody) }}
                           />
-                          {stripHtml(email.body).length > 120 && (
+                          {stripHtml(emailBody).length > 120 && (
                             <button
                               onClick={() => toggleExpandEmail(i)}
                               className="text-xs text-rivvra-400 hover:text-rivvra-300 mt-1 font-medium"
                             >
-                              ...{isExpanded ? 'Show less' : 'Read More'}
+                              {isExpanded ? 'Show less' : 'Read more'}
                             </button>
                           )}
                         </div>

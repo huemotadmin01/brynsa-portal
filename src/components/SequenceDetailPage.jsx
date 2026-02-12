@@ -1066,14 +1066,14 @@ function ContactsTab({ sequence, enrollments, enrollmentTotal, user, onLoadMore,
     setContactSearch(value);
     if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
     searchTimeoutRef.current = setTimeout(() => {
-      if (onReloadEnrollments) onReloadEnrollments(1, { status: contactFilter, search: value });
+      if (onReloadEnrollments) onReloadEnrollments(1, { search: value });
     }, 400);
   }
 
   function handleContactFilterChange(status) {
     setContactFilter(status);
     setShowContactFilter(false);
-    if (onReloadEnrollments) onReloadEnrollments(1, { status, search: contactSearch });
+    // Status filter is now client-side — no backend reload needed
   }
 
   function handleSort(key) {
@@ -1112,6 +1112,11 @@ function ContactsTab({ sequence, enrollments, enrollmentTotal, user, onLoadMore,
   const sortedEnrollments = useMemo(() => {
     let filtered = [...enrollments];
 
+    // Status filter (client-side)
+    if (contactFilter !== 'all') {
+      filtered = filtered.filter(e => e.status === contactFilter);
+    }
+
     // Owner filter
     if (ownerFilter !== 'all') {
       filtered = filtered.filter(e => (e.enrolledByName || '') === ownerFilter);
@@ -1144,7 +1149,7 @@ function ContactsTab({ sequence, enrollments, enrollmentTotal, user, onLoadMore,
     });
 
     return filtered;
-  }, [enrollments, ownerFilter, dateFilter, customDateFrom, customDateTo, sort]);
+  }, [enrollments, contactFilter, ownerFilter, dateFilter, customDateFrom, customDateTo, sort]);
 
   const allSelected = enrollments.length > 0 && selectedContacts.size === enrollments.length;
 
@@ -1387,9 +1392,9 @@ function ContactsTab({ sequence, enrollments, enrollmentTotal, user, onLoadMore,
           </div>
 
           {/* Active filter badges — clear all */}
-          {(ownerFilter !== 'all' || dateFilter !== 'all') && (
+          {(contactFilter !== 'all' || ownerFilter !== 'all' || dateFilter !== 'all') && (
             <button
-              onClick={() => { setOwnerFilter('all'); setDateFilter('all'); setCustomDateFrom(''); setCustomDateTo(''); }}
+              onClick={() => { setContactFilter('all'); setOwnerFilter('all'); setDateFilter('all'); setCustomDateFrom(''); setCustomDateTo(''); }}
               className="flex items-center gap-1 px-2 py-1 text-xs text-dark-400 hover:text-white transition-colors"
             >
               <X className="w-3 h-3" />

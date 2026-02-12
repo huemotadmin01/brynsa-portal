@@ -1051,6 +1051,17 @@ function ContactsTab({ sequence, enrollments, enrollmentTotal, user, onLoadMore,
   const [contactMenuId, setContactMenuId] = useState(null);
   const searchTimeoutRef = useRef(null);
 
+  // Owner filter
+  const [ownerFilter, setOwnerFilter] = useState('all');
+  const [showOwnerFilter, setShowOwnerFilter] = useState(false);
+
+  // Date filter
+  const [dateFilter, setDateFilter] = useState('all');
+  const [showDateFilter, setShowDateFilter] = useState(false);
+  const [customDateFrom, setCustomDateFrom] = useState('');
+  const [customDateTo, setCustomDateTo] = useState('');
+  const [showCustomDatePicker, setShowCustomDatePicker] = useState(false);
+
   function handleContactSearch(value) {
     setContactSearch(value);
     if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
@@ -1072,22 +1083,68 @@ function ContactsTab({ sequence, enrollments, enrollmentTotal, user, onLoadMore,
     }));
   }
 
-  // Sort enrollments client-side
-  const sortedEnrollments = [...enrollments].sort((a, b) => {
-    const dir = sort.dir === 'asc' ? 1 : -1;
-    const key = sort.key;
-    if (key === 'enrolledAt') {
-      const da = new Date(a.enrolledAt || 0).getTime();
-      const db = new Date(b.enrolledAt || 0).getTime();
-      return (da - db) * dir;
+  // Get unique owners for the owner filter dropdown
+  const uniqueOwners = useMemo(() => {
+    const owners = new Set();
+    enrollments.forEach(e => { if (e.enrolledByName) owners.add(e.enrolledByName); });
+    return [...owners].sort();
+  }, [enrollments]);
+
+  // Date filter helpers
+  const getDateRange = (filterType) => {
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
+    if (filterType === 'today') return { from: todayStart, to: todayEnd };
+    if (filterType === 'yesterday') {
+      const yesterdayStart = new Date(todayStart.getTime() - 24 * 60 * 60 * 1000);
+      return { from: yesterdayStart, to: todayStart };
     }
-    if (key === 'leadName') return (a.leadName || '').localeCompare(b.leadName || '') * dir;
-    if (key === 'status') return (a.status || '').localeCompare(b.status || '') * dir;
-    if (key === 'sent') return ((a.emailStats?.sent || 0) - (b.emailStats?.sent || 0)) * dir;
-    if (key === 'delivered') return ((a.emailStats?.delivered || 0) - (b.emailStats?.delivered || 0)) * dir;
-    if (key === 'opened') return ((a.emailStats?.opened || 0) - (b.emailStats?.opened || 0)) * dir;
-    return 0;
-  });
+    if (filterType === 'custom' && customDateFrom) {
+      const from = new Date(customDateFrom);
+      const to = customDateTo ? new Date(new Date(customDateTo).getTime() + 24 * 60 * 60 * 1000) : new Date(from.getTime() + 24 * 60 * 60 * 1000);
+      return { from, to };
+    }
+    return null;
+  };
+
+  // Filter + sort enrollments client-side
+  const sortedEnrollments = useMemo(() => {
+    let filtered = [...enrollments];
+
+    // Owner filter
+    if (ownerFilter !== 'all') {
+      filtered = filtered.filter(e => (e.enrolledByName || '') === ownerFilter);
+    }
+
+    // Date filter
+    const range = getDateRange(dateFilter);
+    if (range) {
+      filtered = filtered.filter(e => {
+        const d = new Date(e.enrolledAt || 0);
+        return d >= range.from && d < range.to;
+      });
+    }
+
+    // Sort
+    filtered.sort((a, b) => {
+      const dir = sort.dir === 'asc' ? 1 : -1;
+      const key = sort.key;
+      if (key === 'enrolledAt') {
+        const da = new Date(a.enrolledAt || 0).getTime();
+        const db = new Date(b.enrolledAt || 0).getTime();
+        return (da - db) * dir;
+      }
+      if (key === 'leadName') return (a.leadName || '').localeCompare(b.leadName || '') * dir;
+      if (key === 'status') return (a.status || '').localeCompare(b.status || '') * dir;
+      if (key === 'sent') return ((a.emailStats?.sent || 0) - (b.emailStats?.sent || 0)) * dir;
+      if (key === 'delivered') return ((a.emailStats?.delivered || 0) - (b.emailStats?.delivered || 0)) * dir;
+      if (key === 'opened') return ((a.emailStats?.opened || 0) - (b.emailStats?.opened || 0)) * dir;
+      return 0;
+    });
+
+    return filtered;
+  }, [enrollments, ownerFilter, dateFilter, customDateFrom, customDateTo, sort]);
 
   const allSelected = enrollments.length > 0 && selectedContacts.size === enrollments.length;
 
@@ -1115,9 +1172,15 @@ function ContactsTab({ sequence, enrollments, enrollmentTotal, user, onLoadMore,
     : contactFilter === 'bounced' ? 'Bounced'
     : 'All contacts';
 
-  // Show "Owner" column when admin is viewing a sequence with multiple enrolling users
+  const dateFilterLabel = dateFilter === 'all' ? 'All dates'
+    : dateFilter === 'today' ? 'Today'
+    : dateFilter === 'yesterday' ? 'Yesterday'
+    : dateFilter === 'custom' ? (customDateFrom ? `${customDateFrom}${customDateTo ? ' → ' + customDateTo : ''}` : 'Custom')
+    : 'All dates';
+
+  // Show "Owner" column/filter when admin and multiple enrolling users exist
   const isAdmin = user?.role === 'admin';
-  const showOwner = isAdmin && enrollments.some(e => e.enrolledByName && e.enrolledByName !== user?.name);
+  const showOwner = isAdmin && uniqueOwners.length > 1;
 
   const ENGAGEMENT_COLORS = {
     Replied: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
@@ -1125,7 +1188,7 @@ function ContactsTab({ sequence, enrollments, enrollmentTotal, user, onLoadMore,
     Delivered: 'text-blue-400 bg-blue-500/10 border-blue-500/20',
   };
 
-  if (enrollments.length === 0 && !contactSearch && contactFilter === 'all') {
+  if (enrollments.length === 0 && !contactSearch && contactFilter === 'all' && ownerFilter === 'all' && dateFilter === 'all') {
     return (
       <div className="card p-12 text-center">
         <Users className="w-8 h-8 text-dark-600 mx-auto mb-2" />
@@ -1172,11 +1235,13 @@ function ContactsTab({ sequence, enrollments, enrollmentTotal, user, onLoadMore,
             </div>
           )}
 
-          {/* Filter dropdown */}
+          {/* Status filter dropdown */}
           <div className="relative">
             <button
-              onClick={() => setShowContactFilter(!showContactFilter)}
-              className="flex items-center gap-2 px-3 py-1.5 bg-dark-800 border border-dark-700 rounded-lg text-xs text-dark-300 hover:border-dark-600 transition-colors"
+              onClick={() => { setShowContactFilter(!showContactFilter); setShowOwnerFilter(false); setShowDateFilter(false); }}
+              className={`flex items-center gap-2 px-3 py-1.5 border rounded-lg text-xs hover:border-dark-600 transition-colors ${
+                contactFilter !== 'all' ? 'bg-rivvra-500/10 border-rivvra-500/30 text-rivvra-400' : 'bg-dark-800 border-dark-700 text-dark-300'
+              }`}
             >
               {contactFilterLabel}
               <ChevronDown className="w-3 h-3" />
@@ -1207,6 +1272,131 @@ function ContactsTab({ sequence, enrollments, enrollmentTotal, user, onLoadMore,
             )}
           </div>
 
+          {/* Owner filter dropdown (admin only, when multiple owners) */}
+          {showOwner && (
+            <div className="relative">
+              <button
+                onClick={() => { setShowOwnerFilter(!showOwnerFilter); setShowContactFilter(false); setShowDateFilter(false); }}
+                className={`flex items-center gap-2 px-3 py-1.5 border rounded-lg text-xs hover:border-dark-600 transition-colors ${
+                  ownerFilter !== 'all' ? 'bg-rivvra-500/10 border-rivvra-500/30 text-rivvra-400' : 'bg-dark-800 border-dark-700 text-dark-300'
+                }`}
+              >
+                {ownerFilter === 'all' ? 'All owners' : ownerFilter}
+                <ChevronDown className="w-3 h-3" />
+              </button>
+              {showOwnerFilter && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setShowOwnerFilter(false)} />
+                  <div className="absolute left-0 top-full mt-1 w-48 bg-dark-800 border border-dark-600 rounded-xl shadow-xl py-1 z-20">
+                    <button
+                      onClick={() => { setOwnerFilter('all'); setShowOwnerFilter(false); }}
+                      className={`w-full text-left px-3 py-1.5 text-xs hover:bg-dark-700 transition-colors ${
+                        ownerFilter === 'all' ? 'text-rivvra-400' : 'text-dark-300'
+                      }`}
+                    >
+                      All owners
+                    </button>
+                    {uniqueOwners.map(name => (
+                      <button
+                        key={name}
+                        onClick={() => { setOwnerFilter(name); setShowOwnerFilter(false); }}
+                        className={`w-full text-left px-3 py-1.5 text-xs hover:bg-dark-700 transition-colors ${
+                          ownerFilter === name ? 'text-rivvra-400' : 'text-dark-300'
+                        }`}
+                      >
+                        {name}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
+          {/* Date filter dropdown */}
+          <div className="relative">
+            <button
+              onClick={() => { setShowDateFilter(!showDateFilter); setShowContactFilter(false); setShowOwnerFilter(false); }}
+              className={`flex items-center gap-2 px-3 py-1.5 border rounded-lg text-xs hover:border-dark-600 transition-colors ${
+                dateFilter !== 'all' ? 'bg-rivvra-500/10 border-rivvra-500/30 text-rivvra-400' : 'bg-dark-800 border-dark-700 text-dark-300'
+              }`}
+            >
+              <Calendar className="w-3 h-3" />
+              {dateFilterLabel}
+              <ChevronDown className="w-3 h-3" />
+            </button>
+            {showDateFilter && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => { setShowDateFilter(false); setShowCustomDatePicker(false); }} />
+                <div className="absolute left-0 top-full mt-1 w-56 bg-dark-800 border border-dark-600 rounded-xl shadow-xl py-1 z-20">
+                  {[
+                    { value: 'all', label: 'All dates' },
+                    { value: 'today', label: 'Today' },
+                    { value: 'yesterday', label: 'Yesterday' },
+                  ].map(opt => (
+                    <button
+                      key={opt.value}
+                      onClick={() => { setDateFilter(opt.value); setShowDateFilter(false); setShowCustomDatePicker(false); }}
+                      className={`w-full text-left px-3 py-1.5 text-xs hover:bg-dark-700 transition-colors ${
+                        dateFilter === opt.value ? 'text-rivvra-400' : 'text-dark-300'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                  <button
+                    onClick={() => setShowCustomDatePicker(!showCustomDatePicker)}
+                    className={`w-full text-left px-3 py-1.5 text-xs hover:bg-dark-700 transition-colors ${
+                      dateFilter === 'custom' ? 'text-rivvra-400' : 'text-dark-300'
+                    }`}
+                  >
+                    Custom range...
+                  </button>
+                  {showCustomDatePicker && (
+                    <div className="px-3 py-2 border-t border-dark-700 space-y-2">
+                      <div>
+                        <label className="text-[10px] text-dark-500 block mb-0.5">From</label>
+                        <input
+                          type="date"
+                          value={customDateFrom}
+                          onChange={(e) => setCustomDateFrom(e.target.value)}
+                          className="w-full px-2 py-1 bg-dark-900 border border-dark-600 rounded text-xs text-white focus:outline-none focus:border-rivvra-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-dark-500 block mb-0.5">To</label>
+                        <input
+                          type="date"
+                          value={customDateTo}
+                          onChange={(e) => setCustomDateTo(e.target.value)}
+                          className="w-full px-2 py-1 bg-dark-900 border border-dark-600 rounded text-xs text-white focus:outline-none focus:border-rivvra-500"
+                        />
+                      </div>
+                      <button
+                        onClick={() => { setDateFilter('custom'); setShowDateFilter(false); setShowCustomDatePicker(false); }}
+                        disabled={!customDateFrom}
+                        className="w-full px-2 py-1 text-xs bg-rivvra-500 text-white rounded hover:bg-rivvra-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        Apply
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Active filter badges — clear all */}
+          {(ownerFilter !== 'all' || dateFilter !== 'all') && (
+            <button
+              onClick={() => { setOwnerFilter('all'); setDateFilter('all'); setCustomDateFrom(''); setCustomDateTo(''); }}
+              className="flex items-center gap-1 px-2 py-1 text-xs text-dark-400 hover:text-white transition-colors"
+            >
+              <X className="w-3 h-3" />
+              Clear filters
+            </button>
+          )}
+
           {/* Search */}
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-dark-500" />
@@ -1222,7 +1412,10 @@ function ContactsTab({ sequence, enrollments, enrollmentTotal, user, onLoadMore,
 
         <div className="flex items-center gap-3">
           <span className="text-xs text-dark-500">
-            {enrollments.length}-{Math.min(enrollments.length, enrollmentTotal)} of {enrollmentTotal} Contacts
+            {sortedEnrollments.length === enrollments.length
+              ? `${enrollments.length}-${Math.min(enrollments.length, enrollmentTotal)} of ${enrollmentTotal} Contacts`
+              : `${sortedEnrollments.length} of ${enrollmentTotal} Contacts (filtered)`
+            }
           </span>
         </div>
       </div>

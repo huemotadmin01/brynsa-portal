@@ -374,6 +374,11 @@ class ApiClient {
     return this.request(`/api/sequences/${sequenceId}/email-log?page=${page}&limit=${limit}`);
   }
 
+  // Lightweight poll for sequence updates (stats + latest activity timestamp)
+  async pollSequence(sequenceId) {
+    return this.request(`/api/sequences/${sequenceId}/poll`);
+  }
+
   // Sequence Schedule
   async updateSequenceSchedule(sequenceId, schedule) {
     return this.request(`/api/sequences/${sequenceId}/schedule`, {

@@ -119,16 +119,37 @@ function SequenceDetailPage({ sequenceId, onBack }) {
     loadEnrollments();
   }, [loadSequence, loadEnrollments]);
 
-  // Auto-refresh when sequence is active (poll every 10s)
+  // Smart polling: lightweight check every 5s, full reload only when data changed
+  const lastActivityRef = useRef(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const fullReload = useCallback(() => {
+    loadSequence();
+    loadEnrollments();
+    if (activeTab === 'emails') loadEmailLog();
+  }, [loadSequence, loadEnrollments, loadEmailLog, activeTab]);
+
   useEffect(() => {
     if (sequence?.status !== 'active') return;
-    const interval = setInterval(() => {
-      loadSequence();
-      loadEnrollments();
-      if (activeTab === 'emails') loadEmailLog();
-    }, 10000);
+    const interval = setInterval(async () => {
+      try {
+        const res = await api.pollSequence(sequenceId);
+        if (!res.success) return;
+        const newActivity = res.lastActivity;
+        // Update stats immediately (very cheap)
+        setSequence(prev => prev ? { ...prev, stats: res.stats } : prev);
+        // Full reload only if activity changed
+        if (newActivity && newActivity !== lastActivityRef.current) {
+          lastActivityRef.current = newActivity;
+          fullReload();
+        }
+      } catch {
+        // Fallback to full reload on error
+        fullReload();
+      }
+    }, 5000);
     return () => clearInterval(interval);
-  }, [sequence?.status, activeTab, loadSequence, loadEnrollments, loadEmailLog]);
+  }, [sequence?.status, sequenceId, fullReload]);
 
   useEffect(() => {
     if (activeTab === 'emails' && emailLog.length === 0) {
@@ -188,12 +209,18 @@ function SequenceDetailPage({ sequenceId, onBack }) {
   }
 
   async function handleMarkReplied(enrollmentId, replyType) {
+    // Optimistic update: immediately reflect in UI
+    const newStatus = replyType === 'not_interested' ? 'replied_not_interested' : 'replied';
+    setEnrollments(prev => prev.map(e =>
+      e._id === enrollmentId ? { ...e, status: newStatus } : e
+    ));
     try {
       await api.markEnrollmentReplied(sequenceId, enrollmentId, replyType);
-      loadEnrollments(1);
       loadSequence();
       showToast(replyType === 'not_interested' ? 'Marked as not interested' : 'Marked as interested');
     } catch (err) {
+      // Revert on error
+      loadEnrollments(1);
       showToast(err.message || 'Failed to update status', 'error');
     }
   }
@@ -270,18 +297,27 @@ function SequenceDetailPage({ sequenceId, onBack }) {
 
   // Bulk enrollment actions
   async function handleBulkPause(enrollmentIds) {
+    // Optimistic update
+    const idSet = new Set(Array.from(enrollmentIds));
+    setEnrollments(prev => prev.map(e =>
+      idSet.has(e._id) ? { ...e, status: 'paused' } : e
+    ));
     try {
       await api.bulkPauseEnrollments(sequenceId, Array.from(enrollmentIds));
-      loadEnrollments(1);
       loadSequence();
       showToast(`${enrollmentIds.size} enrollments paused`);
     } catch (err) {
+      loadEnrollments(1);
       showToast(err.message || 'Bulk pause failed', 'error');
     }
   }
 
   async function handleBulkRemove(enrollmentIds) {
     if (!confirm(`Remove ${enrollmentIds.size} contacts from this sequence?`)) return;
+    // Optimistic update
+    const idSet = new Set(Array.from(enrollmentIds));
+    setEnrollments(prev => prev.filter(e => !idSet.has(e._id)));
+    setEnrollmentTotal(prev => prev - enrollmentIds.size);
     try {
       await api.bulkRemoveEnrollments(sequenceId, Array.from(enrollmentIds));
       loadEnrollments(1);
@@ -378,7 +414,24 @@ function SequenceDetailPage({ sequenceId, onBack }) {
             </button>
           ))}
 
-          <div className="ml-auto pb-3">
+          <div className="ml-auto pb-3 flex items-center gap-2">
+            {(activeTab === 'contacts' || activeTab === 'emails') && (
+              <button
+                onClick={async () => {
+                  setRefreshing(true);
+                  fullReload();
+                  setTimeout(() => setRefreshing(false), 800);
+                }}
+                disabled={refreshing}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-dark-300 hover:text-white border border-dark-600 rounded-lg hover:bg-dark-700 transition-colors disabled:opacity-50"
+                title="Refresh data"
+              >
+                <svg className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                {refreshing ? 'Refreshing...' : 'Refresh'}
+              </button>
+            )}
             {activeTab === 'contacts' && (
               <button
                 onClick={() => setShowAddContacts(true)}

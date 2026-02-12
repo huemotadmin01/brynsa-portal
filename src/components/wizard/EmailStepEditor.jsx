@@ -1,21 +1,45 @@
-import { useState, useRef } from 'react';
-import { X, Send } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { X, Send, Paperclip, FileText, Loader2 } from 'lucide-react';
 import { PLACEHOLDERS } from './wizardConstants';
 import RichBodyEditor, { stripHtml } from './RichBodyEditor';
 import api from '../../utils/api';
 
-function EmailStepEditor({ step, emailNumber, onSave, onCancel, sequenceId }) {
+function formatFileSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+function EmailStepEditor({ step, emailNumber, onSave, onCancel, sequenceId, stepIndex, onAttachmentsChange }) {
   const [subject, setSubject] = useState(step.subject || '');
   const [body, setBody] = useState(step.body || '');
   const [testEmail, setTestEmail] = useState('');
   const [sendingTest, setSendingTest] = useState(false);
   const [testResult, setTestResult] = useState(null);
 
+  // Attachment state
+  const [attachments, setAttachments] = useState([]); // [{ id, filename, size }] for uploaded, [{ file, filename, size, local: true }] for local
+  const [uploading, setUploading] = useState(false);
+  const [attachError, setAttachError] = useState('');
+  const fileInputRef = useRef(null);
+
   const subjectRef = useRef(null);
   const bodyEditorRef = useRef(null);
-  const lastFocusedRef = useRef('body'); // default to body
+  const lastFocusedRef = useRef('body');
 
-  // Word and char counts (strip HTML for accurate counting)
+  // Load existing attachments if editing (sequenceId exists)
+  useEffect(() => {
+    if (sequenceId && stepIndex !== undefined) {
+      api.getStepAttachments(sequenceId, stepIndex).then(res => {
+        if (res.success) setAttachments(res.attachments);
+      }).catch(() => {});
+    }
+    // Load local attachments from step if in creation mode
+    if (!sequenceId && step._localAttachments) {
+      setAttachments(step._localAttachments);
+    }
+  }, [sequenceId, stepIndex]);
+
   const plainText = stripHtml(body);
   const wordCount = plainText.trim() ? plainText.trim().split(/\s+/).length : 0;
   const charCount = plainText.length;
@@ -24,7 +48,6 @@ function EmailStepEditor({ step, emailNumber, onSave, onCancel, sequenceId }) {
     const field = lastFocusedRef.current;
 
     if (field === 'subject') {
-      // Subject is still a plain input — use selectionStart/End
       const ref = subjectRef;
       if (ref.current) {
         const start = ref.current.selectionStart || subject.length;
@@ -40,7 +63,6 @@ function EmailStepEditor({ step, emailNumber, onSave, onCancel, sequenceId }) {
         setSubject(subject + placeholder);
       }
     } else {
-      // Body is contentEditable — use insertAtCursor via ref
       if (bodyEditorRef.current) {
         bodyEditorRef.current.insertAtCursor(placeholder);
       } else {
@@ -61,6 +83,76 @@ function EmailStepEditor({ step, emailNumber, onSave, onCancel, sequenceId }) {
     } finally {
       setSendingTest(false);
     }
+  }
+
+  async function handleFileSelect(e) {
+    const files = Array.from(e.target.files || []);
+    e.target.value = ''; // Reset so same file can be selected again
+    setAttachError('');
+
+    for (const file of files) {
+      if (attachments.length >= 5) {
+        setAttachError('Maximum 5 attachments per email');
+        break;
+      }
+      if (file.type !== 'application/pdf') {
+        setAttachError('Only PDF files are allowed');
+        continue;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        setAttachError('File too large (max 5MB)');
+        continue;
+      }
+
+      if (sequenceId && stepIndex !== undefined) {
+        // Upload immediately
+        setUploading(true);
+        try {
+          const res = await api.uploadAttachment(sequenceId, stepIndex, file);
+          if (res.success) {
+            setAttachments(prev => [...prev, res.attachment]);
+          }
+        } catch (err) {
+          setAttachError(err.message || 'Upload failed');
+        } finally {
+          setUploading(false);
+        }
+      } else {
+        // Store locally for creation mode (upload after sequence is created)
+        const localAttachment = { file, filename: file.name, size: file.size, local: true };
+        setAttachments(prev => {
+          const updated = [...prev, localAttachment];
+          if (onAttachmentsChange) onAttachmentsChange(updated);
+          return updated;
+        });
+      }
+    }
+  }
+
+  async function handleRemoveAttachment(index) {
+    const att = attachments[index];
+    if (att.id && sequenceId) {
+      // Delete from server
+      try {
+        await api.deleteAttachment(sequenceId, att.id);
+      } catch (err) {
+        console.error('Failed to delete attachment:', err);
+      }
+    }
+    setAttachments(prev => {
+      const updated = prev.filter((_, i) => i !== index);
+      if (onAttachmentsChange) onAttachmentsChange(updated);
+      return updated;
+    });
+  }
+
+  function handleSave() {
+    // Pass local attachments with the save data for creation mode
+    const saveData = { subject, body };
+    if (!sequenceId) {
+      saveData._localAttachments = attachments.filter(a => a.local);
+    }
+    onSave(saveData);
   }
 
   return (
@@ -112,6 +204,55 @@ function EmailStepEditor({ step, emailNumber, onSave, onCancel, sequenceId }) {
         />
       </div>
 
+      {/* Attachments section */}
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <label className="text-xs text-dark-400 flex items-center gap-1.5">
+            <Paperclip className="w-3 h-3" />
+            Attachments ({attachments.length}/5)
+          </label>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".pdf"
+            multiple
+            onChange={handleFileSelect}
+            className="hidden"
+          />
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={attachments.length >= 5 || uploading}
+            className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-dark-300 bg-dark-700 border border-dark-600 rounded-lg hover:bg-dark-600 hover:text-white disabled:opacity-40 transition-colors"
+          >
+            {uploading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Paperclip className="w-3 h-3" />}
+            {uploading ? 'Uploading...' : 'Attach PDF'}
+          </button>
+        </div>
+
+        {attachError && (
+          <p className="text-xs text-red-400 mb-2">{attachError}</p>
+        )}
+
+        {attachments.length > 0 && (
+          <div className="space-y-1.5">
+            {attachments.map((att, i) => (
+              <div key={att.id || att.filename + i} className="flex items-center gap-2 px-3 py-2 bg-dark-800 border border-dark-700 rounded-lg">
+                <FileText className="w-3.5 h-3.5 text-red-400 flex-shrink-0" />
+                <span className="text-xs text-dark-300 truncate flex-1">{att.filename}</span>
+                <span className="text-xs text-dark-500 flex-shrink-0">{formatFileSize(att.size)}</span>
+                {att.local && <span className="text-xs text-amber-400 flex-shrink-0">pending</span>}
+                <button
+                  onClick={() => handleRemoveAttachment(i)}
+                  className="p-0.5 text-dark-500 hover:text-red-400 transition-colors flex-shrink-0"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* Footer bar */}
       <div className="flex items-center justify-between pt-2 border-t border-dark-700">
         <div className="text-xs text-dark-500">
@@ -147,7 +288,7 @@ function EmailStepEditor({ step, emailNumber, onSave, onCancel, sequenceId }) {
 
           {/* Save */}
           <button
-            onClick={() => onSave({ subject, body })}
+            onClick={handleSave}
             className="px-5 py-1.5 bg-rivvra-500 text-dark-950 rounded-lg text-xs font-semibold hover:bg-rivvra-400 transition-colors"
           >
             Save

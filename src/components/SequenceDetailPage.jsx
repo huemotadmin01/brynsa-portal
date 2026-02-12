@@ -5,7 +5,7 @@ import {
   AlertTriangle, XCircle, ChevronDown, ChevronUp, ThumbsDown, Loader2,
   Calendar, MoreVertical, Search, Linkedin, UserPlus, Pause, Play,
   ArrowUpDown, ChevronLeft, ChevronRight, Save, Check, X, Edit3, Trash2,
-  UserMinus, Zap, Filter, Info, Plus, Share2
+  UserMinus, Zap, Filter, Info, Plus, Share2, Paperclip, FileText
 } from 'lucide-react';
 import api from '../utils/api';
 import ToggleSwitch from './ToggleSwitch';
@@ -516,6 +516,7 @@ function SequenceDetailPage({ sequenceId, onBack }) {
         <StepEditorModal
           step={showStepEditor.step}
           stepIndex={showStepEditor.stepIndex}
+          sequenceId={sequenceId}
           onSave={handleUpdateStep}
           onClose={() => setShowStepEditor(null)}
         />
@@ -546,13 +547,79 @@ function SequenceDetailPage({ sequenceId, onBack }) {
 
 // ========================== STEP EDITOR MODAL ==========================
 
-function StepEditorModal({ step, stepIndex, onSave, onClose }) {
+function formatFileSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+function StepEditorModal({ step, stepIndex, sequenceId, onSave, onClose }) {
   const [subject, setSubject] = useState(step.subject || '');
   const [body, setBody] = useState(step.body || '');
   const [days, setDays] = useState(step.days || 1);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const bodyEditorRef = useRef(null);
+
+  // Attachment state
+  const [attachments, setAttachments] = useState([]);
+  const [uploading, setUploading] = useState(false);
+  const [attachError, setAttachError] = useState('');
+  const fileInputRef = useRef(null);
+
+  // Load existing attachments
+  useEffect(() => {
+    if (sequenceId && stepIndex !== undefined && step.type === 'email') {
+      api.getStepAttachments(sequenceId, stepIndex).then(res => {
+        if (res.success) setAttachments(res.attachments);
+      }).catch(() => {});
+    }
+  }, [sequenceId, stepIndex]);
+
+  async function handleFileSelect(e) {
+    const files = Array.from(e.target.files || []);
+    e.target.value = '';
+    setAttachError('');
+
+    for (const file of files) {
+      if (attachments.length >= 5) {
+        setAttachError('Maximum 5 attachments per email');
+        break;
+      }
+      if (file.type !== 'application/pdf') {
+        setAttachError('Only PDF files are allowed');
+        continue;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        setAttachError('File too large (max 5MB)');
+        continue;
+      }
+
+      setUploading(true);
+      try {
+        const res = await api.uploadAttachment(sequenceId, stepIndex, file);
+        if (res.success) {
+          setAttachments(prev => [...prev, res.attachment]);
+        }
+      } catch (err) {
+        setAttachError(err.message || 'Upload failed');
+      } finally {
+        setUploading(false);
+      }
+    }
+  }
+
+  async function handleRemoveAttachment(index) {
+    const att = attachments[index];
+    if (att.id && sequenceId) {
+      try {
+        await api.deleteAttachment(sequenceId, att.id);
+      } catch (err) {
+        console.error('Failed to delete attachment:', err);
+      }
+    }
+    setAttachments(prev => prev.filter((_, i) => i !== index));
+  }
 
   async function handleSave() {
     setError('');
@@ -641,6 +708,56 @@ function StepEditorModal({ step, stepIndex, onSave, onClose }) {
                   ))}
                 </div>
               </div>
+
+              {/* Attachments */}
+              {sequenceId && (
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-xs text-dark-400 flex items-center gap-1.5">
+                      <Paperclip className="w-3 h-3" />
+                      Attachments ({attachments.length}/5)
+                    </label>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".pdf"
+                      multiple
+                      onChange={handleFileSelect}
+                      className="hidden"
+                    />
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={attachments.length >= 5 || uploading}
+                      className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-dark-300 bg-dark-700 border border-dark-600 rounded-lg hover:bg-dark-600 hover:text-white disabled:opacity-40 transition-colors"
+                    >
+                      {uploading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Paperclip className="w-3 h-3" />}
+                      {uploading ? 'Uploading...' : 'Attach PDF'}
+                    </button>
+                  </div>
+
+                  {attachError && (
+                    <p className="text-xs text-red-400 mb-2">{attachError}</p>
+                  )}
+
+                  {attachments.length > 0 && (
+                    <div className="space-y-1.5">
+                      {attachments.map((att, i) => (
+                        <div key={att.id || att.filename + i} className="flex items-center gap-2 px-3 py-2 bg-dark-800 border border-dark-700 rounded-lg">
+                          <FileText className="w-3.5 h-3.5 text-red-400 flex-shrink-0" />
+                          <span className="text-xs text-dark-300 truncate flex-1">{att.filename}</span>
+                          <span className="text-xs text-dark-500 flex-shrink-0">{formatFileSize(att.size)}</span>
+                          <button
+                            onClick={() => handleRemoveAttachment(i)}
+                            className="p-0.5 text-dark-500 hover:text-red-400 transition-colors flex-shrink-0"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </>
           ) : (
             <div className="flex items-center gap-3">
@@ -787,6 +904,7 @@ function OverviewTab({ sequence, sequenceId, stepStats, isOwner, onToggleStep, o
                   step={step}
                   emailNumber={emailNum}
                   sequenceId={sequenceId}
+                  stepIndex={index}
                   onSave={saveEdit}
                   onCancel={cancelEdit}
                 />
@@ -814,6 +932,11 @@ function OverviewTab({ sequence, sequenceId, stepStats, isOwner, onToggleStep, o
                     <span className="text-xs text-dark-500">Day {day}</span>
                     {placeholderCount > 0 && (
                       <span className="text-xs text-rivvra-400">{placeholderCount} placeholders</span>
+                    )}
+                    {step.attachmentCount > 0 && (
+                      <span className="flex items-center gap-1 text-xs text-dark-400">
+                        <Paperclip className="w-3 h-3" />{step.attachmentCount}
+                      </span>
                     )}
                     {/* Stats inline */}
                     {(stat.sent > 0 || stat.opened > 0) && (

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Mail, Trash2, Edit3, Plus, Clock, ChevronLeft, ChevronRight, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import { Mail, Trash2, Edit3, Plus, Clock, ChevronLeft, ChevronRight, AlertCircle, ChevronDown, ChevronUp, Paperclip } from 'lucide-react';
 import DOMPurify from 'dompurify';
 import EmailStepEditor from './EmailStepEditor';
 import { countPlaceholders, computeEmailDay } from './wizardConstants';
@@ -57,9 +57,12 @@ function ComposeStep({ steps, name, description, onStepsChange, onNameChange, on
     setEditingIndex(stepIndex);
   }
 
-  function saveEdit({ subject, body }) {
+  function saveEdit({ subject, body, _localAttachments }) {
     const newSteps = [...steps];
     newSteps[editingIndex] = { ...newSteps[editingIndex], subject, body };
+    if (_localAttachments) {
+      newSteps[editingIndex]._localAttachments = _localAttachments;
+    }
     onStepsChange(newSteps);
     setEditingIndex(null);
     setEditBackup(null);
@@ -186,6 +189,7 @@ function ComposeStep({ steps, name, description, onStepsChange, onNameChange, on
                   step={step}
                   emailNumber={emailNum}
                   sequenceId={sequenceId}
+                  stepIndex={i}
                   onSave={saveEdit}
                   onCancel={cancelEdit}
                 />
@@ -206,6 +210,11 @@ function ComposeStep({ steps, name, description, onStepsChange, onNameChange, on
                     <span className="text-xs text-dark-500">Day {day}</span>
                     {placeholderCount > 0 && (
                       <span className="text-xs text-rivvra-400">{placeholderCount} placeholders</span>
+                    )}
+                    {((step._localAttachments && step._localAttachments.length > 0) || step.attachmentCount > 0) && (
+                      <span className="flex items-center gap-1 text-xs text-dark-400">
+                        <Paperclip className="w-3 h-3" />{step._localAttachments?.length || step.attachmentCount}
+                      </span>
                     )}
                   </div>
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">

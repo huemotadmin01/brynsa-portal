@@ -107,6 +107,24 @@ function SequenceWizardPage() {
     };
   }
 
+  // Upload any pending local attachments after sequence creation
+  async function uploadPendingAttachments(newSequenceId) {
+    for (let i = 0; i < steps.length; i++) {
+      const localAtts = steps[i]._localAttachments;
+      if (localAtts && localAtts.length > 0) {
+        for (const att of localAtts) {
+          if (att.file) {
+            try {
+              await api.uploadAttachment(newSequenceId, i, att.file);
+            } catch (err) {
+              console.error('Failed to upload attachment:', err);
+            }
+          }
+        }
+      }
+    }
+  }
+
   // Save as draft (create without activating)
   async function handleSaveDraft() {
     setSaving(true);
@@ -117,7 +135,10 @@ function SequenceWizardPage() {
         await api.updateSequence(sequenceId, payload);
         showToast('Sequence updated');
       } else {
-        await api.createSequence(payload);
+        const res = await api.createSequence(payload);
+        if (res.success && res.sequence?._id) {
+          await uploadPendingAttachments(res.sequence._id);
+        }
         showToast('Sequence saved as draft');
       }
       navigate('/engage');
@@ -142,6 +163,7 @@ function SequenceWizardPage() {
       } else {
         const res = await api.createSequence(payload);
         if (res.success && res.sequence?._id) {
+          await uploadPendingAttachments(res.sequence._id);
           try { await api.resumeSequence(res.sequence._id); } catch {}
         }
         showToast('Sequence created and activated');

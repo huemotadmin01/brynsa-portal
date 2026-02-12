@@ -379,6 +379,31 @@ class ApiClient {
     return this.request(`/api/sequences/${sequenceId}/poll`);
   }
 
+  // Attachment management
+  async uploadAttachment(sequenceId, stepIndex, file) {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('stepIndex', stepIndex);
+    const url = `${this.baseUrl}/api/sequences/${sequenceId}/attachments`;
+    const token = localStorage.getItem('rivvra_token');
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData,
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Upload failed');
+    return data;
+  }
+
+  async deleteAttachment(sequenceId, attachmentId) {
+    return this.request(`/api/sequences/${sequenceId}/attachments/${attachmentId}`, { method: 'DELETE' });
+  }
+
+  async getStepAttachments(sequenceId, stepIndex) {
+    return this.request(`/api/sequences/${sequenceId}/steps/${stepIndex}/attachments`);
+  }
+
   // Sequence Schedule
   async updateSequenceSchedule(sequenceId, schedule) {
     return this.request(`/api/sequences/${sequenceId}/schedule`, {

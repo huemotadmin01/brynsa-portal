@@ -250,47 +250,45 @@ function MyListsPage() {
     }
   };
 
-  const handleDeleteLead = (e, lead) => {
-    e.stopPropagation();
+  const handleRemoveFromList = (lead) => {
     setDeleteTarget(lead);
     setShowDeleteModal(true);
   };
 
-  const handleBulkDelete = () => {
+  const handleBulkRemoveFromList = () => {
     if (selectedLeads.length === 0) return;
     setDeleteTarget(null);
     setShowDeleteModal(true);
   };
 
-  const confirmDelete = async () => {
+  const confirmRemoveFromList = async () => {
+    if (!selectedList) return;
     setDeleting(true);
     try {
       if (deleteTarget) {
-        await api.deleteLead(deleteTarget._id);
+        await api.removeLeadFromList(deleteTarget._id, selectedList);
         setLeads(leads.filter(l => l._id !== deleteTarget._id));
         setTotalLeads(prev => prev - 1);
         if (selectedLead?._id === deleteTarget._id) {
           setSelectedLead(null);
         }
-        // Update list count
         setLists(lists.map(l =>
           l.name === selectedList ? { ...l, count: Math.max(0, (l.count || 0) - 1) } : l
         ));
       } else {
-        await Promise.all(selectedLeads.map(id => api.deleteLead(id)));
+        await Promise.all(selectedLeads.map(id => api.removeLeadFromList(id, selectedList)));
         setLeads(leads.filter(l => !selectedLeads.includes(l._id)));
         setTotalLeads(prev => prev - selectedLeads.length);
         if (selectedLead && selectedLeads.includes(selectedLead._id)) {
           setSelectedLead(null);
         }
-        // Update list count
         setLists(lists.map(l =>
           l.name === selectedList ? { ...l, count: Math.max(0, (l.count || 0) - selectedLeads.length) } : l
         ));
         setSelectedLeads([]);
       }
     } catch (err) {
-      console.error('Failed to delete:', err);
+      console.error('Failed to remove from list:', err);
     } finally {
       setDeleting(false);
       setShowDeleteModal(false);
@@ -442,11 +440,11 @@ function MyListsPage() {
                 <div className="flex items-center gap-3">
                   {selectedLeads.length > 0 && (
                     <button
-                      onClick={handleBulkDelete}
+                      onClick={handleBulkRemoveFromList}
                       className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors"
                     >
                       <Trash2 className="w-4 h-4" />
-                      Delete ({selectedLeads.length})
+                      Remove ({selectedLeads.length})
                     </button>
                   )}
                   <button
@@ -698,10 +696,7 @@ function MyListsPage() {
                                     setShowEditContact(true);
                                   }}
                                   onTagContact={() => handleFeatureClick('Tag Contact')}
-                                  onRemoveContact={() => {
-                                    setDeleteTarget(lead);
-                                    setShowDeleteModal(true);
-                                  }}
+                                  onRemoveContact={() => handleRemoveFromList(lead)}
                                   removeLabel="Remove from list"
                                 />
                               </td>
@@ -837,7 +832,7 @@ function MyListsPage() {
         />
       )}
 
-      {/* Delete Confirmation Modal */}
+      {/* Remove from List Confirmation Modal */}
       {showDeleteModal && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
           <div
@@ -847,21 +842,21 @@ function MyListsPage() {
 
           <div className="relative bg-dark-900 border border-dark-700 rounded-2xl p-6 max-w-md w-full shadow-2xl">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 rounded-xl bg-red-500/10 flex items-center justify-center">
-                <AlertTriangle className="w-6 h-6 text-red-400" />
+              <div className="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center">
+                <AlertTriangle className="w-6 h-6 text-amber-400" />
               </div>
               <div>
                 <h2 className="text-xl font-bold text-white">
-                  {deleteTarget ? 'Delete Contact' : `Delete ${selectedLeads.length} Contacts`}
+                  Remove from List
                 </h2>
-                <p className="text-dark-400 text-sm">This action cannot be undone</p>
+                <p className="text-dark-400 text-sm">Contact will remain in My Contacts</p>
               </div>
             </div>
 
             <p className="text-dark-300 mb-6">
               {deleteTarget
-                ? `Are you sure you want to delete "${deleteTarget.name}"?`
-                : `Are you sure you want to delete ${selectedLeads.length} selected contacts?`
+                ? `Remove "${deleteTarget.name}" from "${selectedList}"?`
+                : `Remove ${selectedLeads.length} selected contacts from "${selectedList}"?`
               }
             </p>
 
@@ -874,17 +869,14 @@ function MyListsPage() {
                 Cancel
               </button>
               <button
-                onClick={confirmDelete}
+                onClick={confirmRemoveFromList}
                 disabled={deleting}
-                className="flex-1 px-4 py-2.5 rounded-xl bg-red-500 text-white font-semibold hover:bg-red-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                className="flex-1 px-4 py-2.5 rounded-xl bg-amber-500 text-dark-950 font-semibold hover:bg-amber-400 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {deleting ? (
                   <RefreshCw className="w-4 h-4 animate-spin" />
                 ) : (
-                  <>
-                    <Trash2 className="w-4 h-4" />
-                    Delete
-                  </>
+                  'Remove'
                 )}
               </button>
             </div>

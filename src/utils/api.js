@@ -210,6 +210,12 @@ class ApiClient {
     });
   }
 
+  async removeLeadFromList(leadId, listName) {
+    return this.request(`/api/portal/leads/${leadId}/lists/${encodeURIComponent(listName)}`, {
+      method: 'DELETE',
+    });
+  }
+
   // CRM endpoints
   async exportToOdoo({ leadData, userEmail, linkedinUrl, profileType, extractedSkill }) {
     return this.request('/api/crm/export-odoo', {

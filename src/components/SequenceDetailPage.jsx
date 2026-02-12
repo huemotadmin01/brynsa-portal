@@ -43,6 +43,7 @@ const PLACEHOLDERS = [
   { label: '{{company}}', desc: 'Company name' },
   { label: '{{title}}', desc: 'Job title' },
   { label: '{{senderName}}', desc: 'Your name' },
+  { label: '{{senderTitle}}', desc: 'Your title' },
 ];
 
 function SequenceDetailPage({ sequenceId, onBack }) {

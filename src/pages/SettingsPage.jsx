@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
   User, Shield, Bell, CreditCard,
   Trash2, AlertTriangle, Loader2, X, LogOut,
-  Mail, Building2, Crown, Briefcase, Check
+  Mail, Building2, Crown, Briefcase, Check, Search
 } from 'lucide-react';
 import Layout from '../components/Layout';
 import api from '../utils/api';
@@ -38,6 +38,74 @@ function SettingsPage() {
     }
   };
   
+  // Editable company field (lookup / autocomplete)
+  const [companyName, setCompanyName] = useState(user?.onboarding?.companyName || '');
+  const [companySuggestions, setCompanySuggestions] = useState([]);
+  const [showCompanySuggestions, setShowCompanySuggestions] = useState(false);
+  const [searchingCompanies, setSearchingCompanies] = useState(false);
+  const [savingCompany, setSavingCompany] = useState(false);
+  const [companySaved, setCompanySaved] = useState(false);
+  const companyRef = useRef(null);
+
+  const handleCompanySearch = async (value) => {
+    setCompanyName(value);
+    setCompanySaved(false);
+    if (value.length < 2) {
+      setCompanySuggestions([]);
+      setShowCompanySuggestions(false);
+      return;
+    }
+    setSearchingCompanies(true);
+    try {
+      const res = await api.searchCompanies(value);
+      if (res.success && res.companies.length > 0) {
+        setCompanySuggestions(res.companies);
+        setShowCompanySuggestions(true);
+      } else {
+        setCompanySuggestions([]);
+        setShowCompanySuggestions(false);
+      }
+    } catch (err) {
+      setCompanySuggestions([]);
+    } finally {
+      setSearchingCompanies(false);
+    }
+  };
+
+  const selectCompany = (company) => {
+    setCompanyName(company.name);
+    setShowCompanySuggestions(false);
+    setCompanySuggestions([]);
+  };
+
+  const handleSaveCompany = async () => {
+    if (!companyName.trim()) return;
+    setSavingCompany(true);
+    try {
+      const res = await api.updateProfile({ companyName: companyName.trim() });
+      if (res.success) {
+        updateUser({ onboarding: { ...user?.onboarding, companyName: companyName.trim() } });
+        setCompanySaved(true);
+        setTimeout(() => setCompanySaved(false), 2000);
+      }
+    } catch (err) {
+      setMessage({ type: 'error', text: 'Failed to save company' });
+    } finally {
+      setSavingCompany(false);
+    }
+  };
+
+  // Close company suggestions on outside click
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (companyRef.current && !companyRef.current.contains(e.target)) {
+        setShowCompanySuggestions(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   // Delete account state
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
@@ -157,11 +225,57 @@ function SettingsPage() {
                       </div>
                     </div>
 
-                    <div>
+                    <div ref={companyRef}>
                       <label className="block text-sm font-medium text-dark-400 mb-2">Company</label>
-                      <div className="flex items-center gap-3 px-4 py-3 bg-dark-800/50 border border-dark-700 rounded-xl">
-                        <Building2 className="w-5 h-5 text-dark-500" />
-                        <span className="text-white">{user?.onboarding?.companyName || '-'}</span>
+                      <div className="flex items-center gap-2">
+                        <div className="relative flex-1">
+                          <div className="flex items-center gap-3 px-4 py-3 bg-dark-800/50 border border-dark-700 rounded-xl">
+                            <Building2 className="w-5 h-5 text-dark-500 flex-shrink-0" />
+                            <input
+                              type="text"
+                              value={companyName}
+                              onChange={(e) => handleCompanySearch(e.target.value)}
+                              onFocus={() => { if (companySuggestions.length > 0) setShowCompanySuggestions(true); }}
+                              placeholder="Search or enter company name"
+                              className="bg-transparent text-white w-full outline-none placeholder:text-dark-600"
+                              autoComplete="off"
+                            />
+                            {searchingCompanies && <Loader2 className="w-4 h-4 text-dark-500 animate-spin flex-shrink-0" />}
+                          </div>
+                          {/* Autocomplete dropdown */}
+                          {showCompanySuggestions && companySuggestions.length > 0 && (
+                            <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-dark-800 border border-dark-600 rounded-xl shadow-xl max-h-48 overflow-y-auto">
+                              {companySuggestions.map((c) => (
+                                <button
+                                  key={c._id}
+                                  onClick={() => selectCompany(c)}
+                                  className="w-full px-4 py-2.5 text-left hover:bg-dark-700 transition-colors flex items-center gap-3 first:rounded-t-xl last:rounded-b-xl"
+                                >
+                                  {c.logo ? (
+                                    <img src={c.logo} alt="" className="w-6 h-6 rounded object-contain bg-white/10" />
+                                  ) : (
+                                    <Building2 className="w-5 h-5 text-dark-500" />
+                                  )}
+                                  <div className="min-w-0">
+                                    <p className="text-sm text-white truncate">{c.name}</p>
+                                    {(c.domain || c.industry) && (
+                                      <p className="text-xs text-dark-500 truncate">
+                                        {[c.domain, c.industry].filter(Boolean).join(' · ')}
+                                      </p>
+                                    )}
+                                  </div>
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                        <button
+                          onClick={handleSaveCompany}
+                          disabled={savingCompany || !companyName.trim() || companyName.trim() === (user?.onboarding?.companyName || '')}
+                          className="px-4 py-3 bg-rivvra-500 text-dark-950 rounded-xl hover:bg-rivvra-400 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5 text-sm font-medium"
+                        >
+                          {savingCompany ? <Loader2 className="w-4 h-4 animate-spin" /> : companySaved ? <Check className="w-4 h-4" /> : 'Save'}
+                        </button>
                       </div>
                     </div>
 

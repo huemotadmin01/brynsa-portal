@@ -531,6 +531,26 @@ class ApiClient {
       method: 'POST',
     });
   }
+
+  // Team management
+  async getTeamMembers() {
+    return this.request('/api/team/members');
+  }
+
+  async updateMemberRole(userId, role) {
+    return this.request(`/api/team/members/${userId}/role`, {
+      method: 'PUT',
+      body: JSON.stringify({ role }),
+    });
+  }
+
+  // Rename default list (admin only)
+  async renameDefaultList(listId, newName) {
+    return this.request(`/api/lists/${listId}/rename`, {
+      method: 'PUT',
+      body: JSON.stringify({ name: newName }),
+    });
+  }
 }
 
 export const api = new ApiClient();

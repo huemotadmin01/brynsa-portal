@@ -6,7 +6,7 @@ import {
   Trash2, Plus, Search, List, FolderOpen,
   Copy, RefreshCw, Building2, MapPin, Mail,
   MessageSquare, ArrowUpDown, StickyNote, AlertTriangle,
-  Filter, Download, Lock
+  Filter, Download, Lock, Edit3, Check, X, Loader2
 } from 'lucide-react';
 import Layout from '../components/Layout';
 import LeadDetailPanel from '../components/LeadDetailPanel';
@@ -55,6 +55,9 @@ function MyListsPage() {
   const [showEditContact, setShowEditContact] = useState(false);
   const [editContactTarget, setEditContactTarget] = useState(null);
   const [showFilters, setShowFilters] = useState(false);
+  const [renamingList, setRenamingList] = useState(null); // { id, name }
+  const [renameValue, setRenameValue] = useState('');
+  const [renaming, setRenaming] = useState(false);
   const [setupComplete, setSetupComplete] = useState(null);
   const [profileTypeFilter, setProfileTypeFilter] = useState('all');
   const [outreachStatusFilter, setOutreachStatusFilter] = useState('all');
@@ -236,6 +239,29 @@ function MyListsPage() {
     }
   };
 
+  const handleRenameList = async () => {
+    if (!renamingList || !renameValue.trim()) return;
+    setRenaming(true);
+    try {
+      const res = await api.renameDefaultList(renamingList.id, renameValue.trim());
+      if (res.success) {
+        setLists(prev => prev.map(l =>
+          l._id === renamingList.id ? { ...l, name: renameValue.trim() } : l
+        ));
+        if (selectedList === renamingList.name) {
+          setSelectedList(renameValue.trim());
+        }
+        showToast('List renamed successfully');
+      }
+    } catch (err) {
+      showToast(err.message || 'Failed to rename list', 'error');
+    } finally {
+      setRenaming(false);
+      setRenamingList(null);
+      setRenameValue('');
+    }
+  };
+
   const handleFeatureClick = (feature) => {
     if (!isPro) {
       setComingSoonFeature(feature);
@@ -393,14 +419,23 @@ function MyListsPage() {
                   }`}
                   onClick={() => { setSelectedList(list.name); setPage(1); }}
                 >
-                  <div className="flex items-center gap-2">
-                    <List className="w-4 h-4" />
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <List className="w-4 h-4 flex-shrink-0" />
                     <span className="text-sm font-medium truncate max-w-[120px]">{list.name}</span>
-                    {list.isDefault && (
+                    {list.isDefault && user?.role !== 'admin' && (
                       <Lock className="w-3 h-3 text-dark-600 flex-shrink-0" title="Default list" />
                     )}
+                    {list.isDefault && user?.role === 'admin' && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setRenamingList({ id: list._id, name: list.name }); setRenameValue(list.name); }}
+                        className="p-0.5 text-dark-500 hover:text-rivvra-400 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                        title="Rename default list"
+                      >
+                        <Edit3 className="w-3 h-3" />
+                      </button>
+                    )}
                   </div>
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1 flex-shrink-0">
                     <span className="text-xs text-dark-500">{list.count || 0}</span>
                     {!list.isDefault && (
                       <button
@@ -973,6 +1008,40 @@ function MyListsPage() {
         }}
         onLeadUpdate={handleLeadUpdate}
       />
+
+      {/* Rename Default List Modal (Admin only) */}
+      {renamingList && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-dark-950/80 backdrop-blur-sm" onClick={() => { setRenamingList(null); setRenameValue(''); }} />
+          <div className="relative bg-dark-900 border border-dark-700 rounded-2xl p-6 max-w-sm w-full shadow-2xl">
+            <button onClick={() => { setRenamingList(null); setRenameValue(''); }} className="absolute top-4 right-4 p-1 text-dark-400 hover:text-white">
+              <X className="w-5 h-5" />
+            </button>
+            <h3 className="text-lg font-semibold text-white mb-4">Rename Default List</h3>
+            <p className="text-dark-400 text-sm mb-3">Current name: <span className="text-dark-300">{renamingList.name}</span></p>
+            <input
+              type="text"
+              defaultValue={renamingList.name}
+              onChange={(e) => setRenameValue(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleRenameList(); }}
+              autoFocus
+              placeholder="New list name"
+              className="w-full px-3 py-2 bg-dark-800 border border-dark-600 rounded-lg text-white text-sm placeholder-dark-500 focus:outline-none focus:border-rivvra-500 mb-4"
+            />
+            <div className="flex items-center justify-end gap-3">
+              <button onClick={() => { setRenamingList(null); setRenameValue(''); }} className="px-4 py-2 text-dark-400 text-sm hover:text-white">Cancel</button>
+              <button
+                onClick={handleRenameList}
+                disabled={renaming || !renameValue.trim() || renameValue.trim() === renamingList.name}
+                className="px-4 py-2 bg-rivvra-500 text-dark-950 rounded-lg text-sm font-semibold hover:bg-rivvra-400 disabled:opacity-50 flex items-center gap-2"
+              >
+                {renaming ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                Rename
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 }

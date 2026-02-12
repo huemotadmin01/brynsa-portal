@@ -2,9 +2,9 @@ import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
-  User, Shield, Bell, CreditCard,
+  User, Shield, Bell, CreditCard, Users,
   Trash2, AlertTriangle, Loader2, X, LogOut,
-  Mail, Building2, Crown, Briefcase, Check, Search
+  Mail, Building2, Crown, Briefcase, Check, Search, ChevronDown
 } from 'lucide-react';
 import Layout from '../components/Layout';
 import api from '../utils/api';
@@ -145,8 +145,10 @@ function SettingsPage() {
     setShowComingSoon(true);
   };
 
+  const isAdmin = user?.role === 'admin';
   const tabs = [
     { id: 'profile', label: 'Profile', icon: User },
+    ...(isAdmin ? [{ id: 'team', label: 'Team', icon: Users }] : []),
     { id: 'notifications', label: 'Notifications', icon: Bell, comingSoon: true },
     { id: 'billing', label: 'Billing', icon: CreditCard, comingSoon: true },
     { id: 'security', label: 'Security', icon: Shield },
@@ -384,6 +386,11 @@ function SettingsPage() {
                 </div>
               </div>
             )}
+
+            {/* Team Tab (Admin only) */}
+            {activeTab === 'team' && isAdmin && (
+              <TeamManagement user={user} />
+            )}
           </div>
         </div>
       </div>
@@ -477,6 +484,170 @@ function SettingsPage() {
         feature={comingSoonFeature}
       />
     </Layout>
+  );
+}
+
+// ========================== TEAM MANAGEMENT ==========================
+
+function TeamManagement({ user }) {
+  const [members, setMembers] = useState([]);
+  const [companyName, setCompanyName] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [updatingRole, setUpdatingRole] = useState(null);
+  const [openDropdown, setOpenDropdown] = useState(null);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    loadTeam();
+  }, []);
+
+  async function loadTeam() {
+    try {
+      const res = await api.getTeamMembers();
+      if (res.success) {
+        setMembers(res.members);
+        setCompanyName(res.companyName || '');
+      }
+    } catch (err) {
+      setError(err.message || 'Failed to load team');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleRoleChange(memberId, newRole) {
+    setUpdatingRole(memberId);
+    setOpenDropdown(null);
+    try {
+      const res = await api.updateMemberRole(memberId, newRole);
+      if (res.success) {
+        setMembers(prev => prev.map(m =>
+          m.id === memberId ? { ...m, role: newRole } : m
+        ));
+      }
+    } catch (err) {
+      setError(err.message || 'Failed to update role');
+      setTimeout(() => setError(''), 3000);
+    } finally {
+      setUpdatingRole(null);
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-48">
+        <Loader2 className="w-6 h-6 text-rivvra-500 animate-spin" />
+      </div>
+    );
+  }
+
+  const adminCount = members.filter(m => m.role === 'admin').length;
+
+  return (
+    <div className="space-y-6">
+      <div className="card p-6">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h2 className="text-lg font-semibold text-white">Team Members</h2>
+            <p className="text-dark-400 text-sm mt-1">
+              {companyName && <span className="text-dark-300">{companyName}</span>}
+              {companyName && ' · '}{members.length} member{members.length !== 1 ? 's' : ''}
+            </p>
+          </div>
+        </div>
+
+        {error && (
+          <div className="mb-4 px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm">
+            {error}
+          </div>
+        )}
+
+        <div className="space-y-2">
+          {members.map((member) => {
+            const isCurrentUser = member.id === user?.id;
+            const isOnlyAdmin = member.role === 'admin' && adminCount <= 1;
+
+            return (
+              <div
+                key={member.id}
+                className={`flex items-center gap-4 px-4 py-3 rounded-xl transition-colors ${
+                  isCurrentUser ? 'bg-rivvra-500/5 border border-rivvra-500/20' : 'bg-dark-800/40 border border-dark-700/50'
+                }`}
+              >
+                {/* Avatar */}
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-dark-600 to-dark-700 flex items-center justify-center flex-shrink-0">
+                  <span className="text-sm font-bold text-dark-300">
+                    {member.name?.charAt(0)?.toUpperCase() || member.email?.charAt(0)?.toUpperCase() || '?'}
+                  </span>
+                </div>
+
+                {/* Info */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-white truncate">{member.name || 'Unnamed'}</span>
+                    {isCurrentUser && (
+                      <span className="text-[10px] text-rivvra-400 bg-rivvra-500/10 px-1.5 py-0.5 rounded font-medium">You</span>
+                    )}
+                  </div>
+                  <p className="text-xs text-dark-400 truncate">{member.email}</p>
+                  {member.senderTitle && (
+                    <p className="text-xs text-dark-500 truncate">{member.senderTitle}</p>
+                  )}
+                </div>
+
+                {/* Role badge / dropdown */}
+                <div className="relative flex-shrink-0">
+                  {updatingRole === member.id ? (
+                    <Loader2 className="w-4 h-4 text-rivvra-500 animate-spin" />
+                  ) : (
+                    <button
+                      onClick={() => setOpenDropdown(openDropdown === member.id ? null : member.id)}
+                      disabled={isOnlyAdmin && isCurrentUser}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                        member.role === 'admin'
+                          ? 'bg-rivvra-500/10 text-rivvra-400 border border-rivvra-500/20'
+                          : 'bg-dark-700/50 text-dark-300 border border-dark-600'
+                      } ${isOnlyAdmin && isCurrentUser ? 'opacity-50 cursor-not-allowed' : 'hover:bg-dark-600 cursor-pointer'}`}
+                    >
+                      {member.role === 'admin' ? 'Admin' : 'Member'}
+                      {!(isOnlyAdmin && isCurrentUser) && <ChevronDown className="w-3 h-3" />}
+                    </button>
+                  )}
+
+                  {/* Dropdown */}
+                  {openDropdown === member.id && (
+                    <>
+                      <div className="fixed inset-0 z-40" onClick={() => setOpenDropdown(null)} />
+                      <div className="absolute right-0 top-full mt-1 z-50 bg-dark-800 border border-dark-600 rounded-xl shadow-2xl py-1 min-w-[140px]">
+                        <button
+                          onClick={() => handleRoleChange(member.id, 'admin')}
+                          className={`w-full px-4 py-2 text-left text-xs hover:bg-dark-700 transition-colors flex items-center gap-2 ${
+                            member.role === 'admin' ? 'text-rivvra-400' : 'text-dark-300'
+                          }`}
+                        >
+                          {member.role === 'admin' && <Check className="w-3 h-3" />}
+                          <span className={member.role === 'admin' ? '' : 'ml-5'}>Admin</span>
+                        </button>
+                        <button
+                          onClick={() => handleRoleChange(member.id, 'member')}
+                          disabled={isOnlyAdmin && member.role === 'admin'}
+                          className={`w-full px-4 py-2 text-left text-xs hover:bg-dark-700 transition-colors flex items-center gap-2 ${
+                            member.role === 'member' ? 'text-rivvra-400' : 'text-dark-300'
+                          } ${isOnlyAdmin && member.role === 'admin' ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        >
+                          {member.role === 'member' && <Check className="w-3 h-3" />}
+                          <span className={member.role === 'member' ? '' : 'ml-5'}>Member</span>
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
   );
 }
 

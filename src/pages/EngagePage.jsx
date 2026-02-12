@@ -733,7 +733,7 @@ function SequencesTab({
                                   <Copy className="w-3.5 h-3.5" />
                                   Duplicate
                                 </button>
-                                {seq.isOwner !== false && user?.companyId && (
+                                {(seq.isOwner !== false || user?.role === 'admin') && user?.companyId && (
                                   <button
                                     onClick={() => onShare(seq._id)}
                                     className="w-full flex items-center gap-2 px-4 py-2 text-sm text-blue-400 hover:bg-dark-700 transition-colors"

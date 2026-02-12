@@ -1174,6 +1174,8 @@ function ContactsTab({ sequence, enrollments, enrollmentTotal, user, onLoadMore,
     : contactFilter === 'active' ? 'Active'
     : contactFilter === 'completed' ? 'Completed'
     : contactFilter === 'replied' ? 'Interested'
+    : contactFilter === 'replied_not_interested' ? 'Not Interested'
+    : contactFilter === 'paused' ? 'Paused'
     : contactFilter === 'bounced' ? 'Bounced'
     : 'All contacts';
 
@@ -1260,6 +1262,8 @@ function ContactsTab({ sequence, enrollments, enrollmentTotal, user, onLoadMore,
                     { value: 'active', label: 'Active' },
                     { value: 'completed', label: 'Completed' },
                     { value: 'replied', label: 'Interested' },
+                    { value: 'replied_not_interested', label: 'Not Interested' },
+                    { value: 'paused', label: 'Paused' },
                     { value: 'bounced', label: 'Bounced' },
                   ].map(opt => (
                     <button

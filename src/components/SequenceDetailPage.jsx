@@ -1046,7 +1046,7 @@ function ContactsTab({ sequence, enrollments, enrollmentTotal, onLoadMore, onRem
   const [contactFilter, setContactFilter] = useState('all');
   const [showContactFilter, setShowContactFilter] = useState(false);
   const [selectedContacts, setSelectedContacts] = useState(new Set());
-  const [sort, setSort] = useState({ key: 'leadName', dir: 'asc' });
+  const [sort, setSort] = useState({ key: 'enrolledAt', dir: 'desc' });
   const [contactMenuId, setContactMenuId] = useState(null);
   const searchTimeoutRef = useRef(null);
 
@@ -1075,6 +1075,11 @@ function ContactsTab({ sequence, enrollments, enrollmentTotal, onLoadMore, onRem
   const sortedEnrollments = [...enrollments].sort((a, b) => {
     const dir = sort.dir === 'asc' ? 1 : -1;
     const key = sort.key;
+    if (key === 'enrolledAt') {
+      const da = new Date(a.enrolledAt || 0).getTime();
+      const db = new Date(b.enrolledAt || 0).getTime();
+      return (da - db) * dir;
+    }
     if (key === 'leadName') return (a.leadName || '').localeCompare(b.leadName || '') * dir;
     if (key === 'status') return (a.status || '').localeCompare(b.status || '') * dir;
     if (key === 'sent') return ((a.emailStats?.sent || 0) - (b.emailStats?.sent || 0)) * dir;

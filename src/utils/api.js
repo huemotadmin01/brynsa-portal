@@ -483,6 +483,18 @@ class ApiClient {
       method: 'DELETE',
     });
   }
+
+  // Setup status (for engage setup guide)
+  async getSetupStatus() {
+    return this.request('/api/user/setup-status');
+  }
+
+  // Ensure default lists exist for user
+  async ensureDefaultLists() {
+    return this.request('/api/lists/ensure-defaults', {
+      method: 'POST',
+    });
+  }
 }
 
 export const api = new ApiClient();

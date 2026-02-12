@@ -5,8 +5,16 @@ import {
   User, Clock, Tag, RefreshCw
 } from 'lucide-react';
 import api from '../utils/api';
+import { useToast } from '../context/ToastContext';
+
+const STATUS_LIST_LABELS = {
+  'replied': 'Hot Leads',
+  'replied_not_interested': 'Not Interested',
+  'no_response': 'No Response'
+};
 
 function LeadDetailPanel({ lead, onClose, onUpdate }) {
+  const { showToast } = useToast();
   const [newNote, setNewNote] = useState('');
   const [addingNote, setAddingNote] = useState(false);
   const [savingNotes, setSavingNotes] = useState(false);
@@ -124,10 +132,26 @@ function LeadDetailPanel({ lead, onClose, onUpdate }) {
     setOutreachStatus(newStatus);
     try {
       setSavingOutreachStatus(true);
-      await api.updateLead(lead._id, { outreachStatus: newStatus });
+      const res = await api.updateLead(lead._id, { outreachStatus: newStatus });
       console.log('Outreach status saved to API successfully');
+
+      // Show toast if contact was auto-added to a list
+      const listName = STATUS_LIST_LABELS[newStatus];
+      if (listName && res.autoAddedToList) {
+        showToast(`Contact added to "${res.autoAddedToList}" list`);
+      }
+
+      // Update lead with new status and updated lists
+      const updatedLead = { ...lead, outreachStatus: newStatus };
+      if (res.autoAddedToList) {
+        const currentLists = lead.lists || [];
+        if (!currentLists.includes(res.autoAddedToList)) {
+          updatedLead.lists = [...currentLists, res.autoAddedToList];
+        }
+      }
+
       if (onUpdate) {
-        onUpdate({ ...lead, outreachStatus: newStatus });
+        onUpdate(updatedLead);
       }
     } catch (err) {
       console.error('Failed to save outreach status:', err);

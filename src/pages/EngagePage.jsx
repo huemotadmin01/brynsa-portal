@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import SequenceDetailPage from '../components/SequenceDetailPage';
 import EngageSettings from '../components/EngageSettings';
+import EngageSetupGuide from '../components/EngageSetupGuide';
 import ToggleSwitch from '../components/ToggleSwitch';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -33,6 +34,7 @@ import {
   ArrowUpDown,
   Share2,
   Users,
+  ShieldAlert,
 } from 'lucide-react';
 
 function EngagePage() {
@@ -48,6 +50,10 @@ function EngagePage() {
   // Gmail connection state
   const [gmailStatus, setGmailStatus] = useState({ connected: false, email: null });
   const [gmailLoading, setGmailLoading] = useState(true);
+
+  // Setup status (for guide)
+  const [setupStatus, setSetupStatus] = useState(null);
+  const [setupLoading, setSetupLoading] = useState(true);
 
   // Email stats
   const [emailsSentToday, setEmailsSentToday] = useState({ sent: 0, limit: 50 });
@@ -67,6 +73,7 @@ function EngagePage() {
     loadGmailStatus();
     loadEmailsSentToday();
     loadSequences();
+    loadSetupStatus();
 
     // Handle redirect-back from Gmail OAuth (when popup was blocked)
     const hash = window.location.hash; // e.g. #/engage?gmail_code=xxx
@@ -84,6 +91,7 @@ function EngagePage() {
             if (connectRes.success) {
               setGmailStatus({ connected: true, email: connectRes.gmailEmail });
               setGmailLoading(false);
+              loadSetupStatus();
             }
           } catch (err) {
             console.error('Gmail connect from redirect error:', err);
@@ -101,6 +109,24 @@ function EngagePage() {
       console.error('Gmail status error:', err);
     } finally {
       setGmailLoading(false);
+    }
+  }
+
+  async function loadSetupStatus() {
+    try {
+      const res = await api.getSetupStatus();
+      if (res.success) {
+        setSetupStatus(res);
+      } else {
+        // API returned but not successful — fallback to incomplete
+        setSetupStatus({ gmailConnected: false, profileComplete: false, allComplete: false, missingFields: ['senderTitle', 'companyName'] });
+      }
+    } catch (err) {
+      console.error('Setup status error:', err);
+      // If endpoint not available yet, fallback to incomplete so guide still shows
+      setSetupStatus({ gmailConnected: false, profileComplete: false, allComplete: false, missingFields: ['senderTitle', 'companyName'] });
+    } finally {
+      setSetupLoading(false);
     }
   }
 
@@ -140,6 +166,7 @@ function EngagePage() {
           const connectRes = await api.connectGmail(event.data.code);
           if (connectRes.success) {
             setGmailStatus({ connected: true, email: connectRes.gmailEmail });
+            loadSetupStatus(); // Refresh setup status after connecting
           }
         }
         if (event.data?.type === 'gmail-oauth-error') {
@@ -157,6 +184,7 @@ function EngagePage() {
       const res = await api.disconnectGmail();
       if (res.success) {
         setGmailStatus({ connected: false, email: null });
+        loadSetupStatus(); // Refresh setup status
       }
     } catch (err) {
       console.error('Disconnect Gmail error:', err);
@@ -203,6 +231,12 @@ function EngagePage() {
   }
 
   async function handleToggleSequence(id, currentStatus) {
+    // Block activation if setup is not complete
+    if (currentStatus !== 'active' && setupStatus && !setupStatus.allComplete) {
+      showToast('Complete the setup guide above to activate sequences', 'error');
+      return;
+    }
+
     if (currentStatus !== 'active') {
       // Activating — show confirmation
       const seq = sequences.find(s => s._id === id);
@@ -231,6 +265,15 @@ function EngagePage() {
     }
   }
 
+  function handleNewSequence() {
+    // Block creation if setup is not complete
+    if (setupStatus && !setupStatus.allComplete) {
+      showToast('Complete the setup guide to create sequences', 'error');
+      return;
+    }
+    navigate('/engage/new-sequence');
+  }
+
   function handleOpenDetail(seq) {
     setSelectedSequenceId(seq._id);
     setView('detail');
@@ -250,6 +293,9 @@ function EngagePage() {
     return matchesSearch && matchesFilter;
   });
 
+  // Whether to show the setup guide (hide gmail banners when guide is visible)
+  const showSetupGuide = !setupLoading && setupStatus && !setupStatus.allComplete;
+
   // Detail view
   if (view === 'detail' && selectedSequenceId) {
     return (
@@ -267,8 +313,21 @@ function EngagePage() {
   return (
     <Layout>
       <div className="p-6 lg:p-8 max-w-7xl mx-auto">
-        {/* Gmail Connection Banner - Never connected */}
-        {!gmailLoading && !gmailStatus.connected && !gmailStatus.wasConnected && (
+        {/* Setup Guide (replaces gmail banners when active) */}
+        {showSetupGuide && (
+          <EngageSetupGuide
+            setupStatus={setupStatus}
+            onConnectGmail={handleConnectGmail}
+            onSetupComplete={() => {
+              loadSetupStatus();
+              loadGmailStatus();
+            }}
+            onRefresh={loadSetupStatus}
+          />
+        )}
+
+        {/* Gmail Connection Banner - Only show when setup is complete */}
+        {!showSetupGuide && !gmailLoading && !gmailStatus.connected && !gmailStatus.wasConnected && (
           <div className="flex items-center gap-3 px-4 py-3 mb-6 bg-rivvra-500/5 border border-rivvra-500/20 rounded-xl">
             <Mail className="w-5 h-5 text-rivvra-400 flex-shrink-0" />
             <div className="flex-1">
@@ -285,7 +344,7 @@ function EngagePage() {
         )}
 
         {/* Gmail Connection Banner - Was connected, now disconnected */}
-        {!gmailLoading && !gmailStatus.connected && gmailStatus.wasConnected && (
+        {!showSetupGuide && !gmailLoading && !gmailStatus.connected && gmailStatus.wasConnected && (
           <div className="flex items-center gap-3 px-4 py-3 mb-6 bg-red-500/10 border border-red-500/20 rounded-xl">
             <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
             <div className="flex-1">
@@ -301,7 +360,7 @@ function EngagePage() {
           </div>
         )}
 
-        {!gmailLoading && gmailStatus.connected && (
+        {!showSetupGuide && !gmailLoading && gmailStatus.connected && (
           <div className="flex items-center gap-3 px-4 py-3 mb-6 bg-rivvra-500/5 border border-rivvra-500/20 rounded-xl">
             <Link2 className="w-5 h-5 text-rivvra-400 flex-shrink-0" />
             <div className="flex-1">
@@ -363,9 +422,10 @@ function EngagePage() {
             filterStatus={filterStatus}
             actionMenuId={actionMenuId}
             user={user}
+            setupComplete={setupStatus?.allComplete}
             onSearch={setSearchQuery}
             onFilter={setFilterStatus}
-            onNewSequence={() => navigate('/engage/new-sequence')}
+            onNewSequence={handleNewSequence}
             onOpenDetail={handleOpenDetail}
             onEdit={(seq) => { navigate(`/engage/edit-sequence/${seq._id}`); setActionMenuId(null); }}
             onDuplicate={handleDuplicateSequence}
@@ -420,7 +480,7 @@ function SortableHeader({ label, sortKey, currentSort, onSort }) {
 
 function SequencesTab({
   sequences, loading, emailsSentToday, searchQuery, filterStatus,
-  actionMenuId, user,
+  actionMenuId, user, setupComplete,
   onSearch, onFilter, onNewSequence, onOpenDetail,
   onEdit, onDuplicate, onDelete, onShare, onToggle, onPause, onResume, onToggleMenu,
 }) {
@@ -477,13 +537,25 @@ function SequencesTab({
             </div>
           </div>
         </div>
-        <button
-          onClick={onNewSequence}
-          className="flex items-center gap-2 px-4 py-2 bg-rivvra-500 text-dark-950 rounded-lg text-sm font-semibold hover:bg-rivvra-400 transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          New sequence
-        </button>
+        <div className="relative group">
+          <button
+            onClick={onNewSequence}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
+              setupComplete === false
+                ? 'bg-dark-700 text-dark-400 cursor-not-allowed'
+                : 'bg-rivvra-500 text-dark-950 hover:bg-rivvra-400'
+            }`}
+          >
+            <Plus className="w-4 h-4" />
+            New sequence
+          </button>
+          {setupComplete === false && (
+            <div className="absolute bottom-full right-0 mb-2 px-3 py-2 bg-dark-700 border border-dark-600 text-xs text-dark-300 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
+              <ShieldAlert className="w-3 h-3 inline mr-1 text-amber-400" />
+              Complete setup to create sequences
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Search + Filter */}
@@ -546,7 +618,7 @@ function SequencesTab({
           <p className="text-dark-400 text-sm">Loading sequences...</p>
         </div>
       ) : sequences.length === 0 ? (
-        <EmptyState onNewSequence={onNewSequence} />
+        <EmptyState onNewSequence={onNewSequence} setupComplete={setupComplete} />
       ) : (
         <div className="card overflow-visible">
           <div className="overflow-x-auto overflow-y-visible">
@@ -743,7 +815,7 @@ function SequencesTab({
 
 // ========================== EMPTY STATE ==========================
 
-function EmptyState({ onNewSequence }) {
+function EmptyState({ onNewSequence, setupComplete }) {
   return (
     <div className="card p-12 text-center">
       <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-rivvra-500/20 to-blue-500/20 flex items-center justify-center mx-auto mb-4">
@@ -757,9 +829,19 @@ function EmptyState({ onNewSequence }) {
         of personalized emails. Set up your steps, enroll leads, and let automation
         do the work.
       </p>
+      {setupComplete === false && (
+        <p className="text-amber-400/80 text-xs mb-4 flex items-center justify-center gap-1">
+          <ShieldAlert className="w-3.5 h-3.5" />
+          Complete the setup guide above first
+        </p>
+      )}
       <button
         onClick={onNewSequence}
-        className="inline-flex items-center gap-2 px-5 py-2.5 bg-rivvra-500 text-dark-950 rounded-xl text-sm font-semibold hover:bg-rivvra-400 transition-colors"
+        className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
+          setupComplete === false
+            ? 'bg-dark-700 text-dark-400 cursor-not-allowed'
+            : 'bg-rivvra-500 text-dark-950 hover:bg-rivvra-400'
+        }`}
       >
         <Plus className="w-4 h-4" />
         New Sequence

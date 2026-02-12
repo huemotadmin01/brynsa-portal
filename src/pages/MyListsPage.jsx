@@ -6,7 +6,7 @@ import {
   Trash2, Plus, Search, List, FolderOpen,
   Copy, RefreshCw, Building2, MapPin, Mail,
   MessageSquare, ArrowUpDown, StickyNote, AlertTriangle,
-  Filter, Download
+  Filter, Download, Lock
 } from 'lucide-react';
 import Layout from '../components/Layout';
 import LeadDetailPanel from '../components/LeadDetailPanel';
@@ -391,15 +391,20 @@ function MyListsPage() {
                   <div className="flex items-center gap-2">
                     <List className="w-4 h-4" />
                     <span className="text-sm font-medium truncate max-w-[120px]">{list.name}</span>
+                    {list.isDefault && (
+                      <Lock className="w-3 h-3 text-dark-600 flex-shrink-0" title="Default list" />
+                    )}
                   </div>
                   <div className="flex items-center gap-1">
                     <span className="text-xs text-dark-500">{list.count || 0}</span>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); handleDeleteList(list.name, idx); }}
-                      className="p-1 rounded opacity-0 group-hover:opacity-100 hover:bg-dark-600 transition-opacity"
-                    >
-                      <Trash2 className="w-3.5 h-3.5 text-red-400" />
-                    </button>
+                    {!list.isDefault && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleDeleteList(list.name, idx); }}
+                        className="p-1 rounded opacity-0 group-hover:opacity-100 hover:bg-dark-600 transition-opacity"
+                      >
+                        <Trash2 className="w-3.5 h-3.5 text-red-400" />
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}

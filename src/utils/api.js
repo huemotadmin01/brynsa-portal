@@ -120,6 +120,13 @@ class ApiClient {
   }
 
   // Leads endpoints
+  async createLead(data) {
+    return this.request('/api/portal/leads/create', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
   async getLeads(listName = null) {
     // Request all leads since the portal does client-side pagination
     const baseUrl = '/api/portal/leads?limit=10000';

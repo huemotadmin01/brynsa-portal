@@ -6,7 +6,7 @@ import {
   Mail, MessageSquare, ExternalLink, Building2, MapPin,
   ChevronLeft, ChevronRight, MoreHorizontal, Bookmark,
   Crown, ArrowUpDown, RefreshCw, Trash2, AlertTriangle,
-  StickyNote, Phone
+  StickyNote, Phone, UserPlus
 } from 'lucide-react';
 import Layout from '../components/Layout';
 import LeadDetailPanel from '../components/LeadDetailPanel';
@@ -18,6 +18,7 @@ import AddToListModal from '../components/AddToListModal';
 import ExportToCRMModal from '../components/ExportToCRMModal';
 import AddToSequenceModal from '../components/AddToSequenceModal';
 import EditContactModal from '../components/EditContactModal';
+import CreateContactModal from '../components/CreateContactModal';
 import { useToast } from '../context/ToastContext';
 
 function LeadsPage() {
@@ -48,6 +49,7 @@ function LeadsPage() {
   const [outreachStatusFilter, setOutreachStatusFilter] = useState('all');
   const [showEditContact, setShowEditContact] = useState(false);
   const [editContactTarget, setEditContactTarget] = useState(null);
+  const [showCreateContact, setShowCreateContact] = useState(false);
   const [setupComplete, setSetupComplete] = useState(null);
 
   const leadsPerPage = 10;
@@ -271,6 +273,13 @@ function LeadsPage() {
                   Delete ({selectedLeads.length})
                 </button>
               )}
+              <button
+                onClick={() => setShowCreateContact(true)}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-rivvra-500 text-dark-950 font-medium hover:bg-rivvra-400 transition-colors"
+              >
+                <UserPlus className="w-4 h-4" />
+                Add Contact
+              </button>
               <button
                 onClick={handleManualRefresh}
                 disabled={refreshing}
@@ -757,6 +766,14 @@ function LeadsPage() {
           setEditContactTarget(null);
         }}
         onLeadUpdate={handleLeadUpdate}
+      />
+
+      <CreateContactModal
+        isOpen={showCreateContact}
+        onClose={() => setShowCreateContact(false)}
+        onCreated={(newLead) => {
+          setLeads(prev => [newLead, ...prev]);
+        }}
       />
     </Layout>
   );

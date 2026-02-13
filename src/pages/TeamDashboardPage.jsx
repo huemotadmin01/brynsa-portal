@@ -549,7 +549,7 @@ export default function TeamDashboardPage() {
               borderColor="border-amber-500/20"
             />
             <EmailMetricCard
-              label="Replied"
+              label="Interested"
               value={data?.emailStats?.replied || 0}
               rate={emailReplyRate}
               rateLabel="reply rate"

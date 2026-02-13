@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import {
   BarChart3, RefreshCw, Loader2, Users, Mail, Send, Eye,
@@ -23,12 +23,15 @@ const STATUS_CONFIG = {
   bounced: { label: 'Bounced', color: '#f97316' },
 };
 
-// Helper: format date as YYYY-MM-DD for input[type=date]
+// Helper: format date as YYYY-MM-DD for input[type=date] using LOCAL time (not UTC)
 function toDateStr(d) {
-  return d.toISOString().split('T')[0];
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
-// Helper: get today's date at midnight
+// Helper: get today's date at midnight (local)
 function getToday() {
   const d = new Date();
   d.setHours(0, 0, 0, 0);
@@ -82,6 +85,7 @@ export default function TeamDashboardPage() {
   const [customFrom, setCustomFrom] = useState(toDateStr(getToday()));
   const [customTo, setCustomTo] = useState(toDateStr(getToday()));
   const [showDateDropdown, setShowDateDropdown] = useState(false);
+  const dateDropdownRef = useRef(null);
 
   const canView = user?.role === 'admin' || user?.role === 'team_lead';
 
@@ -132,12 +136,16 @@ export default function TeamDashboardPage() {
     return () => clearInterval(interval);
   }, [canView, fetchData]);
 
-  // Close date dropdown on outside click
+  // Close date dropdown on outside click (ref-based to avoid closing on date picker interaction)
   useEffect(() => {
     if (!showDateDropdown) return;
-    const handleClick = () => setShowDateDropdown(false);
-    document.addEventListener('click', handleClick);
-    return () => document.removeEventListener('click', handleClick);
+    const handleClick = (e) => {
+      if (dateDropdownRef.current && !dateDropdownRef.current.contains(e.target)) {
+        setShowDateDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
   }, [showDateDropdown]);
 
   // Computed email rates
@@ -249,7 +257,7 @@ export default function TeamDashboardPage() {
           </div>
           <div className="flex items-center gap-2">
             {/* Date Filter */}
-            <div className="relative" onClick={e => e.stopPropagation()}>
+            <div className="relative" ref={dateDropdownRef}>
               <button
                 onClick={() => setShowDateDropdown(!showDateDropdown)}
                 className={`flex items-center gap-2 px-3.5 py-2 border rounded-xl text-sm transition-all ${
@@ -263,60 +271,57 @@ export default function TeamDashboardPage() {
                 <ChevronDown className="w-3 h-3" />
               </button>
               {showDateDropdown && (
-                <>
-                  <div className="fixed inset-0 z-40" onClick={() => setShowDateDropdown(false)} />
-                  <div className="absolute right-0 top-full mt-1 z-50 bg-dark-800 border border-dark-600 rounded-xl shadow-2xl py-1 min-w-[200px]">
-                    {[
-                      { key: 'today', label: 'Today' },
-                      { key: 'yesterday', label: 'Yesterday' },
-                      { key: 'custom', label: 'Custom Range' },
-                    ].map(opt => (
-                      <button
-                        key={opt.key}
-                        onClick={() => {
-                          setDateFilter(opt.key);
-                          if (opt.key !== 'custom') setShowDateDropdown(false);
-                        }}
-                        className={`w-full px-4 py-2 text-left text-xs hover:bg-dark-700 transition-colors ${
-                          dateFilter === opt.key ? 'text-rivvra-400' : 'text-dark-300'
-                        }`}
-                      >
-                        {opt.label}
-                      </button>
-                    ))}
-                    {dateFilter === 'custom' && (
-                      <div className="px-4 py-3 border-t border-dark-700 space-y-2">
-                        <div>
-                          <label className="text-[10px] text-dark-500 uppercase tracking-wider">From</label>
-                          <input
-                            type="date"
-                            value={customFrom}
-                            onChange={e => setCustomFrom(e.target.value)}
-                            max={customTo}
-                            className="w-full mt-1 px-3 py-1.5 bg-dark-900 border border-dark-600 rounded-lg text-xs text-white outline-none focus:border-rivvra-500"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-[10px] text-dark-500 uppercase tracking-wider">To</label>
-                          <input
-                            type="date"
-                            value={customTo}
-                            onChange={e => setCustomTo(e.target.value)}
-                            min={customFrom}
-                            max={toDateStr(getToday())}
-                            className="w-full mt-1 px-3 py-1.5 bg-dark-900 border border-dark-600 rounded-lg text-xs text-white outline-none focus:border-rivvra-500"
-                          />
-                        </div>
-                        <button
-                          onClick={() => setShowDateDropdown(false)}
-                          className="w-full mt-1 px-3 py-1.5 bg-rivvra-500 text-dark-950 rounded-lg text-xs font-medium hover:bg-rivvra-400 transition-colors"
-                        >
-                          Apply
-                        </button>
+                <div className="absolute right-0 top-full mt-1 z-50 bg-dark-800 border border-dark-600 rounded-xl shadow-2xl py-1 min-w-[220px]">
+                  {[
+                    { key: 'today', label: 'Today' },
+                    { key: 'yesterday', label: 'Yesterday' },
+                    { key: 'custom', label: 'Custom Range' },
+                  ].map(opt => (
+                    <button
+                      key={opt.key}
+                      onClick={() => {
+                        setDateFilter(opt.key);
+                        if (opt.key !== 'custom') setShowDateDropdown(false);
+                      }}
+                      className={`w-full px-4 py-2.5 text-left text-xs hover:bg-dark-700 transition-colors ${
+                        dateFilter === opt.key ? 'text-rivvra-400' : 'text-dark-300'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                  {dateFilter === 'custom' && (
+                    <div className="px-4 py-3 border-t border-dark-700 space-y-3">
+                      <div>
+                        <label className="text-[10px] text-dark-500 uppercase tracking-wider block mb-1">From</label>
+                        <input
+                          type="date"
+                          value={customFrom}
+                          onChange={e => setCustomFrom(e.target.value)}
+                          max={customTo}
+                          className="w-full px-3 py-2 bg-dark-900 border border-dark-600 rounded-lg text-sm text-white outline-none focus:border-rivvra-500 [color-scheme:dark]"
+                        />
                       </div>
-                    )}
-                  </div>
-                </>
+                      <div>
+                        <label className="text-[10px] text-dark-500 uppercase tracking-wider block mb-1">To</label>
+                        <input
+                          type="date"
+                          value={customTo}
+                          onChange={e => setCustomTo(e.target.value)}
+                          min={customFrom}
+                          max={toDateStr(getToday())}
+                          className="w-full px-3 py-2 bg-dark-900 border border-dark-600 rounded-lg text-sm text-white outline-none focus:border-rivvra-500 [color-scheme:dark]"
+                        />
+                      </div>
+                      <button
+                        onClick={() => setShowDateDropdown(false)}
+                        className="w-full px-3 py-2 bg-rivvra-500 text-dark-950 rounded-lg text-xs font-semibold hover:bg-rivvra-400 transition-colors"
+                      >
+                        Apply
+                      </button>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
             {/* Refresh */}

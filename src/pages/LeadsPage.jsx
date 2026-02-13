@@ -30,6 +30,7 @@ function LeadsPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [profileTypeFilter, setProfileTypeFilter] = useState('all');
   const filterRef = useRef(null);
+  const filterDropdownRef = useRef(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [showComingSoon, setShowComingSoon] = useState(false);
   const [comingSoonFeature, setComingSoonFeature] = useState('');
@@ -129,7 +130,9 @@ function LeadsPage() {
 
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (filterRef.current && !filterRef.current.contains(event.target)) {
+      const inButton = filterRef.current && filterRef.current.contains(event.target);
+      const inDropdown = filterDropdownRef.current && filterDropdownRef.current.contains(event.target);
+      if (!inButton && !inDropdown) {
         setShowFilters(false);
       }
     };
@@ -248,7 +251,7 @@ function LeadsPage() {
   return (
     <Layout>
       <div className={`flex h-full transition-all duration-300 ${selectedLead ? 'mr-[420px]' : ''}`}>
-        <div className="flex-1 p-8 flex flex-col min-h-0">
+        <div className="flex-1 p-8 overflow-hidden flex flex-col">
           {/* Header */}
           <div className="flex items-center justify-between mb-8">
             <div>
@@ -319,59 +322,70 @@ function LeadsPage() {
                 )}
               </button>
 
-              {showFilters && (
-                <div className="absolute right-0 top-full mt-2 w-64 bg-dark-800 border border-dark-700 rounded-xl shadow-xl z-50">
-                  <div className="p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <span className="text-sm font-medium text-white">Filters</span>
-                      {activeFilterCount > 0 && (
-                        <button
-                          onClick={() => { setProfileTypeFilter('all'); setOutreachStatusFilter('all'); }}
-                          className="text-xs text-rivvra-400 hover:text-rivvra-300"
+              {showFilters && (() => {
+                const rect = filterRef.current?.getBoundingClientRect();
+                return (
+                  <div
+                    ref={filterDropdownRef}
+                    className="fixed w-64 bg-dark-800 border border-dark-700 rounded-xl shadow-xl z-[9999]"
+                    style={{
+                      top: rect ? rect.bottom + 8 : 0,
+                      right: rect ? window.innerWidth - rect.right : 0,
+                    }}
+                  >
+                    <div className="p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-sm font-medium text-white">Filters</span>
+                        {activeFilterCount > 0 && (
+                          <button
+                            onClick={() => { setProfileTypeFilter('all'); setOutreachStatusFilter('all'); }}
+                            className="text-xs text-rivvra-400 hover:text-rivvra-300"
+                          >
+                            Clear all
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="mb-3">
+                        <label className="block text-xs text-dark-400 mb-2">Profile Type</label>
+                        <select
+                          value={profileTypeFilter}
+                          onChange={(e) => setProfileTypeFilter(e.target.value)}
+                          className="w-full px-3 py-2 bg-dark-900 border border-dark-600 rounded-lg text-sm text-white focus:outline-none focus:border-rivvra-500"
                         >
-                          Clear all
-                        </button>
-                      )}
-                    </div>
+                          <option value="all">All Types</option>
+                          <option value="candidate">Candidate</option>
+                          <option value="client">Client</option>
+                        </select>
+                      </div>
 
-                    <div className="mb-3">
-                      <label className="block text-xs text-dark-400 mb-2">Profile Type</label>
-                      <select
-                        value={profileTypeFilter}
-                        onChange={(e) => setProfileTypeFilter(e.target.value)}
-                        className="w-full px-3 py-2 bg-dark-900 border border-dark-600 rounded-lg text-sm text-white focus:outline-none focus:border-rivvra-500"
+                      <div className="mb-3">
+                        <label className="block text-xs text-dark-400 mb-2">Outreach Status</label>
+                        <select
+                          value={outreachStatusFilter}
+                          onChange={(e) => setOutreachStatusFilter(e.target.value)}
+                          className="w-full px-3 py-2 bg-dark-900 border border-dark-600 rounded-lg text-sm text-white focus:outline-none focus:border-rivvra-500"
+                        >
+                          <option value="all">All Statuses</option>
+                          <option value="not_contacted">Not Contacted</option>
+                          <option value="in_sequence">In Sequence</option>
+                          <option value="replied">Interested</option>
+                          <option value="replied_not_interested">Not Interested</option>
+                          <option value="no_response">No Response</option>
+                          <option value="bounced">Bounced</option>
+                        </select>
+                      </div>
+
+                      <button
+                        onClick={() => setShowFilters(false)}
+                        className="w-full py-2 px-4 bg-rivvra-500 text-dark-950 font-medium rounded-lg hover:bg-rivvra-400 transition-colors text-sm"
                       >
-                        <option value="all">All Types</option>
-                        <option value="candidate">Candidate</option>
-                        <option value="client">Client</option>
-                      </select>
+                        Apply Filters
+                      </button>
                     </div>
-
-                    <div className="mb-3">
-                      <label className="block text-xs text-dark-400 mb-2">Outreach Status</label>
-                      <select
-                        value={outreachStatusFilter}
-                        onChange={(e) => setOutreachStatusFilter(e.target.value)}
-                        className="w-full px-3 py-2 bg-dark-900 border border-dark-600 rounded-lg text-sm text-white focus:outline-none focus:border-rivvra-500"
-                      >
-                        <option value="all">All Statuses</option>
-                        <option value="not_contacted">Not Contacted</option>
-                        <option value="in_sequence">In Sequence</option>
-                        <option value="replied">Interested</option>
-                        <option value="replied_not_interested">Not Interested</option>
-                        <option value="no_response">No Response</option>
-                      </select>
-                    </div>
-
-                    <button
-                      onClick={() => setShowFilters(false)}
-                      className="w-full py-2 px-4 bg-rivvra-500 text-dark-950 font-medium rounded-lg hover:bg-rivvra-400 transition-colors text-sm"
-                    >
-                      Apply Filters
-                    </button>
                   </div>
-                </div>
-              )}
+                );
+              })()}
             </div>
           </div>
 

@@ -94,11 +94,15 @@ function Sidebar() {
       {/* User Menu */}
       <div className="p-4 border-t border-dark-800">
         <div className="flex items-center gap-3 mb-3">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-rivvra-400 to-rivvra-600 flex items-center justify-center">
-            <span className="text-sm font-bold text-dark-950">
-              {user?.name?.charAt(0)?.toUpperCase() || user?.email?.charAt(0)?.toUpperCase() || 'U'}
-            </span>
-          </div>
+          {user?.picture ? (
+            <img src={user.picture} alt="" className="w-10 h-10 rounded-full object-cover" referrerPolicy="no-referrer" />
+          ) : (
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-rivvra-400 to-rivvra-600 flex items-center justify-center">
+              <span className="text-sm font-bold text-dark-950">
+                {user?.name?.charAt(0)?.toUpperCase() || user?.email?.charAt(0)?.toUpperCase() || 'U'}
+              </span>
+            </div>
+          )}
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-white truncate">{user?.name || 'User'}</p>
             <p className="text-xs text-dark-400 truncate">{user?.email}</p>

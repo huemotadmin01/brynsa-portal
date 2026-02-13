@@ -191,11 +191,15 @@ function SettingsPage() {
                   <h2 className="text-lg font-semibold text-white mb-6">Profile Information</h2>
                   
                   <div className="flex items-start gap-6 mb-6">
-                    <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-rivvra-400 to-rivvra-600 flex items-center justify-center flex-shrink-0">
-                      <span className="text-3xl font-bold text-dark-950">
-                        {user?.name?.charAt(0)?.toUpperCase() || user?.email?.charAt(0)?.toUpperCase() || 'U'}
-                      </span>
-                    </div>
+                    {user?.picture ? (
+                      <img src={user.picture} alt="" className="w-20 h-20 rounded-2xl object-cover flex-shrink-0" referrerPolicy="no-referrer" />
+                    ) : (
+                      <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-rivvra-400 to-rivvra-600 flex items-center justify-center flex-shrink-0">
+                        <span className="text-3xl font-bold text-dark-950">
+                          {user?.name?.charAt(0)?.toUpperCase() || user?.email?.charAt(0)?.toUpperCase() || 'U'}
+                        </span>
+                      </div>
+                    )}
                     <div className="flex-1">
                       <h3 className="text-xl font-semibold text-white">{user?.name || 'User'}</h3>
                       <p className="text-dark-400">{user?.email}</p>
@@ -577,11 +581,15 @@ function TeamManagement({ user, canChangeRoles = false }) {
                 }`}
               >
                 {/* Avatar */}
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-dark-600 to-dark-700 flex items-center justify-center flex-shrink-0">
-                  <span className="text-sm font-bold text-dark-300">
-                    {member.name?.charAt(0)?.toUpperCase() || member.email?.charAt(0)?.toUpperCase() || '?'}
-                  </span>
-                </div>
+                {member.picture ? (
+                  <img src={member.picture} alt="" className="w-10 h-10 rounded-xl object-cover flex-shrink-0" referrerPolicy="no-referrer" />
+                ) : (
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-dark-600 to-dark-700 flex items-center justify-center flex-shrink-0">
+                    <span className="text-sm font-bold text-dark-300">
+                      {member.name?.charAt(0)?.toUpperCase() || member.email?.charAt(0)?.toUpperCase() || '?'}
+                    </span>
+                  </div>
+                )}
 
                 {/* Info */}
                 <div className="flex-1 min-w-0">

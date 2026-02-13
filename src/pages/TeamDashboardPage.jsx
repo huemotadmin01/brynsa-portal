@@ -219,7 +219,8 @@ export default function TeamDashboardPage() {
     count: r.count,
   }));
 
-  const totalInSequence = data?.leadsByStatus?.in_sequence || 0;
+  // Use enrollment-based count (source of truth) instead of leads.outreachStatus
+  const totalInSequence = data?.inSequenceCount || 0;
   const leadsScrapedInRange = data?.leadsScrapedInRange || [];
   const leadsScrapedThisWeek = data?.leadsScrapedThisWeek || [];
   const emailsScheduledInRange = data?.emailsScheduledInRange || [];
@@ -231,7 +232,7 @@ export default function TeamDashboardPage() {
   const pipelineSteps = [
     { label: 'Total Leads', value: data?.totalLeads || 0, color: '#6b7280' },
     { label: 'In Sequence', value: totalInSequence, color: '#3b82f6' },
-    { label: 'Replied', value: (data?.leadsByStatus?.replied || 0) + (data?.leadsByStatus?.replied_not_interested || 0), color: '#22c55e' },
+    { label: 'Replied', value: data?.repliedCount || 0, color: '#22c55e' },
   ];
 
   return (

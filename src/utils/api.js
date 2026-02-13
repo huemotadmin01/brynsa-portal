@@ -545,8 +545,12 @@ class ApiClient {
   }
 
   // Team Dashboard
-  async getDashboardStats() {
-    return this.request('/api/dashboard/team');
+  async getDashboardStats({ dateFrom, dateTo } = {}) {
+    const params = new URLSearchParams();
+    if (dateFrom) params.append('dateFrom', dateFrom);
+    if (dateTo) params.append('dateTo', dateTo);
+    const qs = params.toString();
+    return this.request(`/api/dashboard/team${qs ? `?${qs}` : ''}`);
   }
 
   // Rename default list (admin only)

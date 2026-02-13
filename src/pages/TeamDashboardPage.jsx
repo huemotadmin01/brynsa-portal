@@ -3,25 +3,43 @@ import { useAuth } from '../context/AuthContext';
 import {
   BarChart3, RefreshCw, Loader2, Users, Mail, Send, Eye,
   MousePointerClick, TrendingUp, ShieldAlert,
-  Clock, UserCheck, MessageSquare, ArrowUpRight, ArrowDownRight,
-  Target, Zap, CalendarDays
+  UserCheck, MessageSquare, ArrowDownRight,
+  Target, Zap, CalendarDays, ChevronDown, Calendar
 } from 'lucide-react';
 import Layout from '../components/Layout';
 import api from '../utils/api';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, AreaChart, Area
+  PieChart, Pie, Cell
 } from 'recharts';
 
+// Only real statuses that exist in the system
 const STATUS_CONFIG = {
-  not_contacted: { label: 'Not Contacted', color: '#6b7280', bg: 'bg-gray-500/10' },
-  in_sequence: { label: 'In Sequence', color: '#3b82f6', bg: 'bg-blue-500/10' },
-  replied: { label: 'Replied', color: '#22c55e', bg: 'bg-emerald-500/10' },
-  replied_not_interested: { label: 'Not Interested', color: '#ef4444', bg: 'bg-red-500/10' },
-  no_response: { label: 'No Response', color: '#f59e0b', bg: 'bg-amber-500/10' },
-  bounced: { label: 'Bounced', color: '#f97316', bg: 'bg-orange-500/10' },
-  meeting_scheduled: { label: 'Meeting', color: '#8b5cf6', bg: 'bg-purple-500/10' },
+  not_contacted: { label: 'Not Contacted', color: '#6b7280' },
+  in_sequence: { label: 'In Sequence', color: '#3b82f6' },
+  replied: { label: 'Replied', color: '#22c55e' },
+  replied_not_interested: { label: 'Not Interested', color: '#ef4444' },
+  no_response: { label: 'No Response', color: '#f59e0b' },
+  bounced: { label: 'Bounced', color: '#f97316' },
 };
+
+// Helper: format date as YYYY-MM-DD for input[type=date]
+function toDateStr(d) {
+  return d.toISOString().split('T')[0];
+}
+
+// Helper: get today's date at midnight
+function getToday() {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function getYesterday() {
+  const d = getToday();
+  d.setDate(d.getDate() - 1);
+  return d;
+}
 
 function ChartTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null;
@@ -59,12 +77,32 @@ export default function TeamDashboardPage() {
   const [error, setError] = useState('');
   const [lastUpdated, setLastUpdated] = useState(null);
 
+  // Date filter state
+  const [dateFilter, setDateFilter] = useState('today'); // 'today' | 'yesterday' | 'custom'
+  const [customFrom, setCustomFrom] = useState(toDateStr(getToday()));
+  const [customTo, setCustomTo] = useState(toDateStr(getToday()));
+  const [showDateDropdown, setShowDateDropdown] = useState(false);
+
   const canView = user?.role === 'admin' || user?.role === 'team_lead';
+
+  // Compute date params based on filter
+  const dateParams = useMemo(() => {
+    if (dateFilter === 'today') {
+      const today = toDateStr(getToday());
+      return { dateFrom: today, dateTo: today };
+    }
+    if (dateFilter === 'yesterday') {
+      const yesterday = toDateStr(getYesterday());
+      return { dateFrom: yesterday, dateTo: yesterday };
+    }
+    // custom
+    return { dateFrom: customFrom, dateTo: customTo };
+  }, [dateFilter, customFrom, customTo]);
 
   const fetchData = useCallback(async (showRefresh = false) => {
     if (showRefresh) setRefreshing(true);
     try {
-      const res = await api.getDashboardStats();
+      const res = await api.getDashboardStats(dateParams);
       if (res.success) {
         setData(res);
         setLastUpdated(new Date());
@@ -78,10 +116,13 @@ export default function TeamDashboardPage() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [dateParams]);
 
   useEffect(() => {
-    if (canView) fetchData();
+    if (canView) {
+      setLoading(true);
+      fetchData();
+    }
   }, [canView, fetchData]);
 
   // Auto-refresh every 30 seconds
@@ -91,7 +132,15 @@ export default function TeamDashboardPage() {
     return () => clearInterval(interval);
   }, [canView, fetchData]);
 
-  // Computed values
+  // Close date dropdown on outside click
+  useEffect(() => {
+    if (!showDateDropdown) return;
+    const handleClick = () => setShowDateDropdown(false);
+    document.addEventListener('click', handleClick);
+    return () => document.removeEventListener('click', handleClick);
+  }, [showDateDropdown]);
+
+  // Computed email rates
   const emailOpenRate = useMemo(() => {
     if (!data?.emailStats?.sent) return 0;
     return ((data.emailStats.opened / data.emailStats.sent) * 100).toFixed(1);
@@ -111,6 +160,18 @@ export default function TeamDashboardPage() {
     if (!data?.emailStats?.sent) return 0;
     return ((data.emailStats.bounced / data.emailStats.sent) * 100).toFixed(1);
   }, [data]);
+
+  // Date label for display
+  const dateLabel = useMemo(() => {
+    if (dateFilter === 'today') return 'Today';
+    if (dateFilter === 'yesterday') return 'Yesterday';
+    if (customFrom === customTo) {
+      return new Date(customFrom + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+    }
+    const from = new Date(customFrom + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+    const to = new Date(customTo + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+    return `${from} – ${to}`;
+  }, [dateFilter, customFrom, customTo]);
 
   if (!canView) {
     return (
@@ -151,16 +212,18 @@ export default function TeamDashboardPage() {
   }));
 
   const totalInSequence = data?.leadsByStatus?.in_sequence || 0;
-  const totalScrapedToday = (data?.leadsScrapedToday || []).reduce((s, r) => s + r.count, 0);
-  const totalScrapedWeek = (data?.leadsScrapedThisWeek || []).reduce((s, r) => s + r.count, 0);
-  const totalFollowupsToday = (data?.followupsDueToday || []).reduce((s, r) => s + r.count, 0);
+  const leadsScrapedInRange = data?.leadsScrapedInRange || [];
+  const leadsScrapedThisWeek = data?.leadsScrapedThisWeek || [];
+  const emailsScheduledInRange = data?.emailsScheduledInRange || [];
+  const totalScrapedInRange = leadsScrapedInRange.reduce((s, r) => s + r.count, 0);
+  const totalScrapedWeek = leadsScrapedThisWeek.reduce((s, r) => s + r.count, 0);
+  const totalEmailsScheduled = emailsScheduledInRange.reduce((s, r) => s + r.count, 0);
 
-  // For the mini pipeline funnel visual
+  // Pipeline: Total → In Sequence → Replied
   const pipelineSteps = [
     { label: 'Total Leads', value: data?.totalLeads || 0, color: '#6b7280' },
     { label: 'In Sequence', value: totalInSequence, color: '#3b82f6' },
     { label: 'Replied', value: (data?.leadsByStatus?.replied || 0) + (data?.leadsByStatus?.replied_not_interested || 0), color: '#22c55e' },
-    { label: 'Meeting', value: data?.leadsByStatus?.meeting_scheduled || 0, color: '#8b5cf6' },
   ];
 
   return (
@@ -184,14 +247,88 @@ export default function TeamDashboardPage() {
               </span>
             </p>
           </div>
-          <button
-            onClick={() => fetchData(true)}
-            disabled={refreshing}
-            className="flex items-center gap-2 px-3.5 py-2 bg-dark-800 border border-dark-700 rounded-xl text-sm text-dark-300 hover:text-white hover:border-dark-500 transition-all disabled:opacity-50"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
-            Refresh
-          </button>
+          <div className="flex items-center gap-2">
+            {/* Date Filter */}
+            <div className="relative" onClick={e => e.stopPropagation()}>
+              <button
+                onClick={() => setShowDateDropdown(!showDateDropdown)}
+                className={`flex items-center gap-2 px-3.5 py-2 border rounded-xl text-sm transition-all ${
+                  dateFilter !== 'today'
+                    ? 'bg-rivvra-500/10 border-rivvra-500/30 text-rivvra-400'
+                    : 'bg-dark-800 border-dark-700 text-dark-300 hover:text-white hover:border-dark-500'
+                }`}
+              >
+                <Calendar className="w-3.5 h-3.5" />
+                {dateLabel}
+                <ChevronDown className="w-3 h-3" />
+              </button>
+              {showDateDropdown && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setShowDateDropdown(false)} />
+                  <div className="absolute right-0 top-full mt-1 z-50 bg-dark-800 border border-dark-600 rounded-xl shadow-2xl py-1 min-w-[200px]">
+                    {[
+                      { key: 'today', label: 'Today' },
+                      { key: 'yesterday', label: 'Yesterday' },
+                      { key: 'custom', label: 'Custom Range' },
+                    ].map(opt => (
+                      <button
+                        key={opt.key}
+                        onClick={() => {
+                          setDateFilter(opt.key);
+                          if (opt.key !== 'custom') setShowDateDropdown(false);
+                        }}
+                        className={`w-full px-4 py-2 text-left text-xs hover:bg-dark-700 transition-colors ${
+                          dateFilter === opt.key ? 'text-rivvra-400' : 'text-dark-300'
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                    {dateFilter === 'custom' && (
+                      <div className="px-4 py-3 border-t border-dark-700 space-y-2">
+                        <div>
+                          <label className="text-[10px] text-dark-500 uppercase tracking-wider">From</label>
+                          <input
+                            type="date"
+                            value={customFrom}
+                            onChange={e => setCustomFrom(e.target.value)}
+                            max={customTo}
+                            className="w-full mt-1 px-3 py-1.5 bg-dark-900 border border-dark-600 rounded-lg text-xs text-white outline-none focus:border-rivvra-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] text-dark-500 uppercase tracking-wider">To</label>
+                          <input
+                            type="date"
+                            value={customTo}
+                            onChange={e => setCustomTo(e.target.value)}
+                            min={customFrom}
+                            max={toDateStr(getToday())}
+                            className="w-full mt-1 px-3 py-1.5 bg-dark-900 border border-dark-600 rounded-lg text-xs text-white outline-none focus:border-rivvra-500"
+                          />
+                        </div>
+                        <button
+                          onClick={() => setShowDateDropdown(false)}
+                          className="w-full mt-1 px-3 py-1.5 bg-rivvra-500 text-dark-950 rounded-lg text-xs font-medium hover:bg-rivvra-400 transition-colors"
+                        >
+                          Apply
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+            {/* Refresh */}
+            <button
+              onClick={() => fetchData(true)}
+              disabled={refreshing}
+              className="flex items-center gap-2 px-3.5 py-2 bg-dark-800 border border-dark-700 rounded-xl text-sm text-dark-300 hover:text-white hover:border-dark-500 transition-all disabled:opacity-50"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
+              Refresh
+            </button>
+          </div>
         </div>
 
         {error && (
@@ -208,6 +345,7 @@ export default function TeamDashboardPage() {
             icon={Users}
             gradient="from-blue-500/20 to-blue-600/5"
             iconColor="text-blue-400"
+            subtitle="all time"
           />
           <KPICard
             label="In Sequence"
@@ -215,6 +353,7 @@ export default function TeamDashboardPage() {
             icon={Send}
             gradient="from-rivvra-500/20 to-rivvra-600/5"
             iconColor="text-rivvra-400"
+            subtitle="current"
           />
           <KPICard
             label="Response Rate"
@@ -222,23 +361,23 @@ export default function TeamDashboardPage() {
             icon={TrendingUp}
             gradient="from-emerald-500/20 to-emerald-600/5"
             iconColor="text-emerald-400"
-            subtitle={`${data?.responseRate?.repliedOrMeeting || 0} of ${data?.responseRate?.totalContacted || 0}`}
+            subtitle={`${data?.responseRate?.replied || 0} of ${data?.responseRate?.totalContacted || 0}`}
           />
           <KPICard
-            label="Scraped Today"
-            value={totalScrapedToday}
+            label={`Scraped`}
+            value={totalScrapedInRange}
             icon={Zap}
             gradient="from-amber-500/20 to-amber-600/5"
             iconColor="text-amber-400"
-            subtitle={`${totalScrapedWeek} this week`}
+            subtitle={dateLabel.toLowerCase()}
           />
           <KPICard
             label="Emails Scheduled"
-            value={totalFollowupsToday}
+            value={totalEmailsScheduled}
             icon={CalendarDays}
             gradient="from-purple-500/20 to-purple-600/5"
             iconColor="text-purple-400"
-            subtitle="today"
+            subtitle={dateLabel.toLowerCase()}
           />
         </div>
 
@@ -247,6 +386,7 @@ export default function TeamDashboardPage() {
           <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
             <Target className="w-4 h-4 text-rivvra-400" />
             Outreach Pipeline
+            <span className="text-[10px] text-dark-500 font-normal ml-1">all time</span>
           </h3>
           <div className="flex items-center gap-2">
             {pipelineSteps.map((step, i) => {
@@ -260,14 +400,9 @@ export default function TeamDashboardPage() {
                   </div>
                   <div className="h-8 bg-dark-800 rounded-lg overflow-hidden">
                     <div
-                      className="h-full rounded-lg transition-all duration-700 ease-out flex items-center justify-center"
-                      style={{ width: `${widthPct}%`, backgroundColor: step.color + '40' }}
-                    >
-                      <div
-                        className="h-full rounded-lg"
-                        style={{ width: '100%', backgroundColor: step.color, opacity: 0.6 }}
-                      />
-                    </div>
+                      className="h-full rounded-lg transition-all duration-700 ease-out"
+                      style={{ width: `${widthPct}%`, backgroundColor: step.color, opacity: 0.6 }}
+                    />
                   </div>
                   {i < pipelineSteps.length - 1 && pipelineSteps[i].value > 0 && (
                     <p className="text-[10px] text-dark-600 mt-1 text-center">
@@ -283,13 +418,13 @@ export default function TeamDashboardPage() {
 
         {/* ─── Charts Row ─── */}
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-          {/* Bar Chart: In Sequence by User */}
+          {/* Bar Chart: In Sequence by sourcedBy */}
           <div className="lg:col-span-3 card p-5">
             <h3 className="text-sm font-semibold text-white mb-1 flex items-center gap-2">
               <Send className="w-4 h-4 text-rivvra-400" />
-              In Sequence by Member
+              In Sequence by Sourced By
             </h3>
-            <p className="text-[11px] text-dark-500 mb-4">Who has the most contacts in active sequences</p>
+            <p className="text-[11px] text-dark-500 mb-4">Current active sequence contacts grouped by who sourced them</p>
             {inSequenceData.length > 0 ? (
               <ResponsiveContainer width="100%" height={260}>
                 <BarChart data={inSequenceData} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
@@ -326,7 +461,7 @@ export default function TeamDashboardPage() {
               <UserCheck className="w-4 h-4 text-blue-400" />
               Lead Distribution
             </h3>
-            <p className="text-[11px] text-dark-500 mb-2">By outreach status</p>
+            <p className="text-[11px] text-dark-500 mb-2">By outreach status · all time</p>
             {statusData.length > 0 ? (
               <div className="relative">
                 <ResponsiveContainer width="100%" height={220}>
@@ -349,7 +484,7 @@ export default function TeamDashboardPage() {
                   </PieChart>
                 </ResponsiveContainer>
                 {/* Center label */}
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ marginBottom: 0 }}>
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                   <div className="text-center">
                     <div className="text-xl font-bold text-white">{(data?.totalLeads || 0).toLocaleString()}</div>
                     <div className="text-[10px] text-dark-500">Total</div>
@@ -377,7 +512,7 @@ export default function TeamDashboardPage() {
           <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
             <Mail className="w-4 h-4 text-blue-400" />
             Email Performance
-            <span className="text-[10px] text-dark-500 font-normal ml-1">All Sequences</span>
+            <span className="text-[10px] text-dark-500 font-normal ml-1">All Sequences · all time</span>
           </h3>
           <div className="grid grid-cols-5 gap-3">
             <EmailMetricCard
@@ -434,24 +569,24 @@ export default function TeamDashboardPage() {
 
         {/* ─── Leaderboard + Scraped Tables ─── */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {/* Leads Scraped — Today + Week side by side */}
+          {/* Leads Scraped — Selected Range + This Week */}
           <div className="card p-5">
             <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
               <Zap className="w-4 h-4 text-amber-400" />
               Leads Scraped
             </h3>
             <div className="grid grid-cols-2 gap-4">
-              {/* Today */}
+              {/* Selected range */}
               <div>
                 <div className="flex items-center gap-1.5 mb-3">
-                  <span className="text-[10px] uppercase tracking-wider text-dark-500 font-medium">Today</span>
+                  <span className="text-[10px] uppercase tracking-wider text-dark-500 font-medium">{dateLabel}</span>
                   <span className="px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 text-[10px] font-bold">
-                    {totalScrapedToday}
+                    {totalScrapedInRange}
                   </span>
                 </div>
-                {(data?.leadsScrapedToday?.length || 0) > 0 ? (
+                {leadsScrapedInRange.length > 0 ? (
                   <div className="space-y-2">
-                    {data.leadsScrapedToday.map((r, i) => (
+                    {leadsScrapedInRange.map((r, i) => (
                       <div key={i} className="flex items-center justify-between">
                         <div className="flex items-center gap-2 min-w-0">
                           <div className="w-6 h-6 rounded-full bg-dark-700 flex items-center justify-center flex-shrink-0">
@@ -466,7 +601,7 @@ export default function TeamDashboardPage() {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-dark-600 text-[11px] py-2">No scrapes today</p>
+                  <p className="text-dark-600 text-[11px] py-2">No scrapes in range</p>
                 )}
               </div>
               {/* This Week */}
@@ -477,9 +612,9 @@ export default function TeamDashboardPage() {
                     {totalScrapedWeek}
                   </span>
                 </div>
-                {(data?.leadsScrapedThisWeek?.length || 0) > 0 ? (
+                {leadsScrapedThisWeek.length > 0 ? (
                   <div className="space-y-2">
-                    {data.leadsScrapedThisWeek.map((r, i) => (
+                    {leadsScrapedThisWeek.map((r, i) => (
                       <div key={i} className="flex items-center justify-between">
                         <div className="flex items-center gap-2 min-w-0">
                           <div className="w-6 h-6 rounded-full bg-dark-700 flex items-center justify-center flex-shrink-0">
@@ -564,8 +699,9 @@ export default function TeamDashboardPage() {
           <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
             <UserCheck className="w-4 h-4 text-blue-400" />
             Status Breakdown
+            <span className="text-[10px] text-dark-500 font-normal ml-1">all time</span>
           </h3>
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
             {Object.entries(STATUS_CONFIG).map(([key, cfg]) => {
               const count = data?.leadsByStatus?.[key] || 0;
               const pct = data?.totalLeads > 0 ? ((count / data.totalLeads) * 100).toFixed(1) : '0.0';
@@ -589,21 +725,22 @@ export default function TeamDashboardPage() {
           </div>
         </div>
 
-        {/* ─── Emails Scheduled Today + In Sequence Detail ─── */}
+        {/* ─── Emails Scheduled + In Sequence Detail ─── */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {/* Emails Scheduled Today */}
+          {/* Emails Scheduled */}
           <div className="card p-5">
             <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
               <CalendarDays className="w-4 h-4 text-purple-400" />
-              Emails Scheduled Today
+              Emails Scheduled
+              <span className="text-[10px] text-dark-500 font-normal ml-1">{dateLabel.toLowerCase()}</span>
               <span className="ml-auto px-2 py-0.5 rounded-lg bg-purple-500/10 text-purple-400 text-[10px] font-bold">
-                {totalFollowupsToday}
+                {totalEmailsScheduled}
               </span>
             </h3>
-            {(data?.followupsDueToday?.length || 0) > 0 ? (
+            {emailsScheduledInRange.length > 0 ? (
               <div className="space-y-2.5">
-                {data.followupsDueToday.map((r, i) => {
-                  const pct = totalFollowupsToday > 0 ? (r.count / totalFollowupsToday) * 100 : 0;
+                {emailsScheduledInRange.map((r, i) => {
+                  const pct = totalEmailsScheduled > 0 ? (r.count / totalEmailsScheduled) * 100 : 0;
                   return (
                     <div key={i}>
                       <div className="flex items-center justify-between mb-1">
@@ -628,15 +765,16 @@ export default function TeamDashboardPage() {
                 })}
               </div>
             ) : (
-              <p className="text-dark-600 text-[11px] py-4 text-center">No emails scheduled today</p>
+              <p className="text-dark-600 text-[11px] py-4 text-center">No emails scheduled for {dateLabel.toLowerCase()}</p>
             )}
           </div>
 
-          {/* In Sequence Detail Table */}
+          {/* In Sequence Detail */}
           <div className="card p-5">
             <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
               <Send className="w-4 h-4 text-rivvra-400" />
               In Sequence Detail
+              <span className="text-[10px] text-dark-500 font-normal ml-1">current</span>
               <span className="ml-auto px-2 py-0.5 rounded-lg bg-rivvra-500/10 text-rivvra-400 text-[10px] font-bold">
                 {totalInSequence}
               </span>

@@ -46,6 +46,24 @@ const USE_CASES = [
   { id: 'marketing', label: 'Marketing Research', description: 'Analyze prospects and markets', icon: Building2 },
 ];
 
+// Blocked personal email domains
+const BLOCKED_EMAIL_DOMAINS = [
+  'gmail.com', 'googlemail.com',
+  'yahoo.com', 'yahoo.co.in', 'yahoo.co.uk', 'yahoo.in',
+  'outlook.com', 'hotmail.com', 'live.com', 'msn.com',
+  'icloud.com', 'me.com', 'mac.com',
+  'protonmail.com', 'proton.me',
+  'aol.com', 'mail.com', 'zoho.com', 'yandex.com',
+  'tutanota.com', 'fastmail.com', 'gmx.com', 'gmx.net',
+  'rediffmail.com', 'inbox.com',
+];
+
+const isWorkEmail = (email) => {
+  if (!email || !email.includes('@')) return false;
+  const domain = email.toLowerCase().trim().split('@')[1];
+  return !BLOCKED_EMAIL_DOMAINS.includes(domain);
+};
+
 // Password strength checker
 const checkPasswordStrength = (password) => {
   const checks = {
@@ -130,6 +148,10 @@ function SignupPage() {
     e.preventDefault();
     if (!email || !email.includes('@')) {
       setError('Please enter a valid email address');
+      return;
+    }
+    if (!isWorkEmail(email)) {
+      setError('Please use your work email (e.g. you@company.com). Personal emails like Gmail, Outlook, Yahoo are not allowed.');
       return;
     }
 
@@ -481,19 +503,20 @@ function SignupPage() {
               <form onSubmit={handleEmailSubmit} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-dark-300 mb-2">
-                    Work Email
+                    Work Email <span className="text-red-400">*</span>
                   </label>
                   <div className="relative">
                     <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-dark-500" />
                     <input
                       type="email"
                       value={email}
-                      onChange={(e) => setEmail(e.target.value)}
+                      onChange={(e) => { setEmail(e.target.value); setError(''); }}
                       placeholder="you@company.com"
                       className="input-field pl-12"
                       disabled={loading}
                     />
                   </div>
+                  <p className="text-xs text-dark-500 mt-1.5">Use your company email. Personal emails (Gmail, Outlook, Yahoo) are not allowed.</p>
                 </div>
 
                 <button
@@ -749,21 +772,22 @@ function SignupPage() {
             </div>
           )}
 
-          {/* Step 4: Company Name */}
+          {/* Step 4: Company Name + Title (both required) */}
           {currentStep === STEPS.COMPANY && (
             <div className="space-y-6">
               <div>
                 <h1 className="text-3xl font-bold text-white mb-2">
-                  What's your company name?
+                  Tell us about your work
                 </h1>
                 <p className="text-dark-400">
-                  Help us personalize your experience.
+                  This is required to personalize your outreach emails.
                 </p>
               </div>
 
+              {/* Company Name */}
               <div className="relative">
                 <label className="block text-sm font-medium text-dark-300 mb-2">
-                  Company Name
+                  Company Name <span className="text-red-400">*</span>
                 </label>
                 <div className="relative">
                   <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-dark-500" />
@@ -813,22 +837,32 @@ function SignupPage() {
                 )}
               </div>
 
-              <div className="flex gap-3">
-                <button
-                  onClick={handleQuestionnaireNext}
-                  className="text-dark-400 hover:text-white transition-colors text-sm"
-                >
-                  Skip for now
-                </button>
-                <button
-                  onClick={handleQuestionnaireNext}
-                  disabled={!formData.companyName}
-                  className="btn-primary flex-1 flex items-center justify-center gap-2"
-                >
-                  Continue
-                  <ArrowRight className="w-5 h-5" />
-                </button>
+              {/* Title / Designation (required) */}
+              <div>
+                <label className="block text-sm font-medium text-dark-300 mb-2">
+                  Your Title / Designation <span className="text-red-400">*</span>
+                </label>
+                <div className="relative">
+                  <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-dark-500" />
+                  <input
+                    type="text"
+                    value={formData.senderTitle}
+                    onChange={(e) => setFormData({ ...formData, senderTitle: e.target.value })}
+                    placeholder="e.g. CEO & Co-Founder"
+                    className="input-field pl-12"
+                  />
+                </div>
+                <p className="text-xs text-dark-500 mt-1">Used in email templates as {'{{senderTitle}}'}</p>
               </div>
+
+              <button
+                onClick={handleQuestionnaireNext}
+                disabled={!formData.companyName.trim() || !formData.senderTitle.trim()}
+                className="btn-primary w-full flex items-center justify-center gap-2"
+              >
+                Continue
+                <ArrowRight className="w-5 h-5" />
+              </button>
             </div>
           )}
 
@@ -867,24 +901,6 @@ function SignupPage() {
                     <span className="font-medium text-white">{role.label}</span>
                   </button>
                 ))}
-              </div>
-
-              {/* Title / Designation (optional) */}
-              <div>
-                <label className="block text-sm font-medium text-dark-300 mb-2">
-                  Your Title / Designation <span className="text-dark-500">(optional)</span>
-                </label>
-                <div className="relative">
-                  <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-dark-500" />
-                  <input
-                    type="text"
-                    value={formData.senderTitle}
-                    onChange={(e) => setFormData({ ...formData, senderTitle: e.target.value })}
-                    placeholder="e.g. CEO & Co-Founder"
-                    className="input-field pl-12"
-                  />
-                </div>
-                <p className="text-xs text-dark-500 mt-1">Used in email templates as {'{{senderTitle}}'}</p>
               </div>
 
               <button

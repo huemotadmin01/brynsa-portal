@@ -248,7 +248,7 @@ function LeadsPage() {
   return (
     <Layout>
       <div className={`flex h-full transition-all duration-300 ${selectedLead ? 'mr-[420px]' : ''}`}>
-        <div className="flex-1 p-8 overflow-hidden flex flex-col">
+        <div className="flex-1 p-8 flex flex-col min-h-0">
           {/* Header */}
           <div className="flex items-center justify-between mb-8">
             <div>

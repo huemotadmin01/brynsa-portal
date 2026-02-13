@@ -38,9 +38,17 @@
     font-family: 'Inter', system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-
+    /* Slightly reduce base size on non-retina / smaller screens (Windows laptops) */
+    font-size: 15px;
   }
-  
+
+  /* Retina / HiDPI screens (MacBooks) keep standard sizing */
+  @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+    html {
+      font-size: 16px;
+    }
+  }
+
   body {
     @apply bg-dark-950 text-white m-0;
   }

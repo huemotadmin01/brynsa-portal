@@ -224,9 +224,12 @@ export default function TeamDashboardPage() {
   const leadsScrapedInRange = data?.leadsScrapedInRange || [];
   const leadsScrapedThisWeek = data?.leadsScrapedThisWeek || [];
   const emailsScheduledInRange = data?.emailsScheduledInRange || [];
+  const emailsSentInRange = data?.emailsSentInRange || [];
+  const leaderboard = data?.leaderboard || [];
   const totalScrapedInRange = leadsScrapedInRange.reduce((s, r) => s + r.count, 0);
   const totalScrapedWeek = leadsScrapedThisWeek.reduce((s, r) => s + r.count, 0);
   const totalEmailsScheduled = emailsScheduledInRange.reduce((s, r) => s + r.count, 0);
+  const totalEmailsSentInRange = emailsSentInRange.reduce((s, r) => s + r.count, 0);
 
   // Pipeline: Total → In Sequence → Replied
   const pipelineSteps = [
@@ -573,8 +576,50 @@ export default function TeamDashboardPage() {
           </div>
         </div>
 
-        {/* ─── Leaderboard + Scraped Tables ─── */}
+        {/* ─── Emails Sent + Scraped Tables ─── */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {/* Emails Sent — Selected Range */}
+          <div className="card p-5">
+            <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
+              <Send className="w-4 h-4 text-blue-400" />
+              Emails Sent
+              <span className="text-[10px] text-dark-500 font-normal ml-1">{dateLabel.toLowerCase()}</span>
+              <span className="ml-auto px-2 py-0.5 rounded-lg bg-blue-500/10 text-blue-400 text-[10px] font-bold">
+                {totalEmailsSentInRange}
+              </span>
+            </h3>
+            {emailsSentInRange.length > 0 ? (
+              <div className="space-y-2.5">
+                {emailsSentInRange.map((r, i) => {
+                  const pct = totalEmailsSentInRange > 0 ? (r.count / totalEmailsSentInRange) * 100 : 0;
+                  return (
+                    <div key={i}>
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 rounded-full bg-dark-700 flex items-center justify-center flex-shrink-0">
+                            <span className="text-[9px] font-bold text-dark-300">
+                              {r.sourcedBy?.charAt(0)?.toUpperCase() || '?'}
+                            </span>
+                          </div>
+                          <span className="text-xs text-dark-300">{r.sourcedBy}</span>
+                        </div>
+                        <span className="text-xs font-bold text-white">{r.count}</span>
+                      </div>
+                      <div className="ml-8 h-1.5 bg-dark-800 rounded-full overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-blue-500/60 transition-all duration-500"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="text-dark-600 text-[11px] py-4 text-center">No emails sent {dateLabel.toLowerCase()}</p>
+            )}
+          </div>
+
           {/* Leads Scraped — Selected Range + This Week */}
           <div className="card p-5">
             <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
@@ -640,64 +685,57 @@ export default function TeamDashboardPage() {
               </div>
             </div>
           </div>
+        </div>
 
-          {/* Team Leaderboard */}
-          <div className="card p-5">
-            <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
-              <Users className="w-4 h-4 text-blue-400" />
-              Team Leaderboard
-              <span className="text-[10px] text-dark-500 font-normal ml-1">by total contacts saved</span>
-            </h3>
-            {(data?.teamMembers?.length || 0) > 0 ? (
-              <div className="space-y-2">
-                {[...data.teamMembers]
-                  .sort((a, b) => b.leadsScraped - a.leadsScraped)
-                  .map((m, i) => {
-                    const maxScraped = data.teamMembers.reduce((max, tm) => Math.max(max, tm.leadsScraped), 1);
-                    const pct = (m.leadsScraped / maxScraped) * 100;
-                    return (
-                      <div key={m.id} className="group">
-                        <div className="flex items-center gap-3">
-                          <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 text-[9px] font-bold ${
-                            i === 0 ? 'bg-amber-500/20 text-amber-400'
-                            : i === 1 ? 'bg-dark-600 text-dark-300'
-                            : i === 2 ? 'bg-orange-900/30 text-orange-400'
-                            : 'bg-dark-800 text-dark-500'
-                          }`}>
-                            {i + 1}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between mb-1">
-                              <span className="text-xs text-dark-300 truncate">
-                                {m.name || m.email?.split('@')[0]}
-                                {m.role === 'admin' && (
-                                  <span className="ml-1.5 text-[9px] text-rivvra-400 bg-rivvra-500/10 px-1 py-0.5 rounded">Admin</span>
-                                )}
-                                {m.role === 'team_lead' && (
-                                  <span className="ml-1.5 text-[9px] text-amber-400 bg-amber-500/10 px-1 py-0.5 rounded">Lead</span>
-                                )}
-                              </span>
-                              <span className="text-xs font-bold text-white ml-2">{m.leadsScraped.toLocaleString()}</span>
-                            </div>
-                            <div className="h-1.5 bg-dark-800 rounded-full overflow-hidden">
-                              <div
-                                className="h-full rounded-full transition-all duration-500"
-                                style={{
-                                  width: `${pct}%`,
-                                  backgroundColor: i === 0 ? '#22c55e' : i === 1 ? '#3b82f6' : '#6b7280'
-                                }}
-                              />
-                            </div>
-                          </div>
+        {/* ─── Team Leaderboard ─── */}
+        <div className="card p-5">
+          <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
+            <Users className="w-4 h-4 text-blue-400" />
+            Team Leaderboard
+            <span className="text-[10px] text-dark-500 font-normal ml-1">by total contacts sourced</span>
+            <span className="ml-auto px-2 py-0.5 rounded-lg bg-blue-500/10 text-blue-400 text-[10px] font-bold">
+              {(data?.totalLeads || 0).toLocaleString()} total
+            </span>
+          </h3>
+          {leaderboard.length > 0 ? (
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-2.5">
+              {leaderboard.map((entry, i) => {
+                const maxCount = leaderboard[0]?.count || 1;
+                const pct = (entry.count / maxCount) * 100;
+                return (
+                  <div key={i} className="group">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 text-[9px] font-bold ${
+                        i === 0 ? 'bg-amber-500/20 text-amber-400'
+                        : i === 1 ? 'bg-dark-600 text-dark-300'
+                        : i === 2 ? 'bg-orange-900/30 text-orange-400'
+                        : 'bg-dark-800 text-dark-500'
+                      }`}>
+                        {i + 1}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs text-dark-300 truncate">{entry.sourcedBy}</span>
+                          <span className="text-xs font-bold text-white ml-2">{entry.count.toLocaleString()}</span>
+                        </div>
+                        <div className="h-1.5 bg-dark-800 rounded-full overflow-hidden">
+                          <div
+                            className="h-full rounded-full transition-all duration-500"
+                            style={{
+                              width: `${pct}%`,
+                              backgroundColor: i === 0 ? '#22c55e' : i === 1 ? '#3b82f6' : '#6b7280'
+                            }}
+                          />
                         </div>
                       </div>
-                    );
-                  })}
-              </div>
-            ) : (
-              <p className="text-dark-600 text-[11px] py-2 text-center">No team members</p>
-            )}
-          </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-dark-600 text-[11px] py-2 text-center">No contacts sourced yet</p>
+          )}
         </div>
 
         {/* ─── Status Breakdown ─── */}

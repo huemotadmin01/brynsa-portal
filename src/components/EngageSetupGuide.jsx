@@ -5,6 +5,7 @@ import {
   ArrowRight, Building2, Briefcase, Loader2, X, Search
 } from 'lucide-react';
 import api from '../utils/api';
+import { useAuth } from '../context/AuthContext';
 
 const STEPS = [
   {
@@ -32,6 +33,7 @@ const STEPS = [
 
 function EngageSetupGuide({ setupStatus, onConnectGmail, onSetupComplete, onRefresh }) {
   const navigate = useNavigate();
+  const { updateUser, user } = useAuth();
   const [senderTitle, setSenderTitle] = useState(setupStatus?.senderTitle || '');
   const [companyName, setCompanyName] = useState(setupStatus?.companyName || '');
   const [savingProfile, setSavingProfile] = useState(false);
@@ -121,6 +123,11 @@ function EngageSetupGuide({ setupStatus, onConnectGmail, onSetupComplete, onRefr
       // Single call: updateProfile handles senderTitle + companyName (upserts company + sets onboarding.companyName)
       await api.updateProfile({ senderTitle: senderTitle.trim(), companyName: companyName.trim() });
       setProfileSaved(true);
+      // Update global auth context so Settings page reflects changes immediately
+      updateUser({
+        senderTitle: senderTitle.trim(),
+        onboarding: { ...user?.onboarding, companyName: companyName.trim() }
+      });
       // Await refresh so setupStatus.allComplete updates before we dismiss
       if (onRefresh) await onRefresh();
       // Brief delay so user sees the "Saved" checkmark, then auto-dismiss

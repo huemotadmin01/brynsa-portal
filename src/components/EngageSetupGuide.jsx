@@ -68,10 +68,10 @@ function EngageSetupGuide({ setupStatus, onConnectGmail, onSetupComplete, onRefr
     if (!senderTitle.trim() || !companyName.trim()) return;
     setSavingProfile(true);
     try {
-      // Save title
+      // Save title via profile endpoint
       await api.updateProfile({ senderTitle: senderTitle.trim() });
-      // Save company name via onboarding update
-      await api.updateOnboarding({ companyName: companyName.trim() });
+      // Save company name + title via onboarding (both required)
+      await api.updateOnboarding({ companyName: companyName.trim(), senderTitle: senderTitle.trim() });
       setProfileSaved(true);
       setTimeout(() => setProfileSaved(false), 2000);
       if (onRefresh) onRefresh();

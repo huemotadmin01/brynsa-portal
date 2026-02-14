@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Mail, User, CheckCircle2, ChevronRight, Sparkles,
-  ArrowRight, Building2, Briefcase, Loader2, X
+  ArrowRight, Building2, Briefcase, Loader2, X, Search
 } from 'lucide-react';
 import api from '../utils/api';
 
@@ -39,6 +39,12 @@ function EngageSetupGuide({ setupStatus, onConnectGmail, onSetupComplete, onRefr
   const [expandedStep, setExpandedStep] = useState(null);
   const [dismissed, setDismissed] = useState(false);
 
+  // Company autocomplete state
+  const [companySuggestions, setCompanySuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [searchingCompanies, setSearchingCompanies] = useState(false);
+  const companyRef = useRef(null);
+
   const gmailDone = setupStatus?.gmailConnected;
   const profileDone = setupStatus?.profileComplete;
   const allDone = setupStatus?.allComplete;
@@ -61,8 +67,50 @@ function EngageSetupGuide({ setupStatus, onConnectGmail, onSetupComplete, onRefr
     }
   }, [allDone]);
 
+  // Outside-click to close company dropdown
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (companyRef.current && !companyRef.current.contains(e.target)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const completedCount = (gmailDone ? 1 : 0) + (profileDone ? 1 : 0) + (allDone ? 1 : 0);
   const progress = allDone ? 100 : gmailDone && profileDone ? 100 : gmailDone || profileDone ? 50 : 0;
+
+  // Company autocomplete search
+  const handleCompanySearch = async (value) => {
+    setCompanyName(value);
+    if (value.length < 2) {
+      setCompanySuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+    setSearchingCompanies(true);
+    try {
+      const res = await api.searchCompanies(value);
+      if (res.success && res.companies.length > 0) {
+        setCompanySuggestions(res.companies);
+        setShowSuggestions(true);
+      } else {
+        setCompanySuggestions([]);
+        setShowSuggestions(false);
+      }
+    } catch (err) {
+      setCompanySuggestions([]);
+    } finally {
+      setSearchingCompanies(false);
+    }
+  };
+
+  const selectCompany = (company) => {
+    setCompanyName(company.name);
+    setShowSuggestions(false);
+    setCompanySuggestions([]);
+  };
 
   const handleSaveProfile = async () => {
     if (!senderTitle.trim() || !companyName.trim()) return;
@@ -73,8 +121,9 @@ function EngageSetupGuide({ setupStatus, onConnectGmail, onSetupComplete, onRefr
       // Save company name + title via onboarding (both required)
       await api.updateOnboarding({ companyName: companyName.trim(), senderTitle: senderTitle.trim() });
       setProfileSaved(true);
-      setTimeout(() => setProfileSaved(false), 2000);
       if (onRefresh) onRefresh();
+      // Auto-dismiss after successful save
+      setTimeout(() => setDismissed(true), 800);
     } catch (err) {
       console.error('Failed to save profile:', err);
     } finally {
@@ -248,18 +297,51 @@ function EngageSetupGuide({ setupStatus, onConnectGmail, onSetupComplete, onRefr
                               className="w-full px-3 py-2 bg-dark-900 border border-dark-600 rounded-lg text-sm text-white placeholder:text-dark-500 focus:outline-none focus:border-rivvra-500 transition-colors"
                             />
                           </div>
-                          <div>
+                          <div ref={companyRef} className="relative">
                             <label className="block text-xs text-dark-400 mb-1.5">
                               <Building2 className="w-3 h-3 inline mr-1" />
                               Company name
                             </label>
-                            <input
-                              type="text"
-                              value={companyName}
-                              onChange={(e) => setCompanyName(e.target.value)}
-                              placeholder="e.g. Acme Corp"
-                              className="w-full px-3 py-2 bg-dark-900 border border-dark-600 rounded-lg text-sm text-white placeholder:text-dark-500 focus:outline-none focus:border-rivvra-500 transition-colors"
-                            />
+                            <div className="relative">
+                              <input
+                                type="text"
+                                value={companyName}
+                                onChange={(e) => handleCompanySearch(e.target.value)}
+                                placeholder="Search or type company name"
+                                className="w-full px-3 py-2 bg-dark-900 border border-dark-600 rounded-lg text-sm text-white placeholder:text-dark-500 focus:outline-none focus:border-rivvra-500 transition-colors pr-8"
+                              />
+                              {searchingCompanies && (
+                                <Loader2 className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-dark-500 animate-spin" />
+                              )}
+                            </div>
+                            {/* Company suggestions dropdown */}
+                            {showSuggestions && companySuggestions.length > 0 && (
+                              <div className="absolute z-50 w-full mt-1 bg-dark-800 border border-dark-600 rounded-lg shadow-xl max-h-48 overflow-y-auto">
+                                {companySuggestions.map((company) => (
+                                  <button
+                                    key={company._id}
+                                    onClick={() => selectCompany(company)}
+                                    className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-dark-700 transition-colors text-left"
+                                  >
+                                    {company.logo ? (
+                                      <img src={company.logo} alt="" className="w-6 h-6 rounded object-cover flex-shrink-0" />
+                                    ) : (
+                                      <div className="w-6 h-6 rounded bg-dark-600 flex items-center justify-center flex-shrink-0">
+                                        <Building2 className="w-3 h-3 text-dark-400" />
+                                      </div>
+                                    )}
+                                    <div className="flex-1 min-w-0">
+                                      <div className="text-sm text-white truncate">{company.name}</div>
+                                      {(company.domain || company.industry) && (
+                                        <div className="text-[11px] text-dark-400 truncate">
+                                          {[company.domain, company.industry].filter(Boolean).join(' · ')}
+                                        </div>
+                                      )}
+                                    </div>
+                                  </button>
+                                ))}
+                              </div>
+                            )}
                           </div>
                           <button
                             onClick={handleSaveProfile}

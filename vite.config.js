@@ -9,5 +9,10 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: false,
+    // Strip console.log/warn from production builds (keep console.error for debugging)
+    minify: 'esbuild',
+  },
+  esbuild: {
+    drop: process.env.NODE_ENV === 'production' ? ['console', 'debugger'] : [],
   },
 })

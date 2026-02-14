@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo, memo } from 'react';
 import { createPortal } from 'react-dom';
 import {
   ArrowLeft, Mail, Clock, Users, Send, Eye, MessageSquare,
@@ -1019,7 +1019,7 @@ function OverviewTab({ sequence, sequenceId, stepStats, isOwner, onToggleStep, o
 
 // ========================== SORTABLE HEADER ==========================
 
-function SortableHeader({ label, sortKey, currentSort, onSort }) {
+const SortableHeader = memo(function SortableHeader({ label, sortKey, currentSort, onSort }) {
   const isActive = currentSort.key === sortKey;
   const isAsc = currentSort.dir === 'asc';
 
@@ -1038,7 +1038,7 @@ function SortableHeader({ label, sortKey, currentSort, onSort }) {
       </span>
     </button>
   );
-}
+});
 
 // ========================== CONTACTS TAB ==========================
 

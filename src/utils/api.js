@@ -3,18 +3,52 @@ import { API_BASE_URL } from './config';
 class ApiClient {
   constructor() {
     this.baseUrl = API_BASE_URL;
+    this._activeControllers = new Map(); // Track in-flight requests for cancellation
+  }
+
+  /**
+   * Cancel all in-flight requests (e.g., on page navigation)
+   */
+  cancelAll() {
+    for (const [key, controller] of this._activeControllers) {
+      controller.abort();
+    }
+    this._activeControllers.clear();
+  }
+
+  /**
+   * Cancel a specific request by its key
+   */
+  cancel(key) {
+    const controller = this._activeControllers.get(key);
+    if (controller) {
+      controller.abort();
+      this._activeControllers.delete(key);
+    }
   }
 
   async request(endpoint, options = {}) {
     const url = `${this.baseUrl}${endpoint}`;
-    
+    const requestKey = options._requestKey || endpoint;
+
+    // Cancel previous request with same key (deduplication)
+    if (options._requestKey) {
+      this.cancel(requestKey);
+    }
+
+    const controller = new AbortController();
+    this._activeControllers.set(requestKey, controller);
+
     const config = {
       headers: {
         'Content-Type': 'application/json',
         ...options.headers,
       },
+      signal: controller.signal,
       ...options,
     };
+    // Remove internal options before passing to fetch
+    delete config._requestKey;
 
     // Add auth token if available
     const token = localStorage.getItem('rivvra_token');
@@ -32,8 +66,13 @@ class ApiClient {
 
       return data;
     } catch (error) {
-      console.error('API Error:', error);
+      if (error.name === 'AbortError') {
+        // Request was cancelled — don't treat as real error
+        throw error;
+      }
       throw error;
+    } finally {
+      this._activeControllers.delete(requestKey);
     }
   }
 
@@ -471,10 +510,22 @@ class ApiClient {
     });
   }
 
-  // Export sequence to CSV
-  async getSequenceExportUrl(sequenceId) {
+  // Export sequence to CSV (secure: token in header, not URL)
+  async exportSequenceCsv(sequenceId) {
     const token = localStorage.getItem('rivvra_token');
-    return `${this.baseUrl}/api/sequences/${sequenceId}/export-csv?token=${token}`;
+    const response = await fetch(`${this.baseUrl}/api/sequences/${sequenceId}/export-csv`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!response.ok) throw new Error('Export failed');
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `sequence-export-${sequenceId}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   }
 
   // Reconcile sequence stats

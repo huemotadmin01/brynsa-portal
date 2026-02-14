@@ -494,8 +494,7 @@ function SequencesTab({
 
   async function handleExportCsv(seqId) {
     try {
-      const url = await api.getSequenceExportUrl(seqId);
-      window.open(url, '_blank');
+      await api.exportSequenceCsv(seqId);
       onToggleMenu(null);
     } catch (err) {
       console.error('Export CSV error:', err);

@@ -1,6 +1,7 @@
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
+import ErrorBoundary from './components/ErrorBoundary';
 import LandingPage from './pages/LandingPage';
 import SignupPage from './pages/SignupPage';
 import LoginPage from './pages/LoginPage';
@@ -18,6 +19,7 @@ function App() {
   return (
     <AuthProvider>
       <ToastProvider>
+      <ErrorBoundary>
       <Router>
         <Routes>
           {/* Public Routes */}
@@ -107,6 +109,7 @@ function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Router>
+      </ErrorBoundary>
       </ToastProvider>
     </AuthProvider>
   );

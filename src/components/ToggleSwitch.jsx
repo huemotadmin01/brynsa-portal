@@ -1,4 +1,6 @@
-function ToggleSwitch({ checked, onChange, size = 'default' }) {
+import { memo } from 'react';
+
+const ToggleSwitch = memo(function ToggleSwitch({ checked, onChange, size = 'default' }) {
   const sizes = {
     small: { track: 'w-8 h-4', thumb: 'w-3 h-3 top-0.5 left-0.5', translate: 'translate-x-4' },
     default: { track: 'w-10 h-5', thumb: 'w-4 h-4 top-0.5 left-0.5', translate: 'translate-x-5' },
@@ -22,6 +24,6 @@ function ToggleSwitch({ checked, onChange, size = 'default' }) {
       />
     </button>
   );
-}
+});
 
 export default ToggleSwitch;

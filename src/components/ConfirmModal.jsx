@@ -1,4 +1,6 @@
-export default function ConfirmModal({ title, message, onConfirm, onCancel, confirmLabel = 'Confirm', danger = false }) {
+import { memo } from 'react';
+
+export default memo(function ConfirmModal({ title, message, onConfirm, onCancel, confirmLabel = 'Confirm', danger = false }) {
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-dark-950/80 backdrop-blur-sm" onClick={onCancel} />
@@ -26,4 +28,4 @@ export default function ConfirmModal({ title, message, onConfirm, onCancel, conf
       </div>
     </div>
   );
-}
+});

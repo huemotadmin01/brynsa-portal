@@ -36,6 +36,7 @@ function EngageSetupGuide({ setupStatus, onConnectGmail, onSetupComplete, onRefr
   const [companyName, setCompanyName] = useState(setupStatus?.companyName || '');
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileSaved, setProfileSaved] = useState(false);
+  const [saveError, setSaveError] = useState('');
   const [expandedStep, setExpandedStep] = useState(null);
   const [dismissed, setDismissed] = useState(false);
 
@@ -115,17 +116,17 @@ function EngageSetupGuide({ setupStatus, onConnectGmail, onSetupComplete, onRefr
   const handleSaveProfile = async () => {
     if (!senderTitle.trim() || !companyName.trim()) return;
     setSavingProfile(true);
+    setSaveError('');
     try {
-      // Save title via profile endpoint
-      await api.updateProfile({ senderTitle: senderTitle.trim() });
-      // Save company name + title via onboarding (both required)
-      await api.updateOnboarding({ companyName: companyName.trim(), senderTitle: senderTitle.trim() });
+      // Single call: updateProfile handles senderTitle + companyName (upserts company + sets onboarding.companyName)
+      await api.updateProfile({ senderTitle: senderTitle.trim(), companyName: companyName.trim() });
       setProfileSaved(true);
-      if (onRefresh) onRefresh();
-      // Auto-dismiss after successful save
-      setTimeout(() => setDismissed(true), 800);
+      // Await refresh so setupStatus.allComplete updates before we dismiss
+      if (onRefresh) await onRefresh();
+      // Brief delay so user sees the "Saved" checkmark, then auto-dismiss
+      setTimeout(() => setDismissed(true), 600);
     } catch (err) {
-      console.error('Failed to save profile:', err);
+      setSaveError(err.message || 'Failed to save. Please try again.');
     } finally {
       setSavingProfile(false);
     }
@@ -365,6 +366,9 @@ function EngageSetupGuide({ setupStatus, onConnectGmail, onSetupComplete, onRefr
                               </>
                             )}
                           </button>
+                          {saveError && (
+                            <p className="text-xs text-red-400 mt-1">{saveError}</p>
+                          )}
                         </div>
                       )}
 

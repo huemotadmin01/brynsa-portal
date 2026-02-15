@@ -66,6 +66,9 @@ function SequenceDetailPage({ sequenceId, onBack }) {
   const [emailLogPage, setEmailLogPage] = useState(1);
   const [emailLogLoading, setEmailLogLoading] = useState(false);
 
+  // Pre-selected enrollment (when clicking contact name on Contacts tab)
+  const [preselectedEnrollment, setPreselectedEnrollment] = useState(null);
+
   // Modals
   const [showAddContacts, setShowAddContacts] = useState(false);
   const [showStepEditor, setShowStepEditor] = useState(null); // { stepIndex, step }
@@ -474,6 +477,10 @@ function SequenceDetailPage({ sequenceId, onBack }) {
           onReloadEnrollments={loadEnrollments}
           onBulkPause={handleBulkPause}
           onBulkRemove={handleBulkRemove}
+          onViewContactEmails={(enrollment) => {
+            setPreselectedEnrollment(enrollment);
+            setActiveTab('emails');
+          }}
         />
       )}
       {activeTab === 'emails' && (
@@ -487,6 +494,8 @@ function SequenceDetailPage({ sequenceId, onBack }) {
           onLoadMore={() => loadEmailLog(emailLogPage + 1)}
           onReloadEnrollments={loadEnrollments}
           user={user}
+          initialSelectedEnrollment={preselectedEnrollment}
+          onConsumePreselection={() => setPreselectedEnrollment(null)}
         />
       )}
       {activeTab === 'automation' && (
@@ -1042,7 +1051,7 @@ const SortableHeader = memo(function SortableHeader({ label, sortKey, currentSor
 
 // ========================== CONTACTS TAB ==========================
 
-function ContactsTab({ sequence, enrollments, enrollmentTotal, user, onLoadMore, onRemoveEnrollment, onPauseEnrollment, onMarkReplied, onReloadEnrollments, onBulkPause, onBulkRemove }) {
+function ContactsTab({ sequence, enrollments, enrollmentTotal, user, onLoadMore, onRemoveEnrollment, onPauseEnrollment, onMarkReplied, onReloadEnrollments, onBulkPause, onBulkRemove, onViewContactEmails }) {
   const [contactSearch, setContactSearch] = useState('');
   const [contactFilter, setContactFilter] = useState('all');
   const [showContactFilter, setShowContactFilter] = useState(false);
@@ -1483,8 +1492,13 @@ function ContactsTab({ sequence, enrollments, enrollmentTotal, user, onLoadMore,
                       />
                     </td>
                     <td className="py-3 px-4">
-                      <div className="text-white font-medium text-sm">{enrollment.leadName}</div>
-                      <div className="text-dark-500 text-xs">{enrollment.leadTitle ? `${enrollment.leadTitle}, ` : ''}{enrollment.leadCompany || ''}</div>
+                      <button
+                        onClick={() => onViewContactEmails && onViewContactEmails(enrollment)}
+                        className="text-left group"
+                      >
+                        <div className="text-white font-medium text-sm group-hover:text-rivvra-400 transition-colors">{enrollment.leadName}</div>
+                        <div className="text-dark-500 text-xs">{enrollment.leadTitle ? `${enrollment.leadTitle}, ` : ''}{enrollment.leadCompany || ''}</div>
+                      </button>
                     </td>
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-1.5">
@@ -1644,7 +1658,7 @@ function ContactsTab({ sequence, enrollments, enrollmentTotal, user, onLoadMore,
 
 // ========================== EMAILS TAB (SPLIT-PANE - LUSHA STYLE) ==========================
 
-function EmailsTab({ sequenceId, sequence, enrollments, emails, total, loading, onLoadMore, onReloadEnrollments, user }) {
+function EmailsTab({ sequenceId, sequence, enrollments, emails, total, loading, onLoadMore, onReloadEnrollments, user, initialSelectedEnrollment, onConsumePreselection }) {
   const [selectedContact, setSelectedContact] = useState(null);
   const [contactEmails, setContactEmails] = useState([]);
   const [contactEmailsLoading, setContactEmailsLoading] = useState(false);
@@ -1652,6 +1666,14 @@ function EmailsTab({ sequenceId, sequence, enrollments, emails, total, loading, 
   const [expandedEmails, setExpandedEmails] = useState(new Set());
   const [contactPage, setContactPage] = useState(1);
   const contactsPerPage = 15;
+
+  // Auto-select contact when navigating from Contacts tab
+  useEffect(() => {
+    if (initialSelectedEnrollment && enrollments.length > 0) {
+      handleSelectContact(initialSelectedEnrollment);
+      if (onConsumePreselection) onConsumePreselection();
+    }
+  }, [initialSelectedEnrollment, enrollments.length]);
 
   // Load enrollments if needed for the contact list
   useEffect(() => {

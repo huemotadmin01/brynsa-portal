@@ -106,11 +106,35 @@ function SequenceDetailPage({ sequenceId, onBack }) {
   const loadEmailLog = useCallback(async (page = 1) => {
     setEmailLogLoading(true);
     try {
-      const res = await api.getSequenceEmailLog(sequenceId, page);
+      // Fetch with higher limit to get all emails in fewer requests
+      const res = await api.getSequenceEmailLog(sequenceId, page, 100);
       if (res.success) {
-        setEmailLog(prev => page === 1 ? res.emails : [...prev, ...res.emails]);
+        const allEmails = page === 1 ? res.emails : [...emailLog, ...res.emails];
+        setEmailLog(allEmails);
         setEmailLogTotal(res.pagination.total);
         setEmailLogPage(page);
+        // Auto-load remaining pages if there are more
+        if (allEmails.length < res.pagination.total) {
+          // Load next page without setting loading state again
+          const nextPage = page + 1;
+          const nextRes = await api.getSequenceEmailLog(sequenceId, nextPage, 100);
+          if (nextRes.success && nextRes.emails.length > 0) {
+            const combined = [...allEmails, ...nextRes.emails];
+            setEmailLog(combined);
+            setEmailLogPage(nextPage);
+            // Continue loading if still more
+            let currentEmails = combined;
+            let currentPage = nextPage;
+            while (currentEmails.length < res.pagination.total) {
+              currentPage++;
+              const moreRes = await api.getSequenceEmailLog(sequenceId, currentPage, 100);
+              if (!moreRes.success || moreRes.emails.length === 0) break;
+              currentEmails = [...currentEmails, ...moreRes.emails];
+              setEmailLog(currentEmails);
+              setEmailLogPage(currentPage);
+            }
+          }
+        }
       }
     } catch (err) {
       console.error('Failed to load email log:', err);

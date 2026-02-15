@@ -1666,11 +1666,26 @@ function EmailsTab({ sequenceId, sequence, enrollments, emails, total, loading, 
   const [expandedEmails, setExpandedEmails] = useState(new Set());
   const [contactPage, setContactPage] = useState(1);
   const contactsPerPage = 15;
+  const contactRefs = useRef({});
 
   // Auto-select contact when navigating from Contacts tab
   useEffect(() => {
     if (initialSelectedEnrollment && enrollments.length > 0) {
       handleSelectContact(initialSelectedEnrollment);
+
+      // Navigate to the correct page where this contact exists in the list
+      const contactIndex = enrollments.findIndex(e => e._id === initialSelectedEnrollment._id);
+      if (contactIndex >= 0) {
+        const targetPage = Math.floor(contactIndex / contactsPerPage) + 1;
+        setContactPage(targetPage);
+
+        // Scroll the contact into view after page renders
+        setTimeout(() => {
+          const ref = contactRefs.current[initialSelectedEnrollment._id];
+          if (ref) ref.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 100);
+      }
+
       if (onConsumePreselection) onConsumePreselection();
     }
   }, [initialSelectedEnrollment, enrollments.length]);
@@ -1782,9 +1797,9 @@ function EmailsTab({ sequenceId, sequence, enrollments, emails, total, loading, 
     }
   }, [enrollments]);
 
-  // Auto-select first contact
+  // Auto-select first contact (only if no preselection is pending)
   useEffect(() => {
-    if (!selectedContact && paginatedContacts.length > 0) {
+    if (!selectedContact && !initialSelectedEnrollment && paginatedContacts.length > 0) {
       handleSelectContact(paginatedContacts[0]);
     }
   }, [enrollments.length]);
@@ -1870,6 +1885,7 @@ function EmailsTab({ sequenceId, sequence, enrollments, emails, total, loading, 
             return (
               <button
                 key={enrollment._id}
+                ref={el => { contactRefs.current[enrollment._id] = el; }}
                 onClick={() => handleSelectContact(enrollment)}
                 className={`w-full text-left px-4 py-3 border-b border-dark-800 transition-colors ${
                   isActive ? 'bg-dark-800' : 'hover:bg-dark-800/40'

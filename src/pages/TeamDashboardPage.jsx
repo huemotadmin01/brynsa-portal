@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
   BarChart3, RefreshCw, Loader2, Users, Mail, Send, Eye,
@@ -21,6 +22,7 @@ const STATUS_CONFIG = {
   replied_not_interested: { label: 'Not Interested', color: '#ef4444' },
   no_response: { label: 'No Response', color: '#f59e0b' },
   bounced: { label: 'Bounced', color: '#f97316' },
+  lost_no_response: { label: 'Lost / No Response', color: '#94a3b8' },
 };
 
 // Helper: format date as YYYY-MM-DD for input[type=date] using LOCAL time (not UTC)
@@ -74,6 +76,7 @@ function PieTooltip({ active, payload }) {
 
 export default function TeamDashboardPage() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -129,10 +132,12 @@ export default function TeamDashboardPage() {
     }
   }, [canView, fetchData]);
 
-  // Auto-refresh every 30 seconds
+  // Auto-refresh every 30 seconds (paused when tab is hidden)
   useEffect(() => {
     if (!canView) return;
-    const interval = setInterval(() => fetchData(), 30000);
+    const interval = setInterval(() => {
+      if (!document.hidden) fetchData();
+    }, 30000);
     return () => clearInterval(interval);
   }, [canView, fetchData]);
 
@@ -148,6 +153,14 @@ export default function TeamDashboardPage() {
     return () => document.removeEventListener('mousedown', handleClick);
   }, [showDateDropdown]);
 
+  // Close date dropdown on Escape key
+  useEffect(() => {
+    if (!showDateDropdown) return;
+    const handleEsc = (e) => { if (e.key === 'Escape') setShowDateDropdown(false); };
+    document.addEventListener('keydown', handleEsc);
+    return () => document.removeEventListener('keydown', handleEsc);
+  }, [showDateDropdown]);
+
   // Computed email rates
   const emailOpenRate = useMemo(() => {
     if (!data?.emailStats?.sent) return 0;
@@ -155,7 +168,7 @@ export default function TeamDashboardPage() {
   }, [data]);
 
   const emailClickRate = useMemo(() => {
-    if (!data?.emailStats?.opened) return 0;
+    if (!data?.emailStats?.opened || !data?.emailStats?.clicked) return 0;
     return ((data.emailStats.clicked / data.emailStats.opened) * 100).toFixed(1);
   }, [data]);
 
@@ -233,9 +246,9 @@ export default function TeamDashboardPage() {
 
   // Pipeline: Total → In Sequence → Replied
   const pipelineSteps = [
-    { label: 'Total Leads', value: data?.totalLeads || 0, color: '#6b7280' },
-    { label: 'In Sequence', value: totalInSequence, color: '#3b82f6' },
-    { label: 'Replied', value: data?.repliedCount || 0, color: '#22c55e' },
+    { label: 'Total Leads', value: data?.totalLeads || 0, color: '#6b7280', link: '/leads' },
+    { label: 'In Sequence', value: totalInSequence, color: '#3b82f6', link: '/engage' },
+    { label: 'Responded', value: data?.repliedCount || 0, color: '#22c55e', link: '/leads' },
   ];
 
   return (
@@ -346,6 +359,13 @@ export default function TeamDashboardPage() {
           </div>
         )}
 
+        {refreshing && (
+          <div className="fixed top-4 right-4 z-50 flex items-center gap-2 px-3 py-1.5 bg-dark-800 border border-dark-700 rounded-lg shadow-lg">
+            <Loader2 className="w-3 h-3 text-rivvra-400 animate-spin" />
+            <span className="text-xs text-dark-400">Updating...</span>
+          </div>
+        )}
+
         {/* ─── KPI Cards Row ─── */}
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
           <KPICard
@@ -355,6 +375,7 @@ export default function TeamDashboardPage() {
             gradient="from-blue-500/20 to-blue-600/5"
             iconColor="text-blue-400"
             subtitle="all time"
+            onClick={() => navigate('/leads')}
           />
           <KPICard
             label="In Sequence"
@@ -363,6 +384,7 @@ export default function TeamDashboardPage() {
             gradient="from-rivvra-500/20 to-rivvra-600/5"
             iconColor="text-rivvra-400"
             subtitle="current"
+            onClick={() => navigate('/engage')}
           />
           <KPICard
             label="Response Rate"
@@ -371,6 +393,7 @@ export default function TeamDashboardPage() {
             gradient="from-emerald-500/20 to-emerald-600/5"
             iconColor="text-emerald-400"
             subtitle={`${data?.responseRate?.replied || 0} of ${data?.responseRate?.totalContacted || 0}`}
+            onClick={() => navigate('/leads')}
           />
           <KPICard
             label={`Scraped`}
@@ -379,6 +402,7 @@ export default function TeamDashboardPage() {
             gradient="from-amber-500/20 to-amber-600/5"
             iconColor="text-amber-400"
             subtitle={dateLabel.toLowerCase()}
+            onClick={() => navigate('/leads')}
           />
           <KPICard
             label="Emails Scheduled"
@@ -387,6 +411,7 @@ export default function TeamDashboardPage() {
             gradient="from-purple-500/20 to-purple-600/5"
             iconColor="text-purple-400"
             subtitle={dateLabel.toLowerCase()}
+            onClick={() => navigate('/engage')}
           />
         </div>
 
@@ -402,7 +427,11 @@ export default function TeamDashboardPage() {
               const maxVal = pipelineSteps[0].value || 1;
               const widthPct = Math.max(((step.value / maxVal) * 100), 8);
               return (
-                <div key={i} className="flex-1 min-w-0">
+                <div
+                  key={i}
+                  className={`flex-1 min-w-0 ${step.link ? 'cursor-pointer' : ''}`}
+                  onClick={() => step.link && navigate(step.link)}
+                >
                   <div className="flex items-center justify-between mb-1.5">
                     <span className="text-[11px] text-dark-400 truncate">{step.label}</span>
                     <span className="text-xs font-bold text-white ml-2">{step.value.toLocaleString()}</span>
@@ -431,9 +460,9 @@ export default function TeamDashboardPage() {
           <div className="lg:col-span-3 card p-5">
             <h3 className="text-sm font-semibold text-white mb-1 flex items-center gap-2">
               <Send className="w-4 h-4 text-rivvra-400" />
-              In Sequence by Sourced By
+              In Sequence by Team Member
             </h3>
-            <p className="text-[11px] text-dark-500 mb-4">Current active sequence contacts grouped by who sourced them</p>
+            <p className="text-[11px] text-dark-500 mb-4">Current active enrollments grouped by team member</p>
             {inSequenceData.length > 0 ? (
               <ResponsiveContainer width="100%" height={260}>
                 <BarChart data={inSequenceData} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
@@ -523,7 +552,7 @@ export default function TeamDashboardPage() {
             Email Performance
             <span className="text-[10px] text-dark-500 font-normal ml-1">All Sequences · all time</span>
           </h3>
-          <div className="grid grid-cols-5 gap-3">
+          <div className="grid grid-cols-6 gap-3">
             <EmailMetricCard
               label="Sent"
               value={data?.emailStats?.sent || 0}
@@ -546,7 +575,7 @@ export default function TeamDashboardPage() {
               label="Clicked"
               value={data?.emailStats?.clicked || 0}
               rate={emailClickRate}
-              rateLabel="click rate"
+              rateLabel="click-to-open"
               icon={MousePointerClick}
               color="text-amber-400"
               bgColor="bg-amber-500/10"
@@ -556,11 +585,20 @@ export default function TeamDashboardPage() {
               label="Interested"
               value={data?.emailStats?.replied || 0}
               rate={emailReplyRate}
-              rateLabel="reply rate"
+              rateLabel="interested rate"
               icon={MessageSquare}
               color="text-emerald-400"
               bgColor="bg-emerald-500/10"
               borderColor="border-emerald-500/20"
+            />
+            <EmailMetricCard
+              label="Not Interested"
+              value={data?.emailStats?.repliedNotInterested || 0}
+              icon={ArrowDownRight}
+              color="text-orange-400"
+              bgColor="bg-orange-500/10"
+              borderColor="border-orange-500/20"
+              negative
             />
             <EmailMetricCard
               label="Bounced"
@@ -645,7 +683,7 @@ export default function TeamDashboardPage() {
                               {r.sourcedBy?.charAt(0)?.toUpperCase() || '?'}
                             </span>
                           </div>
-                          <span className="text-xs text-dark-300 truncate">{r.sourcedBy?.split(' ')[0]}</span>
+                          <span className="text-xs text-dark-300 truncate">{r.sourcedBy}</span>
                         </div>
                         <span className="text-xs font-bold text-white ml-2">{r.count}</span>
                       </div>
@@ -673,7 +711,7 @@ export default function TeamDashboardPage() {
                               {r.sourcedBy?.charAt(0)?.toUpperCase() || '?'}
                             </span>
                           </div>
-                          <span className="text-xs text-dark-300 truncate">{r.sourcedBy?.split(' ')[0]}</span>
+                          <span className="text-xs text-dark-300 truncate">{r.sourcedBy}</span>
                         </div>
                         <span className="text-xs font-bold text-white ml-2">{r.count}</span>
                       </div>
@@ -750,7 +788,11 @@ export default function TeamDashboardPage() {
               const count = data?.leadsByStatus?.[key] || 0;
               const pct = data?.totalLeads > 0 ? ((count / data.totalLeads) * 100).toFixed(1) : '0.0';
               return (
-                <div key={key} className="bg-dark-800/40 rounded-xl p-3.5 border border-dark-700/40 hover:border-dark-600 transition-colors">
+                <button
+                  key={key}
+                  onClick={() => navigate(`/leads?status=${key}`)}
+                  className="bg-dark-800/40 rounded-xl p-3.5 border border-dark-700/40 hover:border-dark-500 transition-all cursor-pointer text-left"
+                >
                   <div className="flex items-center gap-1.5 mb-2">
                     <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: cfg.color }} />
                     <span className="text-[10px] text-dark-400 uppercase tracking-wider truncate">{cfg.label}</span>
@@ -763,7 +805,7 @@ export default function TeamDashboardPage() {
                     />
                   </div>
                   <div className="text-[10px] text-dark-600 mt-1">{pct}%</div>
-                </div>
+                </button>
               );
             })}
           </div>
@@ -776,7 +818,7 @@ export default function TeamDashboardPage() {
             <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
               <CalendarDays className="w-4 h-4 text-purple-400" />
               Emails Scheduled
-              <span className="text-[10px] text-dark-500 font-normal ml-1">{dateLabel.toLowerCase()}</span>
+              <span className="text-[10px] text-dark-500 font-normal ml-1">{dateLabel.toLowerCase()} · contacts due for next email</span>
               <span className="ml-auto px-2 py-0.5 rounded-lg bg-purple-500/10 text-purple-400 text-[10px] font-bold">
                 {totalEmailsScheduled}
               </span>
@@ -865,9 +907,13 @@ export default function TeamDashboardPage() {
 
 /* ─── Sub-components ─── */
 
-function KPICard({ label, value, icon: Icon, gradient, iconColor, subtitle }) {
+function KPICard({ label, value, icon: Icon, gradient, iconColor, subtitle, onClick }) {
+  const Wrapper = onClick ? 'button' : 'div';
   return (
-    <div className={`relative overflow-hidden rounded-xl border border-dark-700/50 bg-gradient-to-br ${gradient} p-4`}>
+    <Wrapper
+      onClick={onClick}
+      className={`relative overflow-hidden rounded-xl border border-dark-700/50 bg-gradient-to-br ${gradient} p-4 text-left w-full ${onClick ? 'cursor-pointer hover:border-dark-500 transition-all' : ''}`}
+    >
       <div className="flex items-start justify-between">
         <div>
           <span className="text-[11px] text-dark-400 uppercase tracking-wider font-medium">{label}</span>
@@ -880,7 +926,7 @@ function KPICard({ label, value, icon: Icon, gradient, iconColor, subtitle }) {
           <Icon className={`w-4 h-4 ${iconColor}`} />
         </div>
       </div>
-    </div>
+    </Wrapper>
   );
 }
 

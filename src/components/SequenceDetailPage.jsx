@@ -1749,14 +1749,30 @@ function EmailsTab({ sequenceId, sequence, enrollments, emails, total, loading, 
     contactPage * contactsPerPage
   );
 
-  // When selecting a contact, filter email log for that contact
+  // When selecting a contact, build email list from enrollment's stepHistory
+  // This is more reliable than filtering the global email log (which is paginated and may miss older emails)
   function handleSelectContact(enrollment) {
     setSelectedContact(enrollment);
     setExpandedEmails(new Set());
 
-    // Filter from the existing email log
-    const filtered = emails.filter(e => e.leadEmail === enrollment.leadEmail);
-    setContactEmails(filtered);
+    // Build contact emails from stepHistory (complete per-contact, not paginated)
+    const history = (enrollment.stepHistory || [])
+      .filter(h => h.type === 'email' && h.status !== undefined)
+      .map(h => ({
+        leadName: enrollment.leadName,
+        leadEmail: enrollment.leadEmail,
+        subject: h.subject || '',
+        sentAt: h.sentAt,
+        status: h.status,
+        opened: h.opened || false,
+        openCount: h.openCount || 0,
+        clicked: h.clicked || false,
+        stepIndex: h.stepIndex,
+        body: h.body || null
+      }))
+      .sort((a, b) => new Date(a.sentAt || 0) - new Date(b.sentAt || 0)); // Oldest first (Email 1, 2, 3...)
+
+    setContactEmails(history);
   }
 
   // Compute next scheduled email for selected contact

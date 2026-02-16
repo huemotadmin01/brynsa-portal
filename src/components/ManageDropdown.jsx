@@ -10,15 +10,19 @@ function ManageDropdown({ lead, onExportCRM, onAddToSequence, onAddToList, onEdi
   const buttonRef = useRef(null);
   const dropdownRef = useRef(null);
 
-  // Calculate dropdown position when opening
+  // Calculate dropdown position when opening — flip above if near viewport bottom
   useEffect(() => {
     if (isOpen && buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect();
       const dropdownWidth = 192; // w-48 = 12rem = 192px
+      const dropdownHeight = 280; // approx max menu height (6 items × ~44px + padding)
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const openAbove = spaceBelow < dropdownHeight && rect.top > dropdownHeight;
 
-      // Position dropdown below button, aligned to right edge
       setDropdownPosition({
-        top: rect.bottom + 4,
+        ...(openAbove
+          ? { top: rect.top - dropdownHeight - 4 }
+          : { top: rect.bottom + 4 }),
         left: rect.right - dropdownWidth,
       });
     }

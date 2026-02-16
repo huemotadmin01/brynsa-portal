@@ -1830,7 +1830,7 @@ function EmailsTab({ sequenceId, sequence, enrollments, enrollmentTotal, onLoadM
         stepIndex: h.stepIndex,
         body: h.body || null
       }))
-      .sort((a, b) => new Date(a.sentAt || 0) - new Date(b.sentAt || 0)); // Oldest first (Email 1, 2, 3...)
+      .sort((a, b) => (b.stepIndex ?? 999) - (a.stepIndex ?? 999)); // Newest first (Email 3, 2, 1)
 
     setContactEmails(history);
   }

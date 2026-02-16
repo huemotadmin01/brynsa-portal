@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
   Home, Send, Users, List, Settings, LogOut,
-  ChevronRight, Crown, BarChart3
+  ChevronRight, Crown, BarChart3, UsersRound
 } from 'lucide-react';
 import RivvraLogo from './BrynsaLogo';
 import ComingSoonModal from './ComingSoonModal';
@@ -26,7 +26,10 @@ function Sidebar() {
     { path: '/leads', label: 'My Contacts', icon: Users },
     { path: '/lists', label: 'My Lists', icon: List },
     ...((user?.role === 'admin' || user?.role === 'team_lead')
-      ? [{ path: '/team-dashboard', label: 'Team Dashboard', icon: BarChart3 }]
+      ? [
+          { path: '/team-dashboard', label: 'Team Dashboard', icon: BarChart3 },
+          { path: '/team-contacts', label: 'Team Contacts', icon: UsersRound },
+        ]
       : []),
   ];
 

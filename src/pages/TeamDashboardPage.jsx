@@ -247,8 +247,8 @@ export default function TeamDashboardPage() {
   // Pipeline: Total → In Sequence → Replied
   const pipelineSteps = [
     { label: 'Total Leads', value: data?.totalLeads || 0, color: '#6b7280', link: '/leads' },
-    { label: 'In Sequence', value: totalInSequence, color: '#3b82f6', link: '/leads?status=in_sequence' },
-    { label: 'Responded', value: data?.repliedCount || 0, color: '#22c55e', link: '/leads?status=replied' },
+    { label: 'In Sequence', value: totalInSequence, color: '#3b82f6', link: '/team-contacts?status=in_sequence' },
+    { label: 'Responded', value: data?.repliedCount || 0, color: '#22c55e', link: '/team-contacts?status=replied' },
   ];
 
   return (
@@ -375,7 +375,7 @@ export default function TeamDashboardPage() {
             gradient="from-blue-500/20 to-blue-600/5"
             iconColor="text-blue-400"
             subtitle="all time"
-            onClick={() => navigate('/leads')}
+            onClick={() => navigate('/team-contacts')}
           />
           <KPICard
             label="In Sequence"
@@ -384,7 +384,7 @@ export default function TeamDashboardPage() {
             gradient="from-rivvra-500/20 to-rivvra-600/5"
             iconColor="text-rivvra-400"
             subtitle="current"
-            onClick={() => navigate('/leads?status=in_sequence')}
+            onClick={() => navigate('/team-contacts?status=in_sequence')}
           />
           <KPICard
             label="Response Rate"
@@ -393,7 +393,7 @@ export default function TeamDashboardPage() {
             gradient="from-emerald-500/20 to-emerald-600/5"
             iconColor="text-emerald-400"
             subtitle={`${data?.responseRate?.replied || 0} of ${data?.responseRate?.totalContacted || 0}`}
-            onClick={() => navigate('/leads?status=replied')}
+            onClick={() => navigate('/team-contacts?status=replied')}
           />
           <KPICard
             label={`Scraped`}
@@ -402,7 +402,7 @@ export default function TeamDashboardPage() {
             gradient="from-amber-500/20 to-amber-600/5"
             iconColor="text-amber-400"
             subtitle={dateLabel.toLowerCase()}
-            onClick={() => navigate('/leads')}
+            onClick={() => navigate('/team-contacts')}
           />
           <KPICard
             label="Emails Scheduled"
@@ -790,7 +790,7 @@ export default function TeamDashboardPage() {
               return (
                 <button
                   key={key}
-                  onClick={() => navigate(`/leads?status=${key}`)}
+                  onClick={() => navigate(`/team-contacts?status=${key}`)}
                   className="bg-dark-800/40 rounded-xl p-3.5 border border-dark-700/40 hover:border-dark-500 transition-all cursor-pointer text-left"
                 >
                   <div className="flex items-center gap-1.5 mb-2">

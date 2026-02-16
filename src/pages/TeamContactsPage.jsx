@@ -1,41 +1,40 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
-  Linkedin, Users, Search, Filter, Download,
-  Mail, MessageSquare, ExternalLink, Building2, MapPin,
-  ChevronLeft, ChevronRight, MoreHorizontal, Bookmark,
-  Crown, ArrowUpDown, RefreshCw, Trash2, AlertTriangle,
-  StickyNote, Phone, UserPlus
+  Linkedin, UsersRound, Search, Filter, Download,
+  Building2, MapPin,
+  ChevronLeft, ChevronRight, Bookmark,
+  ArrowUpDown, RefreshCw, Trash2, AlertTriangle,
+  StickyNote, UserCog
 } from 'lucide-react';
 import Layout from '../components/Layout';
 import LeadDetailPanel from '../components/LeadDetailPanel';
 import ManageDropdown from '../components/ManageDropdown';
+import AssignOwnerModal from '../components/AssignOwnerModal';
 import api from '../utils/api';
 import { exportLeadsToCSV } from '../utils/csvExport';
-import ComingSoonModal from '../components/ComingSoonModal';
 import AddToListModal from '../components/AddToListModal';
 import ExportToCRMModal from '../components/ExportToCRMModal';
 import AddToSequenceModal from '../components/AddToSequenceModal';
 import EditContactModal from '../components/EditContactModal';
-import CreateContactModal from '../components/CreateContactModal';
 import { useToast } from '../context/ToastContext';
 
-function LeadsPage() {
+function TeamContactsPage() {
   const { user } = useAuth();
   const { showToast } = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
   const [leads, setLeads] = useState([]);
+  const [teamMembers, setTeamMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLeads, setSelectedLeads] = useState([]);
   const [showFilters, setShowFilters] = useState(false);
   const [profileTypeFilter, setProfileTypeFilter] = useState('all');
+  const [ownerFilter, setOwnerFilter] = useState(searchParams.get('owner') || 'all');
   const filterRef = useRef(null);
   const filterDropdownRef = useRef(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [showComingSoon, setShowComingSoon] = useState(false);
-  const [comingSoonFeature, setComingSoonFeature] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -50,7 +49,8 @@ function LeadsPage() {
   const [outreachStatusFilter, setOutreachStatusFilter] = useState(searchParams.get('status') || 'all');
   const [showEditContact, setShowEditContact] = useState(false);
   const [editContactTarget, setEditContactTarget] = useState(null);
-  const [showCreateContact, setShowCreateContact] = useState(false);
+  const [showAssignOwner, setShowAssignOwner] = useState(false);
+  const [assignTarget, setAssignTarget] = useState(null);
   const [setupComplete, setSetupComplete] = useState(null);
 
   const leadsPerPage = 10;
@@ -59,17 +59,13 @@ function LeadsPage() {
   const loadLeads = useCallback(async (showRefreshIndicator = false) => {
     if (showRefreshIndicator) setRefreshing(true);
     try {
-      const response = await api.getLeads();
-      console.log('📥 Loaded leads:', response.leads?.length, 'total:', response.total);
-      const deletedLeads = response.leads?.filter(l => l.deleted);
-      if (deletedLeads?.length > 0) {
-        console.warn('⚠️ Found deleted leads in response:', deletedLeads.map(l => l.name));
-      }
+      const response = await api.getTeamLeads();
       if (response.success) {
         setLeads(response.leads || []);
+        setTeamMembers(response.teamMembers || []);
       }
     } catch (err) {
-      console.error('Failed to load leads:', err);
+      console.error('Failed to load team leads:', err);
       setLeads([]);
     } finally {
       setLoading(false);
@@ -77,70 +73,24 @@ function LeadsPage() {
     }
   }, []);
 
-  // Auto-open filters and clear URL param when navigated with ?status=xxx
+  // Auto-open filters and clear URL params when navigated with ?status= or ?owner=
   useEffect(() => {
     const statusParam = searchParams.get('status');
-    if (statusParam && statusParam !== 'all') {
-      setOutreachStatusFilter(statusParam);
+    const ownerParam = searchParams.get('owner');
+    if ((statusParam && statusParam !== 'all') || (ownerParam && ownerParam !== 'all')) {
+      if (statusParam) setOutreachStatusFilter(statusParam);
+      if (ownerParam) setOwnerFilter(ownerParam);
       setShowFilters(true);
-      // Clean the URL param so it doesn't persist on refresh/back
       setSearchParams({}, { replace: true });
     }
-  }, []); // Run once on mount
+  }, []);
 
   useEffect(() => {
     loadLeads();
-    // Check setup status for sequence guard
     api.getSetupStatus().then(res => {
       setSetupComplete(res.success ? res.allComplete : false);
     }).catch(() => setSetupComplete(false));
   }, [loadLeads]);
-
-  const [lastSeenTimestamp, setLastSeenTimestamp] = useState(0);
-
-  useEffect(() => {
-    const handleStorageChange = (e) => {
-      if (e.key === 'rivvra_lead_saved') {
-        console.log('Lead saved from extension (storage event), refreshing...');
-        setTimeout(() => loadLeads(true), 500);
-      }
-    };
-
-    const handleCustomEvent = (e) => {
-      console.log('Lead saved from extension (custom event), refreshing...', e.detail);
-      setTimeout(() => loadLeads(true), 500);
-    };
-
-    const handleFocus = () => checkForNewSaves();
-
-    const checkForNewSaves = () => {
-      const lastSave = localStorage.getItem('rivvra_lead_saved');
-      if (lastSave) {
-        try {
-          const data = JSON.parse(lastSave);
-          const saveTime = data.timestamp;
-          if (saveTime > lastSeenTimestamp) {
-            console.log('New lead detected, refreshing...');
-            setLastSeenTimestamp(saveTime);
-            loadLeads(true);
-          }
-        } catch (err) {}
-      }
-    };
-
-    const pollInterval = setInterval(checkForNewSaves, 2000);
-
-    window.addEventListener('storage', handleStorageChange);
-    window.addEventListener('focus', handleFocus);
-    window.addEventListener('rivvra_lead_saved', handleCustomEvent);
-
-    return () => {
-      clearInterval(pollInterval);
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('focus', handleFocus);
-      window.removeEventListener('rivvra_lead_saved', handleCustomEvent);
-    };
-  }, [loadLeads, lastSeenTimestamp]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -150,22 +100,11 @@ function LeadsPage() {
         setShowFilters(false);
       }
     };
-
     if (showFilters) {
       document.addEventListener('mousedown', handleClickOutside);
     }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showFilters]);
-
-  const handleFeatureClick = (feature) => {
-    if (!isPro) {
-      setComingSoonFeature(feature);
-      setShowComingSoon(true);
-    }
-  };
 
   const handleManualRefresh = () => loadLeads(true);
 
@@ -184,25 +123,17 @@ function LeadsPage() {
     setDeleting(true);
     try {
       if (deleteTarget) {
-        console.log('🗑️ Deleting single lead:', deleteTarget._id);
-        const response = await api.deleteLead(deleteTarget._id);
-        console.log('🗑️ Delete response:', response);
+        await api.deleteLead(deleteTarget._id);
         setLeads(leads.filter(l => l._id !== deleteTarget._id));
-        if (selectedLead?._id === deleteTarget._id) {
-          setSelectedLead(null);
-        }
+        if (selectedLead?._id === deleteTarget._id) setSelectedLead(null);
       } else {
-        console.log('🗑️ Deleting multiple leads:', selectedLeads);
-        const responses = await Promise.all(selectedLeads.map(id => api.deleteLead(id)));
-        console.log('🗑️ Delete responses:', responses);
+        await Promise.all(selectedLeads.map(id => api.deleteLead(id)));
         setLeads(leads.filter(l => !selectedLeads.includes(l._id)));
         setSelectedLeads([]);
-        if (selectedLead && selectedLeads.includes(selectedLead._id)) {
-          setSelectedLead(null);
-        }
+        if (selectedLead && selectedLeads.includes(selectedLead._id)) setSelectedLead(null);
       }
     } catch (err) {
-      console.error('❌ Failed to delete:', err);
+      console.error('Failed to delete:', err);
     } finally {
       setDeleting(false);
       setShowDeleteModal(false);
@@ -210,23 +141,49 @@ function LeadsPage() {
     }
   };
 
-  const handleRowClick = (lead) => {
-    setSelectedLead(lead);
-  };
+  const handleRowClick = (lead) => setSelectedLead(lead);
 
   const handleLeadUpdate = (updatedLead) => {
-    setLeads(leads.map(l => l._id === updatedLead._id ? updatedLead : l));
-    setSelectedLead(updatedLead);
+    setLeads(leads.map(l => l._id === updatedLead._id ? { ...updatedLead, ownerName: l.ownerName } : l));
+    setSelectedLead(prev => prev?._id === updatedLead._id ? { ...updatedLead, ownerName: prev.ownerName } : prev);
   };
 
-  const activeFilterCount = (profileTypeFilter !== 'all' ? 1 : 0) + (outreachStatusFilter !== 'all' ? 1 : 0);
+  const handleAssignOwner = async (newOwnerId) => {
+    try {
+      if (assignTarget) {
+        const res = await api.assignLeadOwner(assignTarget._id, newOwnerId);
+        if (res.success) {
+          setLeads(prev => prev.map(l => l._id === assignTarget._id ? { ...l, ...res.lead } : l));
+          if (selectedLead?._id === assignTarget._id) {
+            setSelectedLead(prev => ({ ...prev, ...res.lead }));
+          }
+          showToast('Contact reassigned successfully', 'success');
+        }
+      } else if (selectedLeads.length > 0) {
+        const results = await Promise.all(
+          selectedLeads.map(id => api.assignLeadOwner(id, newOwnerId))
+        );
+        loadLeads(); // Refresh all to get correct owner names
+        setSelectedLeads([]);
+        const successCount = results.filter(r => r.success).length;
+        showToast(`${successCount} contacts reassigned`, 'success');
+      }
+    } catch (err) {
+      console.error('Failed to assign owner:', err);
+      showToast('Failed to reassign contact', 'error');
+    }
+  };
+
+  const activeFilterCount = (profileTypeFilter !== 'all' ? 1 : 0) + (outreachStatusFilter !== 'all' ? 1 : 0) + (ownerFilter !== 'all' ? 1 : 0);
 
   const filteredLeads = leads.filter(lead => {
     const searchLower = searchQuery.toLowerCase();
     const matchesSearch = !searchQuery ||
       lead.name?.toLowerCase().includes(searchLower) ||
       lead.company?.toLowerCase().includes(searchLower) ||
-      lead.title?.toLowerCase().includes(searchLower);
+      lead.companyName?.toLowerCase().includes(searchLower) ||
+      lead.title?.toLowerCase().includes(searchLower) ||
+      lead.ownerName?.toLowerCase().includes(searchLower);
 
     const matchesProfileType = profileTypeFilter === 'all' ||
       (profileTypeFilter === 'candidate' && lead.profileType === 'candidate') ||
@@ -235,7 +192,9 @@ function LeadsPage() {
     const leadStatus = lead.outreachStatus || 'not_contacted';
     const matchesOutreachStatus = outreachStatusFilter === 'all' || leadStatus === outreachStatusFilter;
 
-    return matchesSearch && matchesProfileType && matchesOutreachStatus;
+    const matchesOwner = ownerFilter === 'all' || lead.userId === ownerFilter;
+
+    return matchesSearch && matchesProfileType && matchesOutreachStatus && matchesOwner;
   });
 
   const totalPages = Math.ceil(filteredLeads.length / leadsPerPage);
@@ -269,29 +228,34 @@ function LeadsPage() {
           {/* Header */}
           <div className="flex items-center justify-between mb-8">
             <div>
-              <h1 className="text-2xl font-bold text-white mb-1">Saved Contacts</h1>
+              <div className="flex items-center gap-3 mb-1">
+                <UsersRound className="w-7 h-7 text-rivvra-400" />
+                <h1 className="text-2xl font-bold text-white">Team Contacts</h1>
+              </div>
               <p className="text-dark-400">
-                {leads.length} contacts saved {selectedLeads.length > 0 && `• ${selectedLeads.length} selected`}
+                {leads.length} contacts across your team {selectedLeads.length > 0 && `\u2022 ${selectedLeads.length} selected`}
               </p>
             </div>
 
             <div className="flex items-center gap-3">
               {selectedLeads.length > 0 && (
-                <button
-                  onClick={handleBulkDelete}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  Delete ({selectedLeads.length})
-                </button>
+                <>
+                  <button
+                    onClick={() => { setAssignTarget(null); setShowAssignOwner(true); }}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-rivvra-500/10 text-rivvra-400 hover:bg-rivvra-500/20 transition-colors"
+                  >
+                    <UserCog className="w-4 h-4" />
+                    Assign ({selectedLeads.length})
+                  </button>
+                  <button
+                    onClick={handleBulkDelete}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Delete ({selectedLeads.length})
+                  </button>
+                </>
               )}
-              <button
-                onClick={() => setShowCreateContact(true)}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-rivvra-500 text-dark-950 font-medium hover:bg-rivvra-400 transition-colors"
-              >
-                <UserPlus className="w-4 h-4" />
-                Add Contact
-              </button>
               <button
                 onClick={handleManualRefresh}
                 disabled={refreshing}
@@ -305,7 +269,7 @@ function LeadsPage() {
                   const leadsToExport = selectedLeads.length > 0
                     ? leads.filter(l => selectedLeads.includes(l._id))
                     : filteredLeads;
-                  if (leadsToExport.length > 0) exportLeadsToCSV(leadsToExport, 'rivvra-contacts');
+                  if (leadsToExport.length > 0) exportLeadsToCSV(leadsToExport, 'team-contacts', { includeOwner: true });
                 }}
                 className="flex items-center gap-2 px-4 py-2 rounded-lg bg-dark-800 text-white hover:bg-dark-700 transition-colors"
               >
@@ -321,7 +285,7 @@ function LeadsPage() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-dark-500" />
               <input
                 type="text"
-                placeholder="Search Contacts by name, company, title"
+                placeholder="Search by name, company, title, or owner"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-4 py-2.5 bg-dark-800 border border-dark-700 rounded-xl text-white placeholder-dark-500 focus:outline-none focus:border-rivvra-500"
@@ -359,12 +323,26 @@ function LeadsPage() {
                         <span className="text-sm font-medium text-white">Filters</span>
                         {activeFilterCount > 0 && (
                           <button
-                            onClick={() => { setProfileTypeFilter('all'); setOutreachStatusFilter('all'); }}
+                            onClick={() => { setProfileTypeFilter('all'); setOutreachStatusFilter('all'); setOwnerFilter('all'); }}
                             className="text-xs text-rivvra-400 hover:text-rivvra-300"
                           >
                             Clear all
                           </button>
                         )}
+                      </div>
+
+                      <div className="mb-3">
+                        <label className="block text-xs text-dark-400 mb-2">Contact Owner</label>
+                        <select
+                          value={ownerFilter}
+                          onChange={(e) => setOwnerFilter(e.target.value)}
+                          className="w-full px-3 py-2 bg-dark-900 border border-dark-600 rounded-lg text-sm text-white focus:outline-none focus:border-rivvra-500"
+                        >
+                          <option value="all">All Owners</option>
+                          {teamMembers.map(m => (
+                            <option key={m.id} value={m.id}>{m.name}</option>
+                          ))}
+                        </select>
                       </div>
 
                       <div className="mb-3">
@@ -416,34 +394,25 @@ function LeadsPage() {
               <div className="p-12 text-center flex-1 flex items-center justify-center">
                 <div>
                   <div className="w-8 h-8 border-2 border-rivvra-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                  <p className="text-dark-400">Loading contacts...</p>
+                  <p className="text-dark-400">Loading team contacts...</p>
                 </div>
               </div>
             ) : leads.length === 0 ? (
               <div className="p-12 text-center flex-1 flex items-center justify-center">
                 <div>
                   <div className="w-16 h-16 rounded-2xl bg-dark-800 flex items-center justify-center mx-auto mb-4">
-                    <Bookmark className="w-8 h-8 text-dark-500" />
+                    <UsersRound className="w-8 h-8 text-dark-500" />
                   </div>
-                  <h3 className="text-lg font-semibold text-white mb-2">No Saved Contacts Yet</h3>
+                  <h3 className="text-lg font-semibold text-white mb-2">No Team Contacts Yet</h3>
                   <p className="text-dark-400 mb-4">
-                    Start extracting contacts from LinkedIn using the Chrome extension.
+                    Your team hasn't saved any contacts yet. Contacts saved by team members will appear here.
                   </p>
-                  <a
-                    href="#"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-rivvra-500 text-dark-950 font-medium hover:bg-rivvra-400 transition-colors"
-                  >
-                    <ExternalLink className="w-4 h-4" />
-                    Install Extension
-                  </a>
                 </div>
               </div>
             ) : (
               <>
                 <div className="flex-1 overflow-auto relative">
-                  <table className="w-full min-w-[1100px]">
+                  <table className="w-full min-w-[1200px]">
                     <thead className="sticky top-0 z-20">
                       <tr className="border-b border-dark-700 bg-dark-800">
                         <th className="sticky left-0 z-30 bg-dark-800 px-4 py-3 text-left w-12">
@@ -460,6 +429,7 @@ function LeadsPage() {
                           </button>
                         </th>
                         <th className="sticky left-[260px] z-30 bg-dark-800 px-4 py-3 text-left w-[110px] min-w-[110px] shadow-[2px_0_5px_-2px_rgba(0,0,0,0.3)]"></th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-dark-400 min-w-[140px]">Contact Owner</th>
                         <th className="px-4 py-3 text-left text-sm font-medium text-dark-400 min-w-[120px]">Profile Type</th>
                         <th className="px-4 py-3 text-left text-sm font-medium text-dark-400 min-w-[150px]">Status</th>
                         <th className="px-4 py-3 text-left text-sm font-medium text-dark-400 min-w-[180px]">Company</th>
@@ -488,16 +458,14 @@ function LeadsPage() {
                           </td>
                           <td className="sticky left-12 z-10 bg-dark-900 px-4 py-3 w-[200px] min-w-[200px]">
                             <div className="flex items-center gap-3">
-                              {lead.profilePicture ? (
-                                <img src={lead.profilePicture} alt="" className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
-                              ) : (
-                                <div className="w-10 h-10 rounded-full bg-dark-700 flex items-center justify-center flex-shrink-0">
-                                  <Users className="w-5 h-5 text-dark-500" />
-                                </div>
-                              )}
+                              <div className="w-10 h-10 rounded-full bg-dark-700 flex items-center justify-center flex-shrink-0">
+                                <span className="text-sm font-bold text-dark-300">
+                                  {lead.name?.charAt(0)?.toUpperCase() || '?'}
+                                </span>
+                              </div>
                               <div className="min-w-0">
                                 <p className="font-medium text-white truncate">{lead.name || 'Unknown'}</p>
-                                <p className="text-xs text-dark-400 truncate">{lead.title || '-'}</p>
+                                <p className="text-xs text-dark-400 truncate">{lead.title || lead.headline || '-'}</p>
                                 {lead.linkedinUrl && (
                                   <a
                                     href={lead.linkedinUrl}
@@ -517,17 +485,13 @@ function LeadsPage() {
                             <ManageDropdown
                               lead={lead}
                               onExportCRM={() => {
-                                if (!isPro) {
-                                  setComingSoonFeature('Export to CRM');
-                                  setShowComingSoon(true);
-                                  return;
-                                }
+                                if (!isPro) return;
                                 setExportCRMTarget(lead);
                                 setShowExportCRM(true);
                               }}
                               onAddToSequence={() => {
                                 if (setupComplete === false) {
-                                  showToast('Complete your setup on the Engage page first (connect Gmail + complete profile)', 'error');
+                                  showToast('Complete your setup on the Engage page first', 'error');
                                   return;
                                 }
                                 setSequenceTarget(lead);
@@ -541,9 +505,23 @@ function LeadsPage() {
                                 setEditContactTarget(lead);
                                 setShowEditContact(true);
                               }}
-                              onTagContact={() => handleFeatureClick('Tag Contact')}
+                              onTagContact={() => {}}
                               onRemoveContact={() => handleDeleteLead(lead)}
+                              onAssignOwner={() => {
+                                setAssignTarget(lead);
+                                setShowAssignOwner(true);
+                              }}
                             />
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2">
+                              <div className="w-6 h-6 rounded-full bg-dark-700 flex items-center justify-center flex-shrink-0">
+                                <span className="text-[10px] font-bold text-dark-300">
+                                  {lead.ownerName?.charAt(0)?.toUpperCase() || '?'}
+                                </span>
+                              </div>
+                              <span className="text-sm text-dark-300 truncate max-w-[100px]">{lead.ownerName || 'Unknown'}</span>
+                            </div>
                           </td>
                           <td className="px-4 py-3">
                             {lead.profileType ? (
@@ -578,7 +556,7 @@ function LeadsPage() {
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-2 text-sm">
                               <Building2 className="w-4 h-4 text-dark-500 flex-shrink-0" />
-                              <span className="text-dark-300 truncate max-w-[150px]">{lead.company || '-'}</span>
+                              <span className="text-dark-300 truncate max-w-[150px]">{lead.companyName || lead.company || '-'}</span>
                             </div>
                           </td>
                           <td className="px-4 py-3">
@@ -588,7 +566,7 @@ function LeadsPage() {
                             </div>
                           </td>
                           <td className="px-4 py-3 text-sm">
-                            {lead.email ? (
+                            {lead.email && lead.email !== 'noemail@domain.com' ? (
                               <span className="text-rivvra-400 truncate block max-w-[180px]">{lead.email}</span>
                             ) : (
                               <span className="text-dark-500">Not found</span>
@@ -669,16 +647,18 @@ function LeadsPage() {
           lead={selectedLead}
           onClose={() => setSelectedLead(null)}
           onUpdate={handleLeadUpdate}
+          teamMode={true}
+          teamMembers={teamMembers}
+          onAssign={(lead) => {
+            setAssignTarget(lead);
+            setShowAssignOwner(true);
+          }}
         />
       )}
 
       {showDeleteModal && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-          <div
-            className="absolute inset-0 bg-dark-950/80 backdrop-blur-sm"
-            onClick={() => !deleting && setShowDeleteModal(false)}
-          />
-
+          <div className="absolute inset-0 bg-dark-950/80 backdrop-blur-sm" onClick={() => !deleting && setShowDeleteModal(false)} />
           <div className="relative bg-dark-900 border border-dark-700 rounded-2xl p-6 max-w-md w-full shadow-2xl">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-12 h-12 rounded-xl bg-red-500/10 flex items-center justify-center">
@@ -691,77 +671,30 @@ function LeadsPage() {
                 <p className="text-dark-400 text-sm">This action cannot be undone</p>
               </div>
             </div>
-
             <p className="text-dark-300 mb-6">
               {deleteTarget
                 ? `Are you sure you want to delete "${deleteTarget.name}"?`
-                : `Are you sure you want to delete ${selectedLeads.length} selected leads?`
-              }
+                : `Are you sure you want to delete ${selectedLeads.length} selected contacts?`}
             </p>
-
             <div className="flex gap-3">
-              <button
-                onClick={() => setShowDeleteModal(false)}
-                disabled={deleting}
-                className="flex-1 px-4 py-2.5 rounded-xl bg-dark-800 text-white font-medium hover:bg-dark-700 transition-colors disabled:opacity-50"
-              >
+              <button onClick={() => setShowDeleteModal(false)} disabled={deleting} className="flex-1 px-4 py-2.5 rounded-xl bg-dark-800 text-white font-medium hover:bg-dark-700 transition-colors disabled:opacity-50">
                 Cancel
               </button>
-              <button
-                onClick={confirmDelete}
-                disabled={deleting}
-                className="flex-1 px-4 py-2.5 rounded-xl bg-red-500 text-white font-semibold hover:bg-red-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                {deleting ? (
-                  <RefreshCw className="w-4 h-4 animate-spin" />
-                ) : (
-                  <>
-                    <Trash2 className="w-4 h-4" />
-                    Delete
-                  </>
-                )}
+              <button onClick={confirmDelete} disabled={deleting} className="flex-1 px-4 py-2.5 rounded-xl bg-red-500 text-white font-semibold hover:bg-red-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
+                {deleting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <><Trash2 className="w-4 h-4" />Delete</>}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      <ComingSoonModal
-        isOpen={showComingSoon}
-        onClose={() => setShowComingSoon(false)}
-        feature={comingSoonFeature}
-      />
-
-      <AddToListModal
-        isOpen={showAddToList}
-        onClose={() => {
-          setShowAddToList(false);
-          setAddToListTarget(null);
-        }}
-        lead={addToListTarget}
-        onLeadUpdate={handleLeadUpdate}
-      />
-
-      <ExportToCRMModal
-        isOpen={showExportCRM}
-        onClose={() => {
-          setShowExportCRM(false);
-          setExportCRMTarget(null);
-        }}
-        lead={exportCRMTarget}
-      />
-
+      <AddToListModal isOpen={showAddToList} onClose={() => { setShowAddToList(false); setAddToListTarget(null); }} lead={addToListTarget} onLeadUpdate={handleLeadUpdate} />
+      <ExportToCRMModal isOpen={showExportCRM} onClose={() => { setShowExportCRM(false); setExportCRMTarget(null); }} lead={exportCRMTarget} />
       <AddToSequenceModal
         isOpen={showAddToSequence}
-        onClose={() => {
-          setShowAddToSequence(false);
-          setSequenceTarget(null);
-        }}
+        onClose={() => { setShowAddToSequence(false); setSequenceTarget(null); }}
         onEnrolled={({ leadIds: enrolledIds }) => {
-          // Instantly update local state so status reflects without waiting for API
-          setLeads(prev => prev.map(l =>
-            enrolledIds.includes(l._id) ? { ...l, outreachStatus: 'in_sequence' } : l
-          ));
+          setLeads(prev => prev.map(l => enrolledIds.includes(l._id) ? { ...l, outreachStatus: 'in_sequence' } : l));
           if (selectedLead && enrolledIds.includes(selectedLead._id)) {
             setSelectedLead(prev => ({ ...prev, outreachStatus: 'in_sequence' }));
           }
@@ -769,26 +702,10 @@ function LeadsPage() {
         leadIds={sequenceTarget ? [sequenceTarget._id] : []}
         leadNames={sequenceTarget ? [sequenceTarget.name] : []}
       />
-
-      <EditContactModal
-        lead={editContactTarget}
-        isOpen={showEditContact}
-        onClose={() => {
-          setShowEditContact(false);
-          setEditContactTarget(null);
-        }}
-        onLeadUpdate={handleLeadUpdate}
-      />
-
-      <CreateContactModal
-        isOpen={showCreateContact}
-        onClose={() => setShowCreateContact(false)}
-        onCreated={(newLead) => {
-          setLeads(prev => [newLead, ...prev]);
-        }}
-      />
+      <EditContactModal lead={editContactTarget} isOpen={showEditContact} onClose={() => { setShowEditContact(false); setEditContactTarget(null); }} onLeadUpdate={handleLeadUpdate} />
+      <AssignOwnerModal isOpen={showAssignOwner} onClose={() => { setShowAssignOwner(false); setAssignTarget(null); }} teamMembers={teamMembers} selectedCount={assignTarget ? 1 : selectedLeads.length} onConfirm={handleAssignOwner} />
     </Layout>
   );
 }
 
-export default LeadsPage;
+export default TeamContactsPage;

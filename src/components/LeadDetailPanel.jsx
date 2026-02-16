@@ -13,7 +13,7 @@ const STATUS_LIST_LABELS = {
   'no_response': 'No Response'
 };
 
-function LeadDetailPanel({ lead, onClose, onUpdate }) {
+function LeadDetailPanel({ lead, onClose, onUpdate, teamMode = false, teamMembers = [], onAssign }) {
   const { showToast } = useToast();
   const [newNote, setNewNote] = useState('');
   const [addingNote, setAddingNote] = useState(false);
@@ -315,6 +315,33 @@ function LeadDetailPanel({ lead, onClose, onUpdate }) {
             {lead.industry && <InfoRow icon={Tag} label="Industry" value={lead.industry} />}
           </div>
         </div>
+
+        {/* Contact Owner (Team Mode only) */}
+        {teamMode && lead.ownerName && (
+          <div className="p-4 border-b border-dark-700">
+            <h3 className="text-sm font-semibold text-dark-300 uppercase tracking-wider mb-3">
+              Contact Owner
+            </h3>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-dark-700 flex items-center justify-center">
+                  <span className="text-xs font-bold text-dark-300">
+                    {lead.ownerName?.charAt(0)?.toUpperCase() || '?'}
+                  </span>
+                </div>
+                <span className="text-sm text-white">{lead.ownerName}</span>
+              </div>
+              {onAssign && (
+                <button
+                  onClick={() => onAssign(lead)}
+                  className="text-xs text-rivvra-400 hover:text-rivvra-300 transition-colors"
+                >
+                  Reassign
+                </button>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Profile Type */}
         <div className="p-4 border-b border-dark-700">

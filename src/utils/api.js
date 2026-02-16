@@ -655,6 +655,20 @@ class ApiClient {
       body: JSON.stringify({ name: newName }),
     });
   }
+
+  // Team Leads (admin/team_lead only)
+  async getTeamLeads(listName = null) {
+    const baseUrl = '/api/portal/leads/team?limit=10000';
+    const url = listName ? `${baseUrl}&list=${encodeURIComponent(listName)}` : baseUrl;
+    return this.request(url);
+  }
+
+  async assignLeadOwner(leadId, newOwnerId) {
+    return this.request(`/api/portal/leads/${leadId}/assign`, {
+      method: 'PUT',
+      body: JSON.stringify({ newOwnerId }),
+    });
+  }
 }
 
 export const api = new ApiClient();

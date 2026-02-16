@@ -35,6 +35,8 @@ const CSV_COLUMNS = [
   }},
 ];
 
+const OWNER_COLUMN = { header: 'Contact Owner', field: (lead) => lead.ownerName || '' };
+
 /**
  * Escape a value for CSV: wrap in double quotes, escape internal quotes
  */
@@ -51,16 +53,22 @@ function escapeCSV(value) {
  * Export leads to a CSV file and trigger download
  * @param {Array} leads - Array of lead objects
  * @param {string} prefix - Filename prefix (default: 'rivvra-export')
+ * @param {Object} options - Optional config { includeOwner: boolean }
  */
-export function exportLeadsToCSV(leads, prefix = 'rivvra-export') {
+export function exportLeadsToCSV(leads, prefix = 'rivvra-export', options = {}) {
   if (!leads || leads.length === 0) return;
 
+  // Build columns list \u2014 insert owner after Name if requested
+  const columns = options.includeOwner
+    ? [CSV_COLUMNS[0], OWNER_COLUMN, ...CSV_COLUMNS.slice(1)]
+    : CSV_COLUMNS;
+
   // Header row
-  const headerRow = CSV_COLUMNS.map(col => escapeCSV(col.header)).join(',');
+  const headerRow = columns.map(col => escapeCSV(col.header)).join(',');
 
   // Data rows
   const dataRows = leads.map(lead =>
-    CSV_COLUMNS.map(col => escapeCSV(col.field(lead))).join(',')
+    columns.map(col => escapeCSV(col.field(lead))).join(',')
   );
 
   // Combine with BOM for Excel compatibility

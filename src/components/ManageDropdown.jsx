@@ -1,21 +1,21 @@
 import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import {
-  ChevronDown, Upload, ListPlus, Pencil, Tag, Trash2
+  ChevronDown, Upload, ListPlus, Pencil, Tag, Trash2, UserCog
 } from 'lucide-react';
 
-function ManageDropdown({ lead, onExportCRM, onAddToSequence, onAddToList, onEditContact, onTagContact, onRemoveContact, removeLabel = 'Remove contact' }) {
+function ManageDropdown({ lead, onExportCRM, onAddToSequence, onAddToList, onEditContact, onTagContact, onRemoveContact, onAssignOwner, removeLabel = 'Remove contact' }) {
   const [isOpen, setIsOpen] = useState(false);
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
   const buttonRef = useRef(null);
   const dropdownRef = useRef(null);
 
-  // Calculate dropdown position when opening — flip above if near viewport bottom
+  // Calculate dropdown position when opening
   useEffect(() => {
     if (isOpen && buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect();
-      const dropdownWidth = 192; // w-48 = 12rem = 192px
-      const dropdownHeight = 280; // approx max menu height (6 items × ~44px + padding)
+      const dropdownWidth = 192;
+      const dropdownHeight = 280;
       const spaceBelow = window.innerHeight - rect.bottom;
       const openAbove = spaceBelow < dropdownHeight && rect.top > dropdownHeight;
 
@@ -83,6 +83,11 @@ function ManageDropdown({ lead, onExportCRM, onAddToSequence, onAddToList, onEdi
       label: 'Edit contact',
       action: onEditContact,
     },
+    onAssignOwner ? {
+      icon: UserCog,
+      label: 'Assign owner',
+      action: onAssignOwner,
+    } : null,
     {
       icon: Tag,
       label: 'Tag contact',
@@ -94,7 +99,7 @@ function ManageDropdown({ lead, onExportCRM, onAddToSequence, onAddToList, onEdi
       action: onRemoveContact,
       danger: true,
     },
-  ];
+  ].filter(Boolean);
 
   return (
     <>

@@ -13,6 +13,7 @@ import EngagePage from './pages/EngagePage';
 import SequenceWizardPage from './pages/SequenceWizardPage';
 import PrivacyPage from './pages/PrivacyPage';
 import TeamDashboardPage from './pages/TeamDashboardPage';
+import TeamContactsPage from './pages/TeamContactsPage';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
@@ -85,6 +86,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <TeamDashboardPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/team-contacts"
+            element={
+              <ProtectedRoute>
+                <TeamContactsPage />
               </ProtectedRoute>
             }
           />

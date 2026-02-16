@@ -1479,7 +1479,7 @@ function ContactsTab({ sequence, enrollments, enrollmentTotal, user, onLoadMore,
         <div className="flex items-center gap-3">
           <span className="text-xs text-dark-500">
             {sortedEnrollments.length === enrollments.length
-              ? `${enrollments.length}-${Math.min(enrollments.length, enrollmentTotal)} of ${enrollmentTotal} Contacts`
+              ? `1-${enrollments.length} of ${enrollmentTotal} Contacts`
               : `${sortedEnrollments.length} of ${enrollmentTotal} Contacts (filtered)`
             }
           </span>
@@ -1781,12 +1781,22 @@ function EmailsTab({ sequenceId, sequence, enrollments, enrollmentTotal, onLoadM
   // Use search results when searching, otherwise use base enrollments
   const filteredContacts = searchResults !== null ? searchResults : enrollments;
 
-  // Paginate contacts
-  const totalContactPages = Math.ceil(filteredContacts.length / contactsPerPage);
+  // Paginate contacts — use total from server for accurate page count
+  const actualTotal = searchResults !== null ? filteredContacts.length : enrollmentTotal;
+  const totalContactPages = Math.ceil(actualTotal / contactsPerPage);
   const paginatedContacts = filteredContacts.slice(
     (contactPage - 1) * contactsPerPage,
     contactPage * contactsPerPage
   );
+
+  // Auto-load more enrollments when user navigates near the end of loaded contacts
+  useEffect(() => {
+    if (searchResults !== null) return; // Don't auto-load during search
+    const lastLoadedPage = Math.ceil(enrollments.length / contactsPerPage);
+    if (contactPage >= lastLoadedPage && enrollments.length < enrollmentTotal && onLoadMoreEnrollments) {
+      onLoadMoreEnrollments();
+    }
+  }, [contactPage, enrollments.length, enrollmentTotal, onLoadMoreEnrollments, searchResults, contactsPerPage]);
 
   // When selecting a contact, build email list from enrollment's stepHistory
   // This is more reliable than filtering the global email log (which is paginated and may miss older emails)
@@ -1921,7 +1931,7 @@ function EmailsTab({ sequenceId, sequence, enrollments, enrollmentTotal, onLoadM
         <div className="p-3 border-b border-dark-800 flex items-center justify-between">
           <span className="text-xs text-dark-500">All contacts</span>
           <div className="flex items-center gap-2 text-xs text-dark-500">
-            <span>{filteredContacts.length > 0 ? `${(contactPage-1)*contactsPerPage+1}-${Math.min(contactPage*contactsPerPage, filteredContacts.length)}` : '0'} of {filteredContacts.length}</span>
+            <span>{filteredContacts.length > 0 ? `${(contactPage-1)*contactsPerPage+1}-${Math.min(contactPage*contactsPerPage, actualTotal)}` : '0'} of {actualTotal}</span>
             {totalContactPages > 1 && (
               <div className="flex items-center gap-0.5">
                 <button onClick={() => setContactPage(p => Math.max(1, p - 1))} disabled={contactPage === 1} className="p-0.5 text-dark-400 hover:text-white disabled:opacity-30 transition-colors">

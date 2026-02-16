@@ -506,6 +506,8 @@ function SequenceDetailPage({ sequenceId, onBack }) {
           sequenceId={sequenceId}
           sequence={sequence}
           enrollments={enrollments}
+          enrollmentTotal={enrollmentTotal}
+          onLoadMoreEnrollments={() => loadEnrollments(enrollmentPage + 1)}
           emails={emailLog}
           total={emailLogTotal}
           loading={emailLogLoading}
@@ -1694,7 +1696,7 @@ function ContactsTab({ sequence, enrollments, enrollmentTotal, user, onLoadMore,
 
 // ========================== EMAILS TAB (SPLIT-PANE - LUSHA STYLE) ==========================
 
-function EmailsTab({ sequenceId, sequence, enrollments, emails, total, loading, onLoadMore, onReloadEnrollments, user, initialSelectedEnrollment, onConsumePreselection }) {
+function EmailsTab({ sequenceId, sequence, enrollments, enrollmentTotal, onLoadMoreEnrollments, emails, total, loading, onLoadMore, onReloadEnrollments, user, initialSelectedEnrollment, onConsumePreselection }) {
   const [selectedContact, setSelectedContact] = useState(null);
   const [contactEmails, setContactEmails] = useState([]);
   const [contactEmailsLoading, setContactEmailsLoading] = useState(false);
@@ -1732,6 +1734,13 @@ function EmailsTab({ sequenceId, sequence, enrollments, emails, total, loading, 
       onReloadEnrollments(1);
     }
   }, []);
+
+  // Auto-load ALL enrollments when user searches, so search covers all contacts (not just first 50)
+  useEffect(() => {
+    if (contactSearch && enrollmentTotal && enrollments.length < enrollmentTotal && onLoadMoreEnrollments) {
+      onLoadMoreEnrollments();
+    }
+  }, [contactSearch, enrollments.length, enrollmentTotal, onLoadMoreEnrollments]);
 
   // Filter contacts by search
   const filteredContacts = enrollments.filter(e => {

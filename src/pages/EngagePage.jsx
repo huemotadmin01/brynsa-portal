@@ -430,6 +430,7 @@ function EngagePage() {
         {mainTab === 'sequences' ? (
           <SequencesTab
             sequences={filteredSequences}
+            totalCount={sequences.length}
             loading={loading}
             emailsSentToday={emailsSentToday}
             searchQuery={searchQuery}
@@ -518,7 +519,7 @@ function SortableHeader({ label, sortKey, currentSort, onSort }) {
 }
 
 function SequencesTab({
-  sequences, loading, emailsSentToday, searchQuery, filterStatus,
+  sequences, totalCount, loading, emailsSentToday, searchQuery, filterStatus,
   actionMenuId, user, setupComplete, menuBtnRectRef,
   onSearch, onFilter, onNewSequence, onOpenDetail,
   onEdit, onDuplicate, onDelete, onShare, onToggle, onPause, onResume, onToggleMenu,
@@ -657,7 +658,9 @@ function SequencesTab({
         </div>
 
         <div className="text-xs text-dark-500 ml-auto">
-          {sequences.length} Sequence{sequences.length !== 1 ? 's' : ''}
+          {sequences.length !== totalCount
+            ? `${sequences.length} of ${totalCount} Sequence${totalCount !== 1 ? 's' : ''}`
+            : `${sequences.length} Sequence${sequences.length !== 1 ? 's' : ''}`}
         </div>
       </div>
 

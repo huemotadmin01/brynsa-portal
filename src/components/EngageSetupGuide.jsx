@@ -82,8 +82,13 @@ function EngageSetupGuide({ setupStatus, onConnectGmail, onSetupComplete, onRefr
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const completedCount = (gmailDone ? 1 : 0) + (profileDone ? 1 : 0) + (allDone ? 1 : 0);
-  const progress = allDone ? 100 : gmailDone && profileDone ? 100 : gmailDone || profileDone ? 50 : 0;
+  // Sync input values when setupStatus prop changes (e.g., after a refresh)
+  useEffect(() => {
+    if (setupStatus?.senderTitle && !senderTitle) setSenderTitle(setupStatus.senderTitle);
+    if (setupStatus?.companyName && !companyName) setCompanyName(setupStatus.companyName);
+  }, [setupStatus?.senderTitle, setupStatus?.companyName]);
+
+  const progress = allDone ? 100 : (gmailDone && profileDone) ? 66 : (gmailDone || profileDone) ? 33 : 0;
 
   // Cleanup debounce timer on unmount
   useEffect(() => {

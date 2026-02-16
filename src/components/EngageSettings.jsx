@@ -24,7 +24,14 @@ function EngageSettings({ gmailStatus }) {
     try {
       const res = await api.getEngageSettings();
       if (res.success) {
-        setSettings(res.settings);
+        setSettings(prev => ({
+          ...prev,
+          ...res.settings,
+          unsubscribe: {
+            ...prev.unsubscribe,
+            ...(res.settings?.unsubscribe || {})
+          }
+        }));
       }
     } catch (err) {
       console.error('Failed to load settings:', err);
@@ -329,12 +336,17 @@ function SignatureSection({ signature, gmailConnected }) {
     };
 
     // Initial size + watch for changes
-    setTimeout(checkHeight, 50);
-    setTimeout(checkHeight, 300);
-    setTimeout(checkHeight, 1000);
+    const t1 = setTimeout(checkHeight, 50);
+    const t2 = setTimeout(checkHeight, 300);
+    const t3 = setTimeout(checkHeight, 1000);
     if (doc.body) resizeObserver.observe(doc.body);
 
-    return () => resizeObserver.disconnect();
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+      resizeObserver.disconnect();
+    };
   }, [signature]);
 
   return (

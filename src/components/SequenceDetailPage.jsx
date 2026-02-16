@@ -207,12 +207,18 @@ function SequenceDetailPage({ sequenceId, onBack }) {
   }
 
   async function handleRemoveEnrollment(enrollmentId) {
+    // Optimistic update
+    const previousEnrollments = [...enrollments];
+    const previousTotal = enrollmentTotal;
+    setEnrollments(prev => prev.filter(e => e._id !== enrollmentId));
+    setEnrollmentTotal(prev => prev - 1);
     try {
       await api.removeEnrollment(sequenceId, enrollmentId);
-      setEnrollments(prev => prev.filter(e => e._id !== enrollmentId));
-      setEnrollmentTotal(prev => prev - 1);
       loadSequence();
     } catch (err) {
+      // Revert on error
+      setEnrollments(previousEnrollments);
+      setEnrollmentTotal(previousTotal);
       showToast(err.message || 'Failed to remove enrollment', 'error');
     }
   }
@@ -1164,6 +1170,20 @@ function ContactsTab({ sequence, enrollments, enrollmentTotal, user, onLoadMore,
       if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
     };
   }, []);
+
+  // Close filter dropdowns on Escape key
+  useEffect(() => {
+    if (!showContactFilter && !showOwnerFilter && !showDateFilter) return;
+    const handleEsc = (e) => {
+      if (e.key === 'Escape') {
+        setShowContactFilter(false);
+        setShowOwnerFilter(false);
+        setShowDateFilter(false);
+      }
+    };
+    document.addEventListener('keydown', handleEsc);
+    return () => document.removeEventListener('keydown', handleEsc);
+  }, [showContactFilter, showOwnerFilter, showDateFilter]);
 
   function handleContactSearch(value) {
     setContactSearch(value);

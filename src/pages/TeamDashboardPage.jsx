@@ -247,8 +247,8 @@ export default function TeamDashboardPage() {
   // Pipeline: Total → In Sequence → Replied
   const pipelineSteps = [
     { label: 'Total Leads', value: data?.totalLeads || 0, color: '#6b7280', link: '/leads' },
-    { label: 'In Sequence', value: totalInSequence, color: '#3b82f6', link: '/engage' },
-    { label: 'Responded', value: data?.repliedCount || 0, color: '#22c55e', link: '/leads' },
+    { label: 'In Sequence', value: totalInSequence, color: '#3b82f6', link: '/leads?status=in_sequence' },
+    { label: 'Responded', value: data?.repliedCount || 0, color: '#22c55e', link: '/leads?status=replied' },
   ];
 
   return (
@@ -384,7 +384,7 @@ export default function TeamDashboardPage() {
             gradient="from-rivvra-500/20 to-rivvra-600/5"
             iconColor="text-rivvra-400"
             subtitle="current"
-            onClick={() => navigate('/engage')}
+            onClick={() => navigate('/leads?status=in_sequence')}
           />
           <KPICard
             label="Response Rate"
@@ -393,7 +393,7 @@ export default function TeamDashboardPage() {
             gradient="from-emerald-500/20 to-emerald-600/5"
             iconColor="text-emerald-400"
             subtitle={`${data?.responseRate?.replied || 0} of ${data?.responseRate?.totalContacted || 0}`}
-            onClick={() => navigate('/leads')}
+            onClick={() => navigate('/leads?status=replied')}
           />
           <KPICard
             label={`Scraped`}

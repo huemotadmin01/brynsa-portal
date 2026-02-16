@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
   Linkedin, Users, Search, Filter, Download,
@@ -24,6 +24,7 @@ import { useToast } from '../context/ToastContext';
 function LeadsPage() {
   const { user } = useAuth();
   const { showToast } = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -46,7 +47,7 @@ function LeadsPage() {
   const [exportCRMTarget, setExportCRMTarget] = useState(null);
   const [showAddToSequence, setShowAddToSequence] = useState(false);
   const [sequenceTarget, setSequenceTarget] = useState(null);
-  const [outreachStatusFilter, setOutreachStatusFilter] = useState('all');
+  const [outreachStatusFilter, setOutreachStatusFilter] = useState(searchParams.get('status') || 'all');
   const [showEditContact, setShowEditContact] = useState(false);
   const [editContactTarget, setEditContactTarget] = useState(null);
   const [showCreateContact, setShowCreateContact] = useState(false);
@@ -75,6 +76,17 @@ function LeadsPage() {
       setRefreshing(false);
     }
   }, []);
+
+  // Auto-open filters and clear URL param when navigated with ?status=xxx
+  useEffect(() => {
+    const statusParam = searchParams.get('status');
+    if (statusParam && statusParam !== 'all') {
+      setOutreachStatusFilter(statusParam);
+      setShowFilters(true);
+      // Clean the URL param so it doesn't persist on refresh/back
+      setSearchParams({}, { replace: true });
+    }
+  }, []); // Run once on mount
 
   useEffect(() => {
     loadLeads();

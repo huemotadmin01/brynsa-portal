@@ -23,11 +23,9 @@ import {
   Play,
   Info,
   Loader2,
-  Link2Off,
   Link2,
   ChevronDown,
   ChevronUp,
-  Filter,
   ExternalLink,
   Copy,
   Download,
@@ -67,9 +65,16 @@ function EngagePage() {
   // Modals
   const [actionMenuId, setActionMenuId] = useState(null);
   const [activateConfirm, setActivateConfirm] = useState(null); // { id, name }
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null); // sequence id to confirm delete
+  const [disconnectConfirm, setDisconnectConfirm] = useState(false); // confirm Gmail disconnect
+
+  // Ref for menu button rect (replaces window._menuBtnRect global)
+  const menuBtnRectRef = useRef(null);
 
   // Load data on mount
   useEffect(() => {
+    let cancelled = false;
+
     loadGmailStatus();
     loadEmailsSentToday();
     loadSequences();
@@ -88,17 +93,22 @@ function EngagePage() {
         (async () => {
           try {
             const connectRes = await api.connectGmail(gmailCode);
+            if (cancelled) return;
             if (connectRes.success) {
               setGmailStatus({ connected: true, email: connectRes.gmailEmail });
               setGmailLoading(false);
               loadSetupStatus();
             }
           } catch (err) {
+            if (cancelled) return;
             console.error('Gmail connect from redirect error:', err);
+            showToast('Failed to connect Gmail. Please try again.', 'error');
           }
         })();
       }
     }
+
+    return () => { cancelled = true; };
   }, []);
 
   async function loadGmailStatus() {
@@ -160,18 +170,26 @@ function EngagePage() {
       window.location.href = res.url;
     } catch (err) {
       console.error('Connect Gmail error:', err);
+      showToast('Failed to connect Gmail. Please try again.', 'error');
     }
   }
 
-  async function handleDisconnectGmail() {
+  function handleDisconnectGmail() {
+    setDisconnectConfirm(true);
+  }
+
+  async function confirmDisconnectGmail() {
+    setDisconnectConfirm(false);
     try {
       const res = await api.disconnectGmail();
       if (res.success) {
         setGmailStatus({ connected: false, email: null });
         loadSetupStatus(); // Refresh setup status
+        showToast('Gmail disconnected');
       }
     } catch (err) {
       console.error('Disconnect Gmail error:', err);
+      showToast('Failed to disconnect Gmail', 'error');
     }
   }
 
@@ -189,11 +207,17 @@ function EngagePage() {
     }
   }
 
-  async function handleDeleteSequence(id) {
-    if (!confirm('Are you sure you want to delete this sequence?')) return;
+  function handleDeleteSequence(id) {
+    setActionMenuId(null);
+    setDeleteConfirmId(id);
+  }
+
+  async function confirmDeleteSequence() {
+    if (!deleteConfirmId) return;
+    const id = deleteConfirmId;
+    setDeleteConfirmId(null);
     try {
       await api.deleteSequence(id);
-      setActionMenuId(null);
       loadSequences();
       showToast('Sequence deleted');
     } catch (err) {
@@ -413,6 +437,7 @@ function EngagePage() {
             actionMenuId={actionMenuId}
             user={user}
             setupComplete={setupStatus?.allComplete}
+            menuBtnRectRef={menuBtnRectRef}
             onSearch={setSearchQuery}
             onFilter={setFilterStatus}
             onNewSequence={handleNewSequence}
@@ -438,6 +463,30 @@ function EngagePage() {
             confirmLabel="Activate"
             onConfirm={confirmActivation}
             onCancel={() => setActivateConfirm(null)}
+          />
+        )}
+
+        {/* Delete sequence confirmation modal */}
+        {deleteConfirmId && (
+          <ConfirmModal
+            title="Delete Sequence"
+            message="Are you sure you want to delete this sequence? This action cannot be undone."
+            confirmLabel="Delete"
+            danger
+            onConfirm={confirmDeleteSequence}
+            onCancel={() => setDeleteConfirmId(null)}
+          />
+        )}
+
+        {/* Disconnect Gmail confirmation modal */}
+        {disconnectConfirm && (
+          <ConfirmModal
+            title="Disconnect Gmail"
+            message="Are you sure you want to disconnect your Gmail? Active sequences will stop sending emails."
+            confirmLabel="Disconnect"
+            danger
+            onConfirm={confirmDisconnectGmail}
+            onCancel={() => setDisconnectConfirm(false)}
           />
         )}
       </div>
@@ -470,7 +519,7 @@ function SortableHeader({ label, sortKey, currentSort, onSort }) {
 
 function SequencesTab({
   sequences, loading, emailsSentToday, searchQuery, filterStatus,
-  actionMenuId, user, setupComplete,
+  actionMenuId, user, setupComplete, menuBtnRectRef,
   onSearch, onFilter, onNewSequence, onOpenDetail,
   onEdit, onDuplicate, onDelete, onShare, onToggle, onPause, onResume, onToggleMenu,
 }) {
@@ -725,8 +774,8 @@ function SequencesTab({
                       <td className="py-3 px-4 text-right" onClick={e => e.stopPropagation()}>
                         <div className="relative">
                           <button
-                            ref={el => { if (actionMenuId === seq._id) window._menuBtnRect = el?.getBoundingClientRect(); }}
-                            onClick={(e) => { window._menuBtnRect = e.currentTarget.getBoundingClientRect(); onToggleMenu(seq._id); }}
+                            ref={el => { if (actionMenuId === seq._id && el) menuBtnRectRef.current = el.getBoundingClientRect(); }}
+                            onClick={(e) => { menuBtnRectRef.current = e.currentTarget.getBoundingClientRect(); onToggleMenu(seq._id); }}
                             className="p-1.5 text-dark-500 hover:text-white hover:bg-dark-700 rounded-lg transition-colors"
                           >
                             <MoreVertical className="w-4 h-4" />
@@ -735,7 +784,7 @@ function SequencesTab({
                           {actionMenuId === seq._id && createPortal(
                             <>
                               <div className="fixed inset-0 z-[9998]" onClick={() => onToggleMenu(null)} />
-                              <div className="fixed w-48 bg-dark-800 border border-dark-600 rounded-xl shadow-xl py-1 z-[9999]" style={{ top: (window._menuBtnRect?.bottom || 0) + 4, right: window.innerWidth - (window._menuBtnRect?.right || 0) }}>
+                              <div className="fixed w-48 bg-dark-800 border border-dark-600 rounded-xl shadow-xl py-1 z-[9999]" style={{ top: (menuBtnRectRef.current?.bottom || 0) + 4, right: window.innerWidth - (menuBtnRectRef.current?.right || 0) }}>
                                 <button
                                   onClick={() => handleExportCsv(seq._id)}
                                   className="w-full flex items-center gap-2 px-4 py-2 text-sm text-dark-200 hover:bg-dark-700 hover:text-white transition-colors"

@@ -75,6 +75,8 @@ function SequenceDetailPage({ sequenceId, onBack }) {
   const [showAddEmail, setShowAddEmail] = useState(false);
   const [showActivateConfirm, setShowActivateConfirm] = useState(false);
   const [showSendTest, setShowSendTest] = useState(null); // { stepIndex }
+  const [deleteStepConfirm, setDeleteStepConfirm] = useState(null); // stepIndex to confirm delete
+  const [bulkRemoveConfirm, setBulkRemoveConfirm] = useState(null); // Set of enrollment ids
 
   const loadSequence = useCallback(async () => {
     try {
@@ -108,18 +110,16 @@ function SequenceDetailPage({ sequenceId, onBack }) {
     try {
       const res = await api.getSequenceEmailLog(sequenceId, page, 100);
       if (res.success) {
-        const allEmails = page === 1 ? res.emails : [...emailLog, ...res.emails];
-        setEmailLog(allEmails);
+        setEmailLog(prev => page === 1 ? res.emails : [...prev, ...res.emails]);
         setEmailLogTotal(res.pagination.total);
         setEmailLogPage(page);
-        // Stop here — user can click "Load More" for additional pages
       }
     } catch (err) {
       console.error('Failed to load email log:', err);
     } finally {
       setEmailLogLoading(false);
     }
-  }, [sequenceId, emailLog]);
+  }, [sequenceId]);
 
   useEffect(() => {
     loadSequence();
@@ -128,6 +128,7 @@ function SequenceDetailPage({ sequenceId, onBack }) {
 
   // Smart polling: lightweight check every 5s, full reload only when data changed
   const lastActivityRef = useRef(null);
+  const pollErrorCountRef = useRef(0);
   const [refreshing, setRefreshing] = useState(false);
 
   const fullReload = useCallback(() => {
@@ -138,12 +139,16 @@ function SequenceDetailPage({ sequenceId, onBack }) {
 
   useEffect(() => {
     if (sequence?.status !== 'active') return;
+    pollErrorCountRef.current = 0; // Reset on status change
     const interval = setInterval(async () => {
       // M1: Stop polling when tab is in background to save resources
       if (document.hidden) return;
+      // Skip polling after 3+ consecutive errors (exponential backoff)
+      if (pollErrorCountRef.current >= 3) return;
       try {
         const res = await api.pollSequence(sequenceId);
         if (!res.success) return;
+        pollErrorCountRef.current = 0; // Reset on success
         const newActivity = res.lastActivity;
         // Update stats immediately (very cheap)
         setSequence(prev => prev ? { ...prev, stats: res.stats } : prev);
@@ -153,8 +158,11 @@ function SequenceDetailPage({ sequenceId, onBack }) {
           fullReload();
         }
       } catch {
-        // Fallback to full reload on error
-        fullReload();
+        pollErrorCountRef.current += 1;
+        // Only reload on first error, skip on subsequent
+        if (pollErrorCountRef.current === 1) {
+          fullReload();
+        }
       }
     }, 5000);
     return () => clearInterval(interval);
@@ -168,7 +176,8 @@ function SequenceDetailPage({ sequenceId, onBack }) {
     if (activeTab === 'emails' && emailLog.length === 0) {
       loadEmailLog();
     }
-  }, [activeTab]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, loadEnrollments, loadEmailLog]);
 
   async function handleToggleSequence(active) {
     if (active && sequence?.status !== 'active') {
@@ -268,8 +277,14 @@ function SequenceDetailPage({ sequenceId, onBack }) {
     }
   }
 
-  async function handleDeleteStep(stepIndex) {
-    if (!confirm('Are you sure you want to delete this step?')) return;
+  function handleDeleteStep(stepIndex) {
+    setDeleteStepConfirm(stepIndex);
+  }
+
+  async function confirmDeleteStep() {
+    if (deleteStepConfirm === null) return;
+    const stepIndex = deleteStepConfirm;
+    setDeleteStepConfirm(null);
     try {
       const res = await api.deleteStep(sequenceId, stepIndex);
       if (res.success) {
@@ -339,8 +354,17 @@ function SequenceDetailPage({ sequenceId, onBack }) {
     }
   }
 
-  async function handleBulkRemove(enrollmentIds) {
-    if (!confirm(`Remove ${enrollmentIds.size} contacts from this sequence?`)) return;
+  function handleBulkRemove(enrollmentIds) {
+    setBulkRemoveConfirm(enrollmentIds);
+  }
+
+  async function confirmBulkRemove() {
+    if (!bulkRemoveConfirm) return;
+    const enrollmentIds = bulkRemoveConfirm;
+    setBulkRemoveConfirm(null);
+    // Snapshot for revert on error
+    const previousEnrollments = [...enrollments];
+    const previousTotal = enrollmentTotal;
     // Optimistic update
     const idSet = new Set(Array.from(enrollmentIds));
     setEnrollments(prev => prev.filter(e => !idSet.has(e._id)));
@@ -351,9 +375,18 @@ function SequenceDetailPage({ sequenceId, onBack }) {
       loadSequence();
       showToast(`${enrollmentIds.size} contacts removed`);
     } catch (err) {
+      // Revert to snapshot on error
+      setEnrollments(previousEnrollments);
+      setEnrollmentTotal(previousTotal);
       showToast(err.message || 'Bulk remove failed', 'error');
     }
   }
+
+  // Memoized search enrollments callback to prevent unnecessary re-renders
+  const searchEnrollmentsCb = useCallback(async (search) => {
+    const res = await api.getSequenceEnrollments(sequenceId, 1, 50, { search });
+    return res.success ? res.enrollments : [];
+  }, [sequenceId]);
 
   if (loading) {
     return (
@@ -512,10 +545,7 @@ function SequenceDetailPage({ sequenceId, onBack }) {
           enrollments={enrollments}
           enrollmentTotal={enrollmentTotal}
           onLoadMoreEnrollments={() => loadEnrollments(enrollmentPage + 1)}
-          onSearchEnrollments={async (search) => {
-            const res = await api.getSequenceEnrollments(sequenceId, 1, 50, { search });
-            return res.success ? res.enrollments : [];
-          }}
+          onSearchEnrollments={searchEnrollmentsCb}
           emails={emailLog}
           total={emailLogTotal}
           loading={emailLogLoading}
@@ -577,6 +607,30 @@ function SequenceDetailPage({ sequenceId, onBack }) {
           sequenceId={sequenceId}
           stepIndex={showSendTest.stepIndex}
           onClose={() => setShowSendTest(null)}
+        />
+      )}
+
+      {/* Delete Step Confirmation Modal */}
+      {deleteStepConfirm !== null && (
+        <ConfirmModal
+          title="Delete Step"
+          message="Are you sure you want to delete this step? This action cannot be undone."
+          confirmLabel="Delete"
+          danger
+          onConfirm={confirmDeleteStep}
+          onCancel={() => setDeleteStepConfirm(null)}
+        />
+      )}
+
+      {/* Bulk Remove Confirmation Modal */}
+      {bulkRemoveConfirm && (
+        <ConfirmModal
+          title="Remove Contacts"
+          message={`Remove ${bulkRemoveConfirm.size} contact${bulkRemoveConfirm.size !== 1 ? 's' : ''} from this sequence?`}
+          confirmLabel="Remove"
+          danger
+          onConfirm={confirmBulkRemove}
+          onCancel={() => setBulkRemoveConfirm(null)}
         />
       )}
     </>
@@ -1091,6 +1145,7 @@ function ContactsTab({ sequence, enrollments, enrollmentTotal, user, onLoadMore,
   const [contactMenuId, setContactMenuId] = useState(null);
   const [searchLoading, setSearchLoading] = useState(false);
   const searchTimeoutRef = useRef(null);
+  const contactMenuBtnRectRef = useRef(null);
 
   // Owner filter
   const [ownerFilter, setOwnerFilter] = useState('all');
@@ -1102,6 +1157,13 @@ function ContactsTab({ sequence, enrollments, enrollmentTotal, user, onLoadMore,
   const [customDateFrom, setCustomDateFrom] = useState('');
   const [customDateTo, setCustomDateTo] = useState('');
   const [showCustomDatePicker, setShowCustomDatePicker] = useState(false);
+
+  // Cleanup search timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    };
+  }, []);
 
   function handleContactSearch(value) {
     setContactSearch(value);
@@ -1137,9 +1199,13 @@ function ContactsTab({ sequence, enrollments, enrollmentTotal, user, onLoadMore,
   // Without this, filters like "Today" only apply to the first loaded page (50 of 94),
   // showing misleading results and a confusing "Load more" button
   const isFiltered = contactFilter !== 'all' || ownerFilter !== 'all' || dateFilter !== 'all';
+  const autoLoadingRef = useRef(false);
   useEffect(() => {
-    if (isFiltered && enrollments.length < enrollmentTotal) {
-      onLoadMore();
+    if (isFiltered && enrollments.length < enrollmentTotal && !autoLoadingRef.current) {
+      autoLoadingRef.current = true;
+      Promise.resolve(onLoadMore()).finally(() => {
+        autoLoadingRef.current = false;
+      });
     }
   }, [isFiltered, enrollments.length, enrollmentTotal, onLoadMore]);
 
@@ -1228,6 +1294,7 @@ function ContactsTab({ sequence, enrollments, enrollmentTotal, user, onLoadMore,
     : contactFilter === 'completed' ? 'Completed'
     : contactFilter === 'replied' ? 'Interested'
     : contactFilter === 'replied_not_interested' ? 'Not Interested'
+    : contactFilter === 'lost_no_response' ? 'No Response'
     : contactFilter === 'paused' ? 'Paused'
     : contactFilter === 'bounced' ? 'Bounced'
     : 'All contacts';
@@ -1316,6 +1383,7 @@ function ContactsTab({ sequence, enrollments, enrollmentTotal, user, onLoadMore,
                     { value: 'completed', label: 'Completed' },
                     { value: 'replied', label: 'Interested' },
                     { value: 'replied_not_interested', label: 'Not Interested' },
+                    { value: 'lost_no_response', label: 'No Response' },
                     { value: 'paused', label: 'Paused' },
                     { value: 'bounced', label: 'Bounced' },
                   ].map(opt => (
@@ -1554,6 +1622,8 @@ function ContactsTab({ sequence, enrollments, enrollmentTotal, user, onLoadMore,
                           enrollment.status === 'active' ? 'bg-green-400' :
                           enrollment.status === 'completed' ? 'bg-blue-400' :
                           enrollment.status === 'replied' ? 'bg-emerald-400' :
+                          enrollment.status === 'replied_not_interested' ? 'bg-purple-400' :
+                          enrollment.status === 'lost_no_response' ? 'bg-orange-400' :
                           enrollment.status === 'bounced' ? 'bg-red-400' :
                           enrollment.status === 'paused' ? 'bg-amber-400' :
                           'bg-dark-500'
@@ -1603,7 +1673,7 @@ function ContactsTab({ sequence, enrollments, enrollmentTotal, user, onLoadMore,
                     <td className="py-3 px-4 text-right">
                       <div className="relative">
                         <button
-                          onClick={(e) => { window._contactMenuBtnRect = e.currentTarget.getBoundingClientRect(); setContactMenuId(contactMenuId === enrollment._id ? null : enrollment._id); }}
+                          onClick={(e) => { contactMenuBtnRectRef.current = e.currentTarget.getBoundingClientRect(); setContactMenuId(contactMenuId === enrollment._id ? null : enrollment._id); }}
                           className="p-1.5 text-dark-500 hover:text-white hover:bg-dark-700 rounded-lg transition-colors"
                         >
                           <MoreVertical className="w-4 h-4" />
@@ -1613,7 +1683,7 @@ function ContactsTab({ sequence, enrollments, enrollmentTotal, user, onLoadMore,
                           <>
                             <div className="fixed inset-0 z-[9998]" onClick={() => setContactMenuId(null)} />
                             <div className="fixed w-44 bg-dark-800 border border-dark-600 rounded-xl shadow-xl py-1 z-[9999]" style={(() => {
-                              const btnRect = window._contactMenuBtnRect;
+                              const btnRect = contactMenuBtnRectRef.current;
                               const menuHeight = 220; // approx max dropdown height
                               const spaceBelow = window.innerHeight - (btnRect?.bottom || 0);
                               const openAbove = spaceBelow < menuHeight && (btnRect?.top || 0) > menuHeight;
@@ -1734,6 +1804,7 @@ function EmailsTab({ sequenceId, sequence, enrollments, enrollmentTotal, onLoadM
   const contactsPerPage = 15;
   const contactRefs = useRef({});
   const searchTimerRef = useRef(null);
+  const autoLoadingEnrollmentsRef = useRef(false);
 
   // Auto-select contact when navigating from Contacts tab
   useEffect(() => {
@@ -1803,9 +1874,13 @@ function EmailsTab({ sequenceId, sequence, enrollments, enrollmentTotal, onLoadM
   // Auto-load more enrollments when user navigates near the end of loaded contacts
   useEffect(() => {
     if (searchResults !== null) return; // Don't auto-load during search
+    if (autoLoadingEnrollmentsRef.current) return; // Prevent recursive calls while loading
     const lastLoadedPage = Math.ceil(enrollments.length / contactsPerPage);
     if (contactPage >= lastLoadedPage && enrollments.length < enrollmentTotal && onLoadMoreEnrollments) {
-      onLoadMoreEnrollments();
+      autoLoadingEnrollmentsRef.current = true;
+      Promise.resolve(onLoadMoreEnrollments()).finally(() => {
+        autoLoadingEnrollmentsRef.current = false;
+      });
     }
   }, [contactPage, enrollments.length, enrollmentTotal, onLoadMoreEnrollments, searchResults, contactsPerPage]);
 
@@ -1905,7 +1980,8 @@ function EmailsTab({ sequenceId, sequence, enrollments, enrollmentTotal, onLoadM
     if (!selectedContact && !initialSelectedEnrollment && paginatedContacts.length > 0) {
       handleSelectContact(paginatedContacts[0]);
     }
-  }, [enrollments.length]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enrollments.length, initialSelectedEnrollment]);
 
   function toggleExpandEmail(index) {
     setExpandedEmails(prev => {
@@ -1981,7 +2057,10 @@ function EmailsTab({ sequenceId, sequence, enrollments, enrollmentTotal, onLoadM
             const statusDot = enrollment.status === 'active' ? 'bg-green-400' :
               enrollment.status === 'completed' ? 'bg-blue-400' :
               enrollment.status === 'replied' ? 'bg-emerald-400' :
+              enrollment.status === 'replied_not_interested' ? 'bg-purple-400' :
+              enrollment.status === 'lost_no_response' ? 'bg-orange-400' :
               enrollment.status === 'paused' ? 'bg-amber-400' :
+              enrollment.status === 'bounced' ? 'bg-red-400' :
               'bg-dark-500';
 
             // Get last activity from stepHistory (complete per-contact, not paginated)

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Info, Shield, RotateCcw, Save, Check, Loader2 } from 'lucide-react';
+import { Info, Shield, RotateCcw, Save, Check, Loader2, AlertCircle } from 'lucide-react';
 import api from '../utils/api';
 import ToggleSwitch from './ToggleSwitch';
 
@@ -14,6 +14,7 @@ function EngageSettings({ gmailStatus }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState('');
 
   useEffect(() => {
     loadSettings();
@@ -34,28 +35,49 @@ function EngageSettings({ gmailStatus }) {
 
   async function handleSave() {
     setSaving(true);
+    setSaveError('');
     try {
       const res = await api.updateEngageSettings(settings);
       if (res.success) {
         setSettings(res.settings);
         setSaved(true);
         setTimeout(() => setSaved(false), 2000);
+      } else {
+        setSaveError(res.error || 'Failed to save settings');
       }
     } catch (err) {
       console.error('Failed to save settings:', err);
+      setSaveError(err.message || 'Failed to save settings. Please try again.');
     } finally {
       setSaving(false);
     }
   }
 
-  function handleReset() {
-    setSettings({
+  async function handleReset() {
+    const defaults = {
       dailySendLimit: 50,
       hourlySendLimit: 6,
       unsubscribe: { enabled: false, message: 'If you no longer wish to receive emails from me, you can unsubscribe at any time' },
       signature: '',
       fromName: ''
-    });
+    };
+    setSettings(defaults);
+    setSaveError('');
+    // Persist default settings to backend
+    setSaving(true);
+    try {
+      const res = await api.updateEngageSettings(defaults);
+      if (res.success) {
+        setSettings(res.settings);
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2000);
+      }
+    } catch (err) {
+      console.error('Failed to reset settings:', err);
+      setSaveError(err.message || 'Failed to reset settings. Please try again.');
+    } finally {
+      setSaving(false);
+    }
   }
 
   if (loading) {
@@ -123,7 +145,11 @@ function EngageSettings({ gmailStatus }) {
                 min="1"
                 max="200"
                 value={settings.dailySendLimit}
-                onChange={(e) => setSettings({ ...settings, dailySendLimit: parseInt(e.target.value) || 50 })}
+                onChange={(e) => {
+                  const val = parseInt(e.target.value);
+                  if (isNaN(val)) return;
+                  setSettings({ ...settings, dailySendLimit: Math.min(200, Math.max(1, val)) });
+                }}
                 className="w-20 px-3 py-1.5 bg-dark-800 border border-dark-700 rounded-lg text-sm text-white text-center focus:outline-none focus:border-rivvra-500"
               />
               <span className="text-sm text-dark-500">per day</span>
@@ -148,7 +174,11 @@ function EngageSettings({ gmailStatus }) {
                 min="1"
                 max="50"
                 value={settings.hourlySendLimit}
-                onChange={(e) => setSettings({ ...settings, hourlySendLimit: parseInt(e.target.value) || 6 })}
+                onChange={(e) => {
+                  const val = parseInt(e.target.value);
+                  if (isNaN(val)) return;
+                  setSettings({ ...settings, hourlySendLimit: Math.min(50, Math.max(1, val)) });
+                }}
                 className="w-20 px-3 py-1.5 bg-dark-800 border border-dark-700 rounded-lg text-sm text-white text-center focus:outline-none focus:border-rivvra-500"
               />
               <span className="text-sm text-dark-500">per hour</span>
@@ -168,6 +198,14 @@ function EngageSettings({ gmailStatus }) {
             </div>
           </div>
         </div>
+
+        {/* Error message */}
+        {saveError && (
+          <div className="flex items-center gap-2 mt-4 px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-xl">
+            <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
+            <span className="text-sm text-red-400">{saveError}</span>
+          </div>
+        )}
 
         {/* Save/Reset buttons */}
         <div className="flex items-center justify-end gap-3 mt-6 pt-4 border-t border-dark-800">

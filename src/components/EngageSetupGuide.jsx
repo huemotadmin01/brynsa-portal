@@ -47,6 +47,7 @@ function EngageSetupGuide({ setupStatus, onConnectGmail, onSetupComplete, onRefr
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [searchingCompanies, setSearchingCompanies] = useState(false);
   const companyRef = useRef(null);
+  const companySearchTimerRef = useRef(null);
 
   const gmailDone = setupStatus?.gmailConnected;
   const profileDone = setupStatus?.profileComplete;
@@ -84,29 +85,40 @@ function EngageSetupGuide({ setupStatus, onConnectGmail, onSetupComplete, onRefr
   const completedCount = (gmailDone ? 1 : 0) + (profileDone ? 1 : 0) + (allDone ? 1 : 0);
   const progress = allDone ? 100 : gmailDone && profileDone ? 100 : gmailDone || profileDone ? 50 : 0;
 
-  // Company autocomplete search
-  const handleCompanySearch = async (value) => {
+  // Cleanup debounce timer on unmount
+  useEffect(() => {
+    return () => {
+      if (companySearchTimerRef.current) clearTimeout(companySearchTimerRef.current);
+    };
+  }, []);
+
+  // Company autocomplete search (debounced 300ms)
+  const handleCompanySearch = (value) => {
     setCompanyName(value);
+    if (companySearchTimerRef.current) clearTimeout(companySearchTimerRef.current);
     if (value.length < 2) {
       setCompanySuggestions([]);
       setShowSuggestions(false);
+      setSearchingCompanies(false);
       return;
     }
     setSearchingCompanies(true);
-    try {
-      const res = await api.searchCompanies(value);
-      if (res.success && res.companies.length > 0) {
-        setCompanySuggestions(res.companies);
-        setShowSuggestions(true);
-      } else {
+    companySearchTimerRef.current = setTimeout(async () => {
+      try {
+        const res = await api.searchCompanies(value);
+        if (res.success && res.companies.length > 0) {
+          setCompanySuggestions(res.companies);
+          setShowSuggestions(true);
+        } else {
+          setCompanySuggestions([]);
+          setShowSuggestions(false);
+        }
+      } catch (err) {
         setCompanySuggestions([]);
-        setShowSuggestions(false);
+      } finally {
+        setSearchingCompanies(false);
       }
-    } catch (err) {
-      setCompanySuggestions([]);
-    } finally {
-      setSearchingCompanies(false);
-    }
+    }, 300);
   };
 
   const selectCompany = (company) => {

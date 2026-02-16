@@ -58,7 +58,25 @@ class ApiClient {
 
     try {
       const response = await fetch(url, config);
-      const data = await response.json();
+
+      // Check Content-Type before parsing as JSON
+      const contentType = response.headers.get('content-type') || '';
+      let data;
+      if (contentType.includes('application/json')) {
+        data = await response.json();
+      } else {
+        // Non-JSON response — create meaningful error from status
+        if (!response.ok) {
+          throw new Error(`Request failed with status ${response.status} (${response.statusText || 'Unknown error'})`);
+        }
+        // Try parsing as JSON anyway (some servers don't set Content-Type correctly)
+        const text = await response.text();
+        try {
+          data = JSON.parse(text);
+        } catch {
+          throw new Error(`Unexpected response format (status ${response.status})`);
+        }
+      }
 
       if (!response.ok) {
         throw new Error(data.error || 'Request failed');
@@ -434,11 +452,22 @@ class ApiClient {
     const token = localStorage.getItem('rivvra_token');
     const res = await fetch(url, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${token}` },
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
       body: formData,
     });
+    if (!res.ok) {
+      const contentType = res.headers.get('content-type') || '';
+      if (contentType.includes('application/json')) {
+        const data = await res.json();
+        throw new Error(data.error || 'Upload failed');
+      }
+      throw new Error(`Upload failed with status ${res.status}`);
+    }
+    const contentType = res.headers.get('content-type') || '';
+    if (!contentType.includes('application/json')) {
+      throw new Error('Upload failed: unexpected response format');
+    }
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Upload failed');
     return data;
   }
 
@@ -514,9 +543,17 @@ class ApiClient {
   async exportSequenceCsv(sequenceId) {
     const token = localStorage.getItem('rivvra_token');
     const response = await fetch(`${this.baseUrl}/api/sequences/${sequenceId}/export-csv`, {
-      headers: { Authorization: `Bearer ${token}` }
+      headers: token ? { Authorization: `Bearer ${token}` } : {}
     });
-    if (!response.ok) throw new Error('Export failed');
+    if (!response.ok) {
+      // Try to extract error message from JSON response
+      const contentType = response.headers.get('content-type') || '';
+      if (contentType.includes('application/json')) {
+        const data = await response.json();
+        throw new Error(data.error || `Export failed with status ${response.status}`);
+      }
+      throw new Error(`Export failed with status ${response.status}`);
+    }
     const blob = await response.blob();
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');

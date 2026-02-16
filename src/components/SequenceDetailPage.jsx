@@ -508,6 +508,10 @@ function SequenceDetailPage({ sequenceId, onBack }) {
           enrollments={enrollments}
           enrollmentTotal={enrollmentTotal}
           onLoadMoreEnrollments={() => loadEnrollments(enrollmentPage + 1)}
+          onSearchEnrollments={async (search) => {
+            const res = await api.getSequenceEnrollments(sequenceId, 1, 50, { search });
+            return res.success ? res.enrollments : [];
+          }}
           emails={emailLog}
           total={emailLogTotal}
           loading={emailLogLoading}
@@ -1696,15 +1700,18 @@ function ContactsTab({ sequence, enrollments, enrollmentTotal, user, onLoadMore,
 
 // ========================== EMAILS TAB (SPLIT-PANE - LUSHA STYLE) ==========================
 
-function EmailsTab({ sequenceId, sequence, enrollments, enrollmentTotal, onLoadMoreEnrollments, emails, total, loading, onLoadMore, onReloadEnrollments, user, initialSelectedEnrollment, onConsumePreselection }) {
+function EmailsTab({ sequenceId, sequence, enrollments, enrollmentTotal, onLoadMoreEnrollments, onSearchEnrollments, emails, total, loading, onLoadMore, onReloadEnrollments, user, initialSelectedEnrollment, onConsumePreselection }) {
   const [selectedContact, setSelectedContact] = useState(null);
   const [contactEmails, setContactEmails] = useState([]);
   const [contactEmailsLoading, setContactEmailsLoading] = useState(false);
   const [contactSearch, setContactSearch] = useState('');
+  const [searchResults, setSearchResults] = useState(null); // null = not searching, [] = no results
+  const [searchLoading, setSearchLoading] = useState(false);
   const [expandedEmails, setExpandedEmails] = useState(new Set());
   const [contactPage, setContactPage] = useState(1);
   const contactsPerPage = 15;
   const contactRefs = useRef({});
+  const searchTimerRef = useRef(null);
 
   // Auto-select contact when navigating from Contacts tab
   useEffect(() => {
@@ -1735,21 +1742,33 @@ function EmailsTab({ sequenceId, sequence, enrollments, enrollmentTotal, onLoadM
     }
   }, []);
 
-  // Auto-load ALL enrollments when user searches, so search covers all contacts (not just first 50)
+  // Debounced server-side search (fast — no need to load all enrollments client-side)
   useEffect(() => {
-    if (contactSearch && enrollmentTotal && enrollments.length < enrollmentTotal && onLoadMoreEnrollments) {
-      onLoadMoreEnrollments();
+    if (!contactSearch.trim()) {
+      setSearchResults(null); // Clear search results, show normal list
+      setSearchLoading(false);
+      return;
     }
-  }, [contactSearch, enrollments.length, enrollmentTotal, onLoadMoreEnrollments]);
+    setSearchLoading(true);
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    searchTimerRef.current = setTimeout(async () => {
+      try {
+        if (onSearchEnrollments) {
+          const results = await onSearchEnrollments(contactSearch.trim());
+          setSearchResults(results);
+        }
+      } catch (err) {
+        console.error('Search failed:', err);
+        setSearchResults([]);
+      } finally {
+        setSearchLoading(false);
+      }
+    }, 300); // 300ms debounce
+    return () => { if (searchTimerRef.current) clearTimeout(searchTimerRef.current); };
+  }, [contactSearch, onSearchEnrollments]);
 
-  // Filter contacts by search
-  const filteredContacts = enrollments.filter(e => {
-    if (!contactSearch) return true;
-    const q = contactSearch.toLowerCase();
-    return (e.leadName || '').toLowerCase().includes(q) ||
-           (e.leadEmail || '').toLowerCase().includes(q) ||
-           (e.leadCompany || '').toLowerCase().includes(q);
-  });
+  // Use search results when searching, otherwise use base enrollments
+  const filteredContacts = searchResults !== null ? searchResults : enrollments;
 
   // Paginate contacts
   const totalContactPages = Math.ceil(filteredContacts.length / contactsPerPage);
@@ -1837,23 +1856,14 @@ function EmailsTab({ sequenceId, sequence, enrollments, enrollmentTotal, onLoadM
     };
   }, [selectedContact, sequence, user]);
 
-  // Re-filter contact emails when email log data arrives
-  useEffect(() => {
-    if (selectedContact && emails.length > 0) {
-      const filtered = emails.filter(e => e.leadEmail === selectedContact.leadEmail);
-      setContactEmails(filtered);
-    }
-  }, [emails.length, selectedContact]);
-
-  // Sync selectedContact with latest enrollment data on refresh
+  // Sync selectedContact with latest enrollment data on refresh (use stepHistory, not paginated email log)
   useEffect(() => {
     if (selectedContact && enrollments.length > 0) {
       const updated = enrollments.find(e => e._id === selectedContact._id);
       if (updated && (updated.status !== selectedContact.status || updated.currentStepIndex !== selectedContact.currentStepIndex)) {
         setSelectedContact(updated);
-        // Re-filter emails for the updated contact
-        const filtered = emails.filter(e => e.leadEmail === updated.leadEmail);
-        setContactEmails(filtered);
+        // Rebuild emails from stepHistory (complete per-contact data)
+        handleSelectContact(updated);
       }
     }
   }, [enrollments]);
@@ -1917,7 +1927,11 @@ function EmailsTab({ sequenceId, sequence, enrollments, enrollmentTotal, onLoadM
         {/* Search */}
         <div className="p-3 border-b border-dark-800">
           <div className="relative">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-dark-500" />
+            {searchLoading ? (
+              <Loader2 className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-rivvra-500 animate-spin" />
+            ) : (
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-dark-500" />
+            )}
             <input
               type="text"
               placeholder="Search..."
@@ -1938,10 +1952,9 @@ function EmailsTab({ sequenceId, sequence, enrollments, enrollmentTotal, onLoadM
               enrollment.status === 'paused' ? 'bg-amber-400' :
               'bg-dark-500';
 
-            // Get last activity
-            const contactMails = emails.filter(e => e.leadEmail === enrollment.leadEmail);
-            const lastMail = contactMails[0];
-            const lastEngaged = lastMail?.sentAt ? getRelativeTime(new Date(lastMail.sentAt)) : null;
+            // Get last activity from stepHistory (complete per-contact, not paginated)
+            const sentSteps = (enrollment.stepHistory || []).filter(h => h.sentAt).sort((a, b) => new Date(b.sentAt) - new Date(a.sentAt));
+            const lastEngaged = sentSteps[0]?.sentAt ? getRelativeTime(new Date(sentSteps[0].sentAt)) : null;
 
             return (
               <button

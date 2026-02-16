@@ -130,10 +130,11 @@ function EngageSetupGuide({ setupStatus, onConnectGmail, onSetupComplete, onRefr
       });
       // Await refresh so setupStatus.allComplete updates before we dismiss
       if (onRefresh) await onRefresh();
-      // Brief delay so user sees the "Saved" checkmark, then auto-dismiss
+      // Brief delay so user sees the "Saved" checkmark, then auto-dismiss — ONLY if save succeeded
       setTimeout(() => setDismissed(true), 600);
     } catch (err) {
       setSaveError(err.message || 'Failed to save. Please try again.');
+      setProfileSaved(false); // Reset saved state so user can retry
     } finally {
       setSavingProfile(false);
     }

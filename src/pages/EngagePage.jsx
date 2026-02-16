@@ -227,24 +227,30 @@ function EngagePage() {
       setActivateConfirm({ id, name: seq?.name || 'this sequence', enrolled: seq?.stats?.enrolled || 0 });
       return;
     }
-    // Pausing — immediate
+    // Pausing — optimistic update (no full reload)
+    const previousSequences = [...sequences];
+    setSequences(prev => prev.map(s => s._id === id ? { ...s, status: 'paused' } : s));
     try {
       await api.pauseSequence(id);
-      loadSequences();
       showToast('Sequence paused');
     } catch (err) {
+      setSequences(previousSequences); // Revert on failure
       showToast(err.message || 'Failed to pause sequence', 'error');
     }
   }
 
   async function confirmActivation() {
     if (!activateConfirm) return;
+    const { id } = activateConfirm;
+    // Optimistic update (no full reload)
+    const previousSequences = [...sequences];
+    setSequences(prev => prev.map(s => s._id === id ? { ...s, status: 'active' } : s));
+    setActivateConfirm(null);
     try {
-      await api.resumeSequence(activateConfirm.id);
-      setActivateConfirm(null);
-      loadSequences();
+      await api.resumeSequence(id);
       showToast('Sequence activated');
     } catch (err) {
+      setSequences(previousSequences); // Revert on failure
       showToast(err.message || 'Failed to activate sequence', 'error');
     }
   }
@@ -510,9 +516,21 @@ function SequencesTab({
     <>
       {/* Stats bar + Actions */}
       <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2 text-sm text-dark-400">
+        <div className="flex items-center gap-3 text-sm text-dark-400">
           <span>Emails sent today</span>
           <span className="font-semibold text-white">{emailsSentToday.sent}/{emailsSentToday.limit}</span>
+          <div className="w-24 h-2 bg-dark-700 rounded-full overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all duration-500 ${
+                emailsSentToday.limit > 0 && (emailsSentToday.sent / emailsSentToday.limit) >= 0.9
+                  ? 'bg-red-500'
+                  : emailsSentToday.limit > 0 && (emailsSentToday.sent / emailsSentToday.limit) >= 0.7
+                  ? 'bg-amber-500'
+                  : 'bg-rivvra-500'
+              }`}
+              style={{ width: `${emailsSentToday.limit > 0 ? Math.min((emailsSentToday.sent / emailsSentToday.limit) * 100, 100) : 0}%` }}
+            />
+          </div>
           <div className="group relative">
             <Info className="w-3.5 h-3.5 text-dark-500 cursor-help" />
             <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-dark-700 text-xs text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
@@ -663,8 +681,8 @@ function SequencesTab({
                       onClick={() => onOpenDetail(seq)}
                     >
                       <td className="py-3 px-4">
-                        <div className="flex items-center gap-2">
-                          <span className="text-white font-medium">{seq.name}</span>
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="text-white font-medium truncate max-w-[200px]" title={seq.name}>{seq.name}</span>
                           {seq.sharedWithCompany && (
                             <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium text-blue-400 bg-blue-500/10 border border-blue-500/20 rounded">
                               <Users className="w-2.5 h-2.5" />

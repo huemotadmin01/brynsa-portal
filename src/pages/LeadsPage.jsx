@@ -572,7 +572,7 @@ function LeadsPage() {
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-2 text-sm">
                               <MapPin className="w-4 h-4 text-dark-500 flex-shrink-0" />
-                              <span className="text-dark-300 truncate max-w-[120px]">{lead.location || '-'}</span>
+                              <span className="text-dark-300 truncate max-w-[200px]" title={lead.location || ''}>{lead.location || '-'}</span>
                             </div>
                           </td>
                           <td className="px-4 py-3 text-sm">

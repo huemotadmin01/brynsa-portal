@@ -106,42 +106,20 @@ function SequenceDetailPage({ sequenceId, onBack }) {
   const loadEmailLog = useCallback(async (page = 1) => {
     setEmailLogLoading(true);
     try {
-      // Fetch with higher limit to get all emails in fewer requests
       const res = await api.getSequenceEmailLog(sequenceId, page, 100);
       if (res.success) {
         const allEmails = page === 1 ? res.emails : [...emailLog, ...res.emails];
         setEmailLog(allEmails);
         setEmailLogTotal(res.pagination.total);
         setEmailLogPage(page);
-        // Auto-load remaining pages if there are more
-        if (allEmails.length < res.pagination.total) {
-          // Load next page without setting loading state again
-          const nextPage = page + 1;
-          const nextRes = await api.getSequenceEmailLog(sequenceId, nextPage, 100);
-          if (nextRes.success && nextRes.emails.length > 0) {
-            const combined = [...allEmails, ...nextRes.emails];
-            setEmailLog(combined);
-            setEmailLogPage(nextPage);
-            // Continue loading if still more
-            let currentEmails = combined;
-            let currentPage = nextPage;
-            while (currentEmails.length < res.pagination.total) {
-              currentPage++;
-              const moreRes = await api.getSequenceEmailLog(sequenceId, currentPage, 100);
-              if (!moreRes.success || moreRes.emails.length === 0) break;
-              currentEmails = [...currentEmails, ...moreRes.emails];
-              setEmailLog(currentEmails);
-              setEmailLogPage(currentPage);
-            }
-          }
-        }
+        // Stop here — user can click "Load More" for additional pages
       }
     } catch (err) {
       console.error('Failed to load email log:', err);
     } finally {
       setEmailLogLoading(false);
     }
-  }, [sequenceId]);
+  }, [sequenceId, emailLog]);
 
   useEffect(() => {
     loadSequence();
@@ -161,6 +139,8 @@ function SequenceDetailPage({ sequenceId, onBack }) {
   useEffect(() => {
     if (sequence?.status !== 'active') return;
     const interval = setInterval(async () => {
+      // M1: Stop polling when tab is in background to save resources
+      if (document.hidden) return;
       try {
         const res = await api.pollSequence(sequenceId);
         if (!res.success) return;
@@ -240,16 +220,17 @@ function SequenceDetailPage({ sequenceId, onBack }) {
   async function handleMarkReplied(enrollmentId, replyType) {
     // Optimistic update: immediately reflect in UI
     const newStatus = replyType === 'not_interested' ? 'replied_not_interested' : 'replied';
+    const previousEnrollments = [...enrollments]; // Snapshot for revert
     setEnrollments(prev => prev.map(e =>
       e._id === enrollmentId ? { ...e, status: newStatus } : e
     ));
     try {
       await api.markEnrollmentReplied(sequenceId, enrollmentId, replyType);
-      loadSequence();
+      loadSequence(); // Refresh stats only
       showToast(replyType === 'not_interested' ? 'Marked as not interested' : 'Marked as interested');
     } catch (err) {
-      // Revert on error
-      loadEnrollments(1);
+      // Revert to snapshot (preserves scroll position, doesn't reload from page 1)
+      setEnrollments(previousEnrollments);
       showToast(err.message || 'Failed to update status', 'error');
     }
   }
@@ -260,6 +241,8 @@ function SequenceDetailPage({ sequenceId, onBack }) {
       const res = await api.toggleStep(sequenceId, stepIndex);
       if (res.success) {
         setSequence(res.sequence);
+      } else {
+        showToast(res.error || 'Failed to toggle step', 'error');
       }
     } catch (err) {
       showToast(err.message || 'Failed to toggle step', 'error');
@@ -273,6 +256,8 @@ function SequenceDetailPage({ sequenceId, onBack }) {
         setSequence(res.sequence);
         setShowStepEditor(null);
         showToast('Step updated');
+      } else {
+        showToast(res.error || 'Failed to update step', 'error');
       }
     } catch (err) {
       showToast(err.message || 'Failed to update step', 'error');
@@ -286,6 +271,8 @@ function SequenceDetailPage({ sequenceId, onBack }) {
       if (res.success) {
         setSequence(res.sequence);
         showToast('Step deleted');
+      } else {
+        showToast(res.error || 'Failed to delete step', 'error');
       }
     } catch (err) {
       showToast(err.message || 'Failed to delete step', 'error');
@@ -307,6 +294,8 @@ function SequenceDetailPage({ sequenceId, onBack }) {
       if (res.success) {
         setSequence(res.sequence);
         showToast('Email step added');
+      } else {
+        showToast(res.error || 'Failed to add step', 'error');
       }
     } catch (err) {
       showToast(err.message || 'Failed to add step', 'error');
@@ -314,10 +303,14 @@ function SequenceDetailPage({ sequenceId, onBack }) {
   }
 
   async function handleUpdateWaitDays(stepIndex, days) {
+    const parsed = parseInt(days);
+    if (isNaN(parsed) || parsed < 1) return; // Validate min=1 on the frontend
     try {
-      const res = await api.updateStep(sequenceId, stepIndex, { days: Math.max(1, parseInt(days) || 1) });
+      const res = await api.updateStep(sequenceId, stepIndex, { days: Math.max(1, parsed) });
       if (res.success) {
         setSequence(res.sequence);
+      } else {
+        showToast(res.error || 'Failed to update wait days', 'error');
       }
     } catch (err) {
       showToast(err.message || 'Failed to update wait days', 'error');
@@ -326,7 +319,8 @@ function SequenceDetailPage({ sequenceId, onBack }) {
 
   // Bulk enrollment actions
   async function handleBulkPause(enrollmentIds) {
-    // Optimistic update
+    // Optimistic update with snapshot for revert
+    const previousEnrollments = [...enrollments];
     const idSet = new Set(Array.from(enrollmentIds));
     setEnrollments(prev => prev.map(e =>
       idSet.has(e._id) ? { ...e, status: 'paused' } : e
@@ -336,7 +330,7 @@ function SequenceDetailPage({ sequenceId, onBack }) {
       loadSequence();
       showToast(`${enrollmentIds.size} enrollments paused`);
     } catch (err) {
-      loadEnrollments(1);
+      setEnrollments(previousEnrollments); // Revert without losing scroll position
       showToast(err.message || 'Bulk pause failed', 'error');
     }
   }
@@ -630,13 +624,16 @@ function StepEditorModal({ step, stepIndex, sequenceId, onSave, onClose }) {
       }
 
       setUploading(true);
+      setAttachError(''); // Clear previous errors before each upload
       try {
         const res = await api.uploadAttachment(sequenceId, stepIndex, file);
         if (res.success) {
           setAttachments(prev => [...prev, res.attachment]);
+        } else {
+          setAttachError(res.error || `Failed to upload "${file.name}"`);
         }
       } catch (err) {
-        setAttachError(err.message || 'Upload failed');
+        setAttachError(err.message || `Upload failed for "${file.name}"`);
       } finally {
         setUploading(false);
       }
@@ -1122,6 +1119,16 @@ function ContactsTab({ sequence, enrollments, enrollmentTotal, user, onLoadMore,
     enrollments.forEach(e => { if (e.enrolledByName) owners.add(e.enrolledByName); });
     return [...owners].sort();
   }, [enrollments]);
+
+  // Auto-load ALL remaining enrollments when a client-side filter is active
+  // Without this, filters like "Today" only apply to the first loaded page (50 of 94),
+  // showing misleading results and a confusing "Load more" button
+  const isFiltered = contactFilter !== 'all' || ownerFilter !== 'all' || dateFilter !== 'all';
+  useEffect(() => {
+    if (isFiltered && enrollments.length < enrollmentTotal) {
+      onLoadMore();
+    }
+  }, [isFiltered, enrollments.length, enrollmentTotal, onLoadMore]);
 
   // Date filter helpers
   const getDateRange = (filterType) => {
@@ -1665,7 +1672,7 @@ function ContactsTab({ sequence, enrollments, enrollmentTotal, user, onLoadMore,
           </table>
         </div>
 
-        {enrollments.length < enrollmentTotal && (
+        {enrollments.length < enrollmentTotal && !isFiltered && (
           <div className="text-center py-4 border-t border-dark-800">
             <button
               onClick={onLoadMore}
@@ -1673,6 +1680,11 @@ function ContactsTab({ sequence, enrollments, enrollmentTotal, user, onLoadMore,
             >
               Load more ({enrollmentTotal - enrollments.length} remaining)
             </button>
+          </div>
+        )}
+        {enrollments.length < enrollmentTotal && isFiltered && (
+          <div className="text-center py-4 border-t border-dark-800">
+            <span className="text-xs text-dark-500">Loading all contacts for accurate filtering...</span>
           </div>
         )}
       </div>

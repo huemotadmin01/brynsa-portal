@@ -223,6 +223,63 @@ function LandingPage() {
           </div>
         </section>
 
+        {/* Pricing Section */}
+        <section id="pricing" className="py-24 border-t border-dark-800/50">
+          <div className="max-w-5xl mx-auto px-6">
+            <div className="text-center mb-16">
+              <h2 className="text-3xl lg:text-4xl font-bold text-white mb-4">
+                Simple, transparent pricing
+              </h2>
+              <p className="text-dark-400 text-lg">Start free. Upgrade when you need more.</p>
+            </div>
+            <div className="grid md:grid-cols-2 gap-8 max-w-3xl mx-auto">
+              {/* Free Plan */}
+              <div className="card p-8 relative">
+                <h3 className="text-lg font-semibold text-white mb-2">Free</h3>
+                <div className="flex items-baseline gap-1 mb-4">
+                  <span className="text-4xl font-bold text-white">$0</span>
+                  <span className="text-dark-400 text-sm">/month</span>
+                </div>
+                <p className="text-dark-400 text-sm mb-6">Perfect for getting started with lead extraction.</p>
+                <ul className="space-y-3 mb-8">
+                  {['LinkedIn profile extraction', 'Up to 50 contacts', 'Basic export (CSV)', 'Chrome extension'].map((item, i) => (
+                    <li key={i} className="flex items-center gap-2 text-sm text-dark-300">
+                      <Zap className="w-4 h-4 text-rivvra-400 flex-shrink-0" />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+                <Link to="/signup" className="block w-full text-center py-3 rounded-lg border border-dark-600 text-white font-medium text-sm hover:border-dark-500 transition-colors">
+                  Get started free
+                </Link>
+              </div>
+              {/* Pro Plan */}
+              <div className="card p-8 relative border-rivvra-500/30">
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                  <span className="px-3 py-1 bg-rivvra-500 text-dark-950 text-xs font-bold rounded-full">MOST POPULAR</span>
+                </div>
+                <h3 className="text-lg font-semibold text-white mb-2">Pro</h3>
+                <div className="flex items-baseline gap-1 mb-4">
+                  <span className="text-4xl font-bold text-white">$29</span>
+                  <span className="text-dark-400 text-sm">/month</span>
+                </div>
+                <p className="text-dark-400 text-sm mb-6">For sales teams serious about pipeline growth.</p>
+                <ul className="space-y-3 mb-8">
+                  {['Everything in Free', 'Unlimited contacts', 'Email enrichment', 'AI email & DM generation', 'Automated sequences', 'CRM integrations'].map((item, i) => (
+                    <li key={i} className="flex items-center gap-2 text-sm text-dark-300">
+                      <Zap className="w-4 h-4 text-rivvra-400 flex-shrink-0" />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+                <Link to="/signup" className="block w-full text-center py-3 rounded-lg bg-rivvra-500 text-dark-950 font-semibold text-sm hover:bg-rivvra-400 transition-colors">
+                  Start free trial
+                </Link>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* CTA Section */}
         <section className="py-24">
           <div className="max-w-4xl mx-auto px-6 text-center">

@@ -779,34 +779,16 @@ function DashboardPage() {
                     <div className="flex items-center justify-between mb-4">
                       <div>
                         <h3 className="font-semibold text-white">Similar to your reveals</h3>
-                        <p className="text-sm text-dark-400">Contacts &bull; <span className="text-rivvra-400">New</span></p>
+                        <p className="text-sm text-dark-400">Contacts &bull; <span className="text-amber-400">Coming Soon</span></p>
                       </div>
                     </div>
-                    <div className="space-y-3">
-                      {savedLeadsCount > 0 ? (
-                        <>
-                          <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-dark-800/50 transition-colors">
-                            <div className="w-8 h-8 rounded-full bg-dark-700 flex items-center justify-center text-sm font-medium text-white">JD</div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-white truncate">John Doe</p>
-                              <p className="text-xs text-dark-400 truncate">Marketing Manager</p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-dark-800/50 transition-colors">
-                            <div className="w-8 h-8 rounded-full bg-dark-700 flex items-center justify-center text-sm font-medium text-white">SM</div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-white truncate">Sarah Miller</p>
-                              <p className="text-xs text-dark-400 truncate">Sales Director</p>
-                            </div>
-                          </div>
-                        </>
-                      ) : (
-                        <p className="text-sm text-dark-500 text-center py-4">Extract contacts to see recommendations</p>
-                      )}
+                    <div className="text-center py-8">
+                      <div className="w-14 h-14 rounded-full bg-dark-800 mx-auto mb-3 flex items-center justify-center">
+                        <Users className="w-7 h-7 text-dark-500" />
+                      </div>
+                      <p className="text-sm text-dark-400 mb-1">AI-powered contact recommendations</p>
+                      <p className="text-xs text-dark-500">Based on your saved contacts</p>
                     </div>
-                    <button className="w-full mt-4 text-sm text-rivvra-400 hover:text-rivvra-300 transition-colors">
-                      View all
-                    </button>
                   </div>
 
                   {/* Similar to your reveals - Companies */}
@@ -814,32 +796,16 @@ function DashboardPage() {
                     <div className="flex items-center justify-between mb-4">
                       <div>
                         <h3 className="font-semibold text-white">Similar to your reveals</h3>
-                        <p className="text-sm text-dark-400">Companies &bull; <span className="text-rivvra-400">New</span></p>
+                        <p className="text-sm text-dark-400">Companies &bull; <span className="text-amber-400">Coming Soon</span></p>
                       </div>
                     </div>
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-dark-800/50 transition-colors">
-                        <div className="w-8 h-8 rounded-lg bg-dark-700 flex items-center justify-center">
-                          <Building2 className="w-4 h-4 text-dark-400" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-white truncate">Tech Solutions Inc</p>
-                          <p className="text-xs text-dark-400 truncate">Technology &bull; 50-200 emp</p>
-                        </div>
+                    <div className="text-center py-8">
+                      <div className="w-14 h-14 rounded-full bg-dark-800 mx-auto mb-3 flex items-center justify-center">
+                        <Building2 className="w-7 h-7 text-dark-500" />
                       </div>
-                      <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-dark-800/50 transition-colors">
-                        <div className="w-8 h-8 rounded-lg bg-dark-700 flex items-center justify-center">
-                          <Building2 className="w-4 h-4 text-dark-400" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-white truncate">Growth Marketing Co</p>
-                          <p className="text-xs text-dark-400 truncate">Marketing &bull; 10-50 emp</p>
-                        </div>
-                      </div>
+                      <p className="text-sm text-dark-400 mb-1">AI-powered company recommendations</p>
+                      <p className="text-xs text-dark-500">Based on your extracted companies</p>
                     </div>
-                    <button className="w-full mt-4 text-sm text-rivvra-400 hover:text-rivvra-300 transition-colors">
-                      View all
-                    </button>
                   </div>
 
                   {/* Suggested based on CRM */}
@@ -851,7 +817,8 @@ function DashboardPage() {
                       <div className="w-16 h-16 rounded-full bg-dark-800 mx-auto mb-4 flex items-center justify-center">
                         <Building2 className="w-8 h-8 text-dark-500" />
                       </div>
-                      <p className="text-sm text-dark-400 mb-4">Connect your CRM to enable AI recommendations</p>
+                      <p className="text-sm text-dark-400 mb-2">Connect your CRM to enable AI recommendations</p>
+                      <p className="text-xs text-dark-500 mb-4">Supports HubSpot, Salesforce, Odoo & more</p>
                       <button
                         onClick={() => handleFeatureClick('CRM Integration')}
                         className="px-4 py-2 rounded-lg bg-rivvra-500 text-dark-950 font-medium text-sm hover:bg-rivvra-400 transition-colors"
@@ -866,10 +833,10 @@ function DashboardPage() {
               {/* Quick Stats Row */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
                 {[
-                  { label: 'Contacts Saved', value: savedLeadsCount || 0, icon: Users, color: 'rivvra' },
-                  { label: 'Emails Generated', value: features?.usage?.emailsGenerated || 0, icon: Mail, color: 'blue', locked: !isPro },
-                  { label: 'DMs Generated', value: features?.usage?.dmsGenerated || 0, icon: MessageSquare, color: 'purple', locked: !isPro },
-                  { label: 'CRM Exports', value: features?.usage?.crmExports || 0, icon: Building2, color: 'orange', locked: !isPro },
+                  { label: 'Contacts Saved', value: savedLeadsCount || 0, icon: Users, color: 'rivvra', cta: 'Extract your first contact →' },
+                  { label: 'Emails Generated', value: features?.usage?.emailsGenerated || 0, icon: Mail, color: 'blue', locked: !isPro, cta: 'Generate your first email →' },
+                  { label: 'DMs Generated', value: features?.usage?.dmsGenerated || 0, icon: MessageSquare, color: 'purple', locked: !isPro, cta: 'Generate your first DM →' },
+                  { label: 'CRM Exports', value: features?.usage?.crmExports || 0, icon: Building2, color: 'orange', locked: !isPro, cta: 'Export to your CRM →' },
                 ].map((stat, i) => (
                   <div key={i} className="card p-5 relative">
                     {stat.locked && (
@@ -890,6 +857,9 @@ function DashboardPage() {
                     </div>
                     <p className="text-sm text-dark-400 mb-1">{stat.label}</p>
                     <span className="text-2xl font-bold text-white">{stat.value}</span>
+                    {stat.value === 0 && !stat.locked && (
+                      <p className="text-xs text-dark-500 mt-1">{stat.cta}</p>
+                    )}
                   </div>
                 ))}
               </div>

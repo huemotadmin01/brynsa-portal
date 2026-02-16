@@ -160,11 +160,15 @@ function SequenceDetailPage({ sequenceId, onBack }) {
     return () => clearInterval(interval);
   }, [sequence?.status, sequenceId, fullReload]);
 
+  // Refresh data when switching to Contacts or Emails tabs
   useEffect(() => {
+    if (activeTab === 'contacts' || activeTab === 'emails') {
+      loadEnrollments(1);
+    }
     if (activeTab === 'emails' && emailLog.length === 0) {
       loadEmailLog();
     }
-  }, [activeTab, emailLog.length, loadEmailLog]);
+  }, [activeTab]);
 
   async function handleToggleSequence(active) {
     if (active && sequence?.status !== 'active') {
@@ -1085,6 +1089,7 @@ function ContactsTab({ sequence, enrollments, enrollmentTotal, user, onLoadMore,
   const [selectedContacts, setSelectedContacts] = useState(new Set());
   const [sort, setSort] = useState({ key: 'enrolledAt', dir: 'desc' });
   const [contactMenuId, setContactMenuId] = useState(null);
+  const [searchLoading, setSearchLoading] = useState(false);
   const searchTimeoutRef = useRef(null);
 
   // Owner filter
@@ -1100,10 +1105,12 @@ function ContactsTab({ sequence, enrollments, enrollmentTotal, user, onLoadMore,
 
   function handleContactSearch(value) {
     setContactSearch(value);
+    setSearchLoading(true);
     if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
-    searchTimeoutRef.current = setTimeout(() => {
-      if (onReloadEnrollments) onReloadEnrollments(1, { search: value });
-    }, 400);
+    searchTimeoutRef.current = setTimeout(async () => {
+      if (onReloadEnrollments) await onReloadEnrollments(1, { search: value });
+      setSearchLoading(false);
+    }, 300);
   }
 
   function handleContactFilterChange(status) {
@@ -1454,7 +1461,11 @@ function ContactsTab({ sequence, enrollments, enrollmentTotal, user, onLoadMore,
 
           {/* Search */}
           <div className="relative">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-dark-500" />
+            {searchLoading ? (
+              <Loader2 className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-rivvra-500 animate-spin" />
+            ) : (
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-dark-500" />
+            )}
             <input
               type="text"
               placeholder="Search..."

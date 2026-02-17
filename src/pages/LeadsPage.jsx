@@ -1,12 +1,12 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
   Linkedin, Users, Search, Filter, Download,
-  Mail, MessageSquare, ExternalLink, Building2, MapPin,
-  ChevronLeft, ChevronRight, MoreHorizontal, Bookmark,
-  Crown, ArrowUpDown, RefreshCw, Trash2, AlertTriangle,
-  StickyNote, Phone, UserPlus
+  ExternalLink, Building2, MapPin,
+  ChevronLeft, ChevronRight, Bookmark,
+  ArrowUpDown, RefreshCw, Trash2, AlertTriangle,
+  StickyNote, UserPlus
 } from 'lucide-react';
 import Layout from '../components/Layout';
 import LeadDetailPanel from '../components/LeadDetailPanel';

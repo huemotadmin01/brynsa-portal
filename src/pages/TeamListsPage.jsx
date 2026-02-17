@@ -4,9 +4,9 @@ import { useAuth } from '../context/AuthContext';
 import {
   Users, ChevronRight, ChevronLeft, Linkedin,
   Search, List, FolderOpen, Layers,
-  Building2, MapPin, Mail, RefreshCw,
+  Building2, MapPin, RefreshCw,
   ArrowUpDown, StickyNote, Filter, Download, Lock,
-  MessageSquare, Copy, Edit3, Check, X, Loader2
+  Edit3, Check, X, Loader2
 } from 'lucide-react';
 import Layout from '../components/Layout';
 import LeadDetailPanel from '../components/LeadDetailPanel';
@@ -57,6 +57,7 @@ function TeamListsPage() {
   const [renameValue, setRenameValue] = useState('');
   const [renaming, setRenaming] = useState(false);
   const filterRef = useRef(null);
+  const filterDropdownRef = useRef(null);
 
   const isPro = user?.plan === 'pro' || user?.plan === 'premium';
   const leadsPerPage = 10;
@@ -123,7 +124,9 @@ function TeamListsPage() {
   // Close filter dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (filterRef.current && !filterRef.current.contains(event.target)) {
+      const inButton = filterRef.current && filterRef.current.contains(event.target);
+      const inDropdown = filterDropdownRef.current && filterDropdownRef.current.contains(event.target);
+      if (!inButton && !inDropdown) {
         setShowFilters(false);
       }
     };
@@ -214,7 +217,7 @@ function TeamListsPage() {
     const leadStatus = lead.outreachStatus || 'not_contacted';
     const matchesOutreachStatus = outreachStatusFilter === 'all' || leadStatus === outreachStatusFilter;
 
-    const matchesOwner = ownerFilter === 'all' || lead.ownerName === ownerFilter;
+    const matchesOwner = ownerFilter === 'all' || lead.userId === ownerFilter || lead.visitorId === ownerFilter;
 
     return matchesSearch && matchesProfileType && matchesOutreachStatus && matchesOwner;
   });
@@ -358,77 +361,88 @@ function TeamListsPage() {
                     )}
                   </button>
 
-                  {/* Filter Dropdown */}
-                  {showFilters && (
-                    <div className="absolute right-0 top-full mt-2 w-64 bg-dark-800 border border-dark-700 rounded-xl shadow-xl z-50">
-                      <div className="p-4">
-                        <div className="flex items-center justify-between mb-3">
-                          <span className="text-sm font-medium text-white">Filters</span>
-                          {activeFilterCount > 0 && (
-                            <button
-                              onClick={() => { setProfileTypeFilter('all'); setOutreachStatusFilter('all'); setOwnerFilter('all'); }}
-                              className="text-xs text-rivvra-400 hover:text-rivvra-300"
+                  {/* Filter Dropdown — fixed positioning to avoid overflow clipping */}
+                  {showFilters && (() => {
+                    const rect = filterRef.current?.getBoundingClientRect();
+                    return (
+                      <div
+                        ref={filterDropdownRef}
+                        className="fixed w-64 bg-dark-800 border border-dark-700 rounded-xl shadow-xl z-[9999]"
+                        style={{
+                          top: rect ? rect.bottom + 8 : 0,
+                          right: rect ? window.innerWidth - rect.right : 0,
+                        }}
+                      >
+                        <div className="p-4">
+                          <div className="flex items-center justify-between mb-3">
+                            <span className="text-sm font-medium text-white">Filters</span>
+                            {activeFilterCount > 0 && (
+                              <button
+                                onClick={() => { setProfileTypeFilter('all'); setOutreachStatusFilter('all'); setOwnerFilter('all'); }}
+                                className="text-xs text-rivvra-400 hover:text-rivvra-300"
+                              >
+                                Clear all
+                              </button>
+                            )}
+                          </div>
+
+                          {/* Owner Filter */}
+                          <div className="mb-3">
+                            <label className="block text-xs text-dark-400 mb-2">Contact Owner</label>
+                            <select
+                              value={ownerFilter}
+                              onChange={(e) => setOwnerFilter(e.target.value)}
+                              className="w-full px-3 py-2 bg-dark-900 border border-dark-600 rounded-lg text-sm text-white focus:outline-none focus:border-rivvra-500"
                             >
-                              Clear all
-                            </button>
-                          )}
-                        </div>
+                              <option value="all">All Owners</option>
+                              {teamMembers.map(m => (
+                                <option key={m._id} value={m._id}>{m.name}</option>
+                              ))}
+                            </select>
+                          </div>
 
-                        {/* Owner Filter */}
-                        <div className="mb-3">
-                          <label className="block text-xs text-dark-400 mb-2">Contact Owner</label>
-                          <select
-                            value={ownerFilter}
-                            onChange={(e) => setOwnerFilter(e.target.value)}
-                            className="w-full px-3 py-2 bg-dark-900 border border-dark-600 rounded-lg text-sm text-white focus:outline-none focus:border-rivvra-500"
+                          {/* Profile Type Filter */}
+                          <div className="mb-3">
+                            <label className="block text-xs text-dark-400 mb-2">Profile Type</label>
+                            <select
+                              value={profileTypeFilter}
+                              onChange={(e) => setProfileTypeFilter(e.target.value)}
+                              className="w-full px-3 py-2 bg-dark-900 border border-dark-600 rounded-lg text-sm text-white focus:outline-none focus:border-rivvra-500"
+                            >
+                              <option value="all">All Types</option>
+                              <option value="candidate">Candidate</option>
+                              <option value="client">Client</option>
+                            </select>
+                          </div>
+
+                          {/* Outreach Status Filter */}
+                          <div className="mb-3">
+                            <label className="block text-xs text-dark-400 mb-2">Outreach Status</label>
+                            <select
+                              value={outreachStatusFilter}
+                              onChange={(e) => setOutreachStatusFilter(e.target.value)}
+                              className="w-full px-3 py-2 bg-dark-900 border border-dark-600 rounded-lg text-sm text-white focus:outline-none focus:border-rivvra-500"
+                            >
+                              <option value="all">All Statuses</option>
+                              <option value="not_contacted">Not Contacted</option>
+                              <option value="in_sequence">In Sequence</option>
+                              <option value="replied">Interested</option>
+                              <option value="replied_not_interested">Not Interested</option>
+                              <option value="no_response">No Response</option>
+                              <option value="bounced">Bounced</option>
+                            </select>
+                          </div>
+
+                          <button
+                            onClick={() => setShowFilters(false)}
+                            className="w-full py-2 px-4 bg-rivvra-500 text-dark-950 font-medium rounded-lg hover:bg-rivvra-400 transition-colors text-sm"
                           >
-                            <option value="all">All Owners</option>
-                            {teamMembers.map(m => (
-                              <option key={m._id} value={m.name}>{m.name}</option>
-                            ))}
-                          </select>
+                            Apply Filters
+                          </button>
                         </div>
-
-                        {/* Profile Type Filter */}
-                        <div className="mb-3">
-                          <label className="block text-xs text-dark-400 mb-2">Profile Type</label>
-                          <select
-                            value={profileTypeFilter}
-                            onChange={(e) => setProfileTypeFilter(e.target.value)}
-                            className="w-full px-3 py-2 bg-dark-900 border border-dark-600 rounded-lg text-sm text-white focus:outline-none focus:border-rivvra-500"
-                          >
-                            <option value="all">All Types</option>
-                            <option value="candidate">Candidate</option>
-                            <option value="client">Client</option>
-                          </select>
-                        </div>
-
-                        {/* Outreach Status Filter */}
-                        <div className="mb-3">
-                          <label className="block text-xs text-dark-400 mb-2">Outreach Status</label>
-                          <select
-                            value={outreachStatusFilter}
-                            onChange={(e) => setOutreachStatusFilter(e.target.value)}
-                            className="w-full px-3 py-2 bg-dark-900 border border-dark-600 rounded-lg text-sm text-white focus:outline-none focus:border-rivvra-500"
-                          >
-                            <option value="all">All Statuses</option>
-                            <option value="not_contacted">Not Contacted</option>
-                            <option value="in_sequence">In Sequence</option>
-                            <option value="replied">Interested</option>
-                            <option value="replied_not_interested">Not Interested</option>
-                            <option value="no_response">No Response</option>
-                          </select>
-                        </div>
-
-                        <button
-                          onClick={() => setShowFilters(false)}
-                          className="w-full py-2 px-4 bg-rivvra-500 text-dark-950 font-medium rounded-lg hover:bg-rivvra-400 transition-colors text-sm"
-                        >
-                          Apply Filters
-                        </button>
                       </div>
-                    </div>
-                  )}
+                    );
+                  })()}
                 </div>
               </div>
 

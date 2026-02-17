@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import {
   Linkedin, UsersRound, Search, Filter, Download,
   Building2, MapPin,
-  ChevronLeft, ChevronRight, Bookmark,
+  ChevronLeft, ChevronRight,
   ArrowUpDown, RefreshCw, Trash2, AlertTriangle,
   StickyNote, UserCog
 } from 'lucide-react';
@@ -25,6 +25,7 @@ function TeamContactsPage() {
   const { showToast } = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
   const [leads, setLeads] = useState([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [teamMembers, setTeamMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -62,6 +63,7 @@ function TeamContactsPage() {
       const response = await api.getTeamLeads();
       if (response.success) {
         setLeads(response.leads || []);
+        setTotalCount(response.totalCount || response.leads?.length || 0);
         setTeamMembers(response.teamMembers || []);
       }
     } catch (err) {
@@ -233,7 +235,7 @@ function TeamContactsPage() {
                 <h1 className="text-2xl font-bold text-white">Team Contacts</h1>
               </div>
               <p className="text-dark-400">
-                {leads.length} contacts across your team {selectedLeads.length > 0 && `\u2022 ${selectedLeads.length} selected`}
+                {totalCount.toLocaleString()} contacts across your team {selectedLeads.length > 0 && `\u2022 ${selectedLeads.length} selected`}
               </p>
             </div>
 

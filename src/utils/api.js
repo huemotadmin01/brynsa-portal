@@ -669,10 +669,11 @@ class ApiClient {
     });
   }
 
-  async acceptInvite(token, name, password) {
+  // Accept invite: { token, name, password } for new user, { token, credential } for Google, { token } for one-click
+  async acceptInvite(data) {
     return this.request('/api/team/invite/accept', {
       method: 'POST',
-      body: JSON.stringify({ token, name, password }),
+      body: JSON.stringify(data),
     });
   }
 

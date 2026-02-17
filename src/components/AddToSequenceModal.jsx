@@ -146,16 +146,20 @@ function AddToSequenceModal({ isOpen, onClose, onEnrolled, leadIds = [], leadNam
           {result && (
             <div
               className={`mb-4 px-4 py-3 rounded-xl text-sm ${
-                result.success
+                result.success && result.enrolled > 0
                   ? 'bg-green-500/10 border border-green-500/20 text-green-400'
+                  : result.success && result.enrolled === 0
+                  ? 'bg-amber-500/10 border border-amber-500/20 text-amber-400'
                   : 'bg-red-500/10 border border-red-500/20 text-red-400'
               }`}
             >
               {result.success ? (
                 <div>
                   <p className="font-medium">
-                    {result.enrolled} contact{result.enrolled !== 1 ? 's' : ''}{' '}
-                    enrolled!
+                    {result.enrolled > 0
+                      ? `${result.enrolled} contact${result.enrolled !== 1 ? 's' : ''} enrolled!`
+                      : 'No contacts enrolled'
+                    }
                   </p>
                   {result.skipped > 0 && (
                     <div className="mt-1 space-y-0.5">

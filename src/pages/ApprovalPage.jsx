@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import api from '../services/api';
 import toast from 'react-hot-toast';
 import LoadingSpinner from '../components/common/LoadingSpinner';
-import { CheckCircle2, XCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import { CheckCircle2, XCircle, ChevronDown, ChevronUp, RotateCcw } from 'lucide-react';
 
 const monthNames = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const statusColors = {
@@ -37,6 +37,16 @@ export default function ApprovalPage() {
       load();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Approval failed');
+    }
+  };
+
+  const handleRevert = async (id) => {
+    try {
+      await api.patch(`/timesheets/${id}/revert`);
+      toast.success('Timesheet reverted to draft');
+      load();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Revert failed');
     }
   };
 
@@ -161,6 +171,17 @@ export default function ApprovalPage() {
                         className="bg-red-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-600 flex items-center gap-2"
                       >
                         <XCircle size={16} /> Reject
+                      </button>
+                    </div>
+                  )}
+
+                  {ts.status === 'approved' && (
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleRevert(ts._id)}
+                        className="bg-orange-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-orange-600 flex items-center gap-2"
+                      >
+                        <RotateCcw size={16} /> Revert to Draft
                       </button>
                     </div>
                   )}

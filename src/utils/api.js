@@ -639,12 +639,6 @@ class ApiClient {
     });
   }
 
-  async suspendTeamMember(userId) {
-    return this.request(`/api/team/members/${userId}/suspend`, {
-      method: 'PUT',
-    });
-  }
-
   async deleteTeamMember(userId) {
     return this.request(`/api/team/members/${userId}`, {
       method: 'DELETE',

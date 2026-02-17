@@ -169,36 +169,77 @@ function AddToListModal({ isOpen, onClose, lead, onLeadUpdate }) {
             </div>
           ) : (
             <>
-              <p className="text-xs text-dark-500 font-medium uppercase tracking-wider mb-2">All Lists</p>
-              <div className="space-y-1">
-                {filteredLists.map((list) => {
-                  const isSelected = selectedLists.includes(list.name);
-                  const colorClass = getListColor(list.name);
-                  const initial = list.name.charAt(0).toUpperCase();
+              {/* My Lists (custom) */}
+              {filteredLists.filter(l => !l.isDefault).length > 0 && (
+                <>
+                  <p className="text-xs text-dark-500 font-medium uppercase tracking-wider mb-2">My Lists</p>
+                  <div className="space-y-1">
+                    {filteredLists.filter(l => !l.isDefault).map((list) => {
+                      const isSelected = selectedLists.includes(list.name);
+                      const colorClass = getListColor(list.name);
+                      const initial = list.name.charAt(0).toUpperCase();
 
-                  return (
-                    <button
-                      key={list._id}
-                      onClick={() => toggleList(list.name)}
-                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
-                        isSelected
-                          ? 'bg-rivvra-500/10 border border-rivvra-500/30'
-                          : 'hover:bg-dark-800 border border-transparent'
-                      }`}
-                    >
-                      <div className={`w-8 h-8 rounded-lg ${colorClass} flex items-center justify-center flex-shrink-0`}>
-                        <span className="text-white text-sm font-bold">{initial}</span>
-                      </div>
-                      <span className={`text-sm font-medium flex-1 ${isSelected ? 'text-white' : 'text-dark-200'}`}>
-                        {list.name}
-                      </span>
-                      {isSelected && (
-                        <Check className="w-4 h-4 text-rivvra-400 flex-shrink-0" />
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
+                      return (
+                        <button
+                          key={list._id}
+                          onClick={() => toggleList(list.name)}
+                          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
+                            isSelected
+                              ? 'bg-rivvra-500/10 border border-rivvra-500/30'
+                              : 'hover:bg-dark-800 border border-transparent'
+                          }`}
+                        >
+                          <div className={`w-8 h-8 rounded-lg ${colorClass} flex items-center justify-center flex-shrink-0`}>
+                            <span className="text-white text-sm font-bold">{initial}</span>
+                          </div>
+                          <span className={`text-sm font-medium flex-1 ${isSelected ? 'text-white' : 'text-dark-200'}`}>
+                            {list.name}
+                          </span>
+                          {isSelected && (
+                            <Check className="w-4 h-4 text-rivvra-400 flex-shrink-0" />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+
+              {/* Default Lists */}
+              {filteredLists.filter(l => l.isDefault).length > 0 && (
+                <>
+                  <p className={`text-xs text-dark-500 font-medium uppercase tracking-wider mb-2 ${filteredLists.some(l => !l.isDefault) ? 'mt-4' : ''}`}>Default Lists</p>
+                  <div className="space-y-1">
+                    {filteredLists.filter(l => l.isDefault).map((list) => {
+                      const isSelected = selectedLists.includes(list.name);
+                      const colorClass = getListColor(list.name);
+                      const initial = list.name.charAt(0).toUpperCase();
+
+                      return (
+                        <button
+                          key={list._id}
+                          onClick={() => toggleList(list.name)}
+                          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
+                            isSelected
+                              ? 'bg-rivvra-500/10 border border-rivvra-500/30'
+                              : 'hover:bg-dark-800 border border-transparent'
+                          }`}
+                        >
+                          <div className={`w-8 h-8 rounded-lg ${colorClass} flex items-center justify-center flex-shrink-0`}>
+                            <span className="text-white text-sm font-bold">{initial}</span>
+                          </div>
+                          <span className={`text-sm font-medium flex-1 ${isSelected ? 'text-white' : 'text-dark-200'}`}>
+                            {list.name}
+                          </span>
+                          {isSelected && (
+                            <Check className="w-4 h-4 text-rivvra-400 flex-shrink-0" />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
             </>
           )}
 

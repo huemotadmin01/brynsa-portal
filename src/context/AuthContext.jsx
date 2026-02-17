@@ -8,6 +8,11 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const token = localStorage.getItem('huemot_token');
+    if (!token) {
+      setLoading(false);
+      return;
+    }
     const stored = localStorage.getItem('huemot_user');
     if (stored) {
       try {

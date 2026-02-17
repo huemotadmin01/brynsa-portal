@@ -137,10 +137,10 @@ export function AuthProvider({ children }) {
   }, [broadcastAuthChange]);
 
   // Signup with password (after OTP verification)
-  const signupWithPassword = useCallback(async (email, otp, name, password) => {
+  const signupWithPassword = useCallback(async (email, otp, name, password, inviteToken = undefined) => {
     setError(null);
     try {
-      const response = await api.signupWithPassword(email, otp, name, password);
+      const response = await api.signupWithPassword(email, otp, name, password, inviteToken);
       
       if (response.success) {
         const { token: authToken, user: userData } = response;

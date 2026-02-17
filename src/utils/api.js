@@ -95,10 +95,12 @@ class ApiClient {
   }
 
   // Auth endpoints
-  async sendOtp(email, isSignup = false) {
+  async sendOtp(email, isSignup = false, inviteToken = undefined) {
+    const payload = { email, isSignup };
+    if (inviteToken) payload.inviteToken = inviteToken;
     return this.request('/api/auth/send-otp', {
       method: 'POST',
-      body: JSON.stringify({ email, isSignup }),
+      body: JSON.stringify(payload),
     });
   }
 
@@ -116,10 +118,12 @@ class ApiClient {
     });
   }
 
-  async signupWithPassword(email, otp, name, password) {
+  async signupWithPassword(email, otp, name, password, inviteToken = undefined) {
+    const payload = { email, otp, name, password };
+    if (inviteToken) payload.inviteToken = inviteToken;
     return this.request('/api/auth/signup', {
       method: 'POST',
-      body: JSON.stringify({ email, otp, name, password }),
+      body: JSON.stringify(payload),
     });
   }
 

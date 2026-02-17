@@ -93,7 +93,7 @@ const checkPasswordStrength = (password) => {
 function SignupPage() {
   const navigate = useNavigate();
   const { signupWithPassword, loginWithGoogle, isAuthenticated, token } = useAuth();
-  
+
   const [currentStep, setCurrentStep] = useState(STEPS.AUTH);
   const [email, setEmail] = useState('');
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
@@ -101,14 +101,18 @@ function SignupPage() {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState('');
   const [countdown, setCountdown] = useState(0);
-  
+
   // Password setup data
   const [fullName, setFullName] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  
+
+  // Invite token (from InviteAcceptPage redirect)
+  const [inviteToken, setInviteToken] = useState('');
+  const [inviteData, setInviteData] = useState(null);
+
   // Questionnaire data
   const [formData, setFormData] = useState({
     companyName: '',
@@ -122,6 +126,53 @@ function SignupPage() {
   const [companySuggestions, setCompanySuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [searchingCompanies, setSearchingCompanies] = useState(false);
+
+  // Check for invite token in URL and validate it
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.hash?.split('?')[1] || '');
+    const token = params.get('inviteToken');
+    if (token) {
+      setInviteToken(token);
+      // Validate invite to get email and company name
+      api.validateInviteToken(token).then(res => {
+        if (res.success) {
+          setInviteData(res.invite);
+          setEmail(res.invite.email);
+        }
+      }).catch(() => {});
+    }
+  }, []);
+
+  // Track company name from invite context (either inviteData or user's existing company)
+  const [inviteCompanyName, setInviteCompanyName] = useState('');
+
+  // Pre-fill company name from invite data when available
+  useEffect(() => {
+    if (inviteData?.companyName && !formData.companyName) {
+      setInviteCompanyName(inviteData.companyName);
+      setFormData(prev => ({ ...prev, companyName: inviteData.companyName }));
+    }
+  }, [inviteData]);
+
+  // When user is authenticated (e.g. Google invite), check if they have a companyId and fetch company name
+  useEffect(() => {
+    if (isAuthenticated && !inviteCompanyName) {
+      const storedUser = JSON.parse(localStorage.getItem('rivvra_user') || '{}');
+      // If user already has a company name from their profile/company
+      if (storedUser.companyName) {
+        setInviteCompanyName(storedUser.companyName);
+        setFormData(prev => ({ ...prev, companyName: prev.companyName || storedUser.companyName }));
+      } else if (storedUser.companyId && storedUser.source?.includes('invite')) {
+        // User was created via invite (Google auth) — fetch their company name from profile
+        api.getProfile().then(res => {
+          if (res.success && res.user?.companyName) {
+            setInviteCompanyName(res.user.companyName);
+            setFormData(prev => ({ ...prev, companyName: prev.companyName || res.user.companyName }));
+          }
+        }).catch(() => {});
+      }
+    }
+  }, [isAuthenticated]);
 
   // Only redirect if authenticated AND onboarding is already completed
   useEffect(() => {
@@ -145,12 +196,13 @@ function SignupPage() {
 
   // Handle email submission
   const handleEmailSubmit = async (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     if (!email || !email.includes('@')) {
       setError('Please enter a valid email address');
       return;
     }
-    if (!isWorkEmail(email)) {
+    // Skip work email check if user is coming from an invite
+    if (!inviteToken && !isWorkEmail(email)) {
       setError('Please use your work email (e.g. you@company.com). Personal emails like Gmail, Outlook, Yahoo are not allowed.');
       return;
     }
@@ -159,7 +211,7 @@ function SignupPage() {
     setError('');
 
     try {
-      const response = await api.sendOtp(email, true); // true = isSignup
+      const response = await api.sendOtp(email, true, inviteToken || undefined); // pass invite token if present
       if (response.success) {
         setCurrentStep(STEPS.OTP);
         setCountdown(60);
@@ -261,8 +313,8 @@ function SignupPage() {
     setError('');
 
     try {
-      // Complete signup with password
-      const result = await signupWithPassword(email, otp.join(''), fullName.trim(), password);
+      // Complete signup with password (pass inviteToken if from invite flow)
+      const result = await signupWithPassword(email, otp.join(''), fullName.trim(), password, inviteToken || undefined);
       
       if (result.success) {
         setCurrentStep(STEPS.COMPANY);
@@ -474,36 +526,42 @@ function SignupPage() {
             <div className="space-y-6">
               <div>
                 <h1 className="text-3xl font-bold text-white mb-2">
-                  Create your account
+                  {inviteToken ? `Join ${inviteData?.companyName || 'Team'}` : 'Create your account'}
                 </h1>
                 <p className="text-dark-400">
-                  Start extracting contacts from LinkedIn in minutes.
+                  {inviteToken
+                    ? 'Verify your email to complete signup.'
+                    : 'Start extracting contacts from LinkedIn in minutes.'}
                 </p>
               </div>
 
-              {/* Google Sign-Up Button */}
-              <div className="relative">
-                {googleLoading && (
-                  <div className="absolute inset-0 bg-dark-800 rounded-xl flex items-center justify-center z-10">
-                    <Loader2 className="w-5 h-5 animate-spin text-white" />
+              {/* Google Sign-Up Button — hide for invite flow (they already chose email path) */}
+              {!inviteToken && (
+                <>
+                  <div className="relative">
+                    {googleLoading && (
+                      <div className="absolute inset-0 bg-dark-800 rounded-xl flex items-center justify-center z-10">
+                        <Loader2 className="w-5 h-5 animate-spin text-white" />
+                      </div>
+                    )}
+                    <div id="google-signup-button" className="w-full flex justify-center"></div>
                   </div>
-                )}
-                <div id="google-signup-button" className="w-full flex justify-center"></div>
-              </div>
 
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-dark-800"></div>
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-4 bg-dark-950 text-dark-500">Or</span>
-                </div>
-              </div>
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <div className="w-full border-t border-dark-800"></div>
+                    </div>
+                    <div className="relative flex justify-center text-sm">
+                      <span className="px-4 bg-dark-950 text-dark-500">Or</span>
+                    </div>
+                  </div>
+                </>
+              )}
 
               <form onSubmit={handleEmailSubmit} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-dark-300 mb-2">
-                    Work Email <span className="text-red-400">*</span>
+                    {inviteToken ? 'Email' : 'Work Email'} <span className="text-red-400">*</span>
                   </label>
                   <div className="relative">
                     <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-dark-500" />
@@ -512,11 +570,13 @@ function SignupPage() {
                       value={email}
                       onChange={(e) => { setEmail(e.target.value); setError(''); }}
                       placeholder="you@company.com"
-                      className="input-field pl-12"
-                      disabled={loading}
+                      className={`input-field pl-12 ${inviteToken ? 'opacity-60 cursor-not-allowed' : ''}`}
+                      disabled={loading || !!inviteToken}
                     />
                   </div>
-                  <p className="text-xs text-dark-500 mt-1.5">Use your company email. Personal emails (Gmail, Outlook, Yahoo) are not allowed.</p>
+                  {!inviteToken && (
+                    <p className="text-xs text-dark-500 mt-1.5">Use your company email. Personal emails (Gmail, Outlook, Yahoo) are not allowed.</p>
+                  )}
                 </div>
 
                 <button
@@ -784,30 +844,39 @@ function SignupPage() {
                 </p>
               </div>
 
-              {/* Company Name */}
+              {/* Company Name — locked if user joined via invite */}
               <div className="relative">
                 <label className="block text-sm font-medium text-dark-300 mb-2">
                   Company Name <span className="text-red-400">*</span>
                 </label>
                 <div className="relative">
                   <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-dark-500" />
-                  <input
-                    type="text"
-                    value={formData.companyName}
-                    onChange={(e) => handleCompanyNameChange(e.target.value)}
-                    onFocus={() => companySuggestions.length > 0 && setShowSuggestions(true)}
-                    onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-                    placeholder="Acme Inc."
-                    className="input-field pl-12"
-                    autoComplete="off"
-                  />
+                  {inviteToken || inviteCompanyName ? (
+                    <input
+                      type="text"
+                      value={formData.companyName || inviteCompanyName}
+                      disabled
+                      className="input-field pl-12 opacity-60 cursor-not-allowed"
+                    />
+                  ) : (
+                    <input
+                      type="text"
+                      value={formData.companyName}
+                      onChange={(e) => handleCompanyNameChange(e.target.value)}
+                      onFocus={() => companySuggestions.length > 0 && setShowSuggestions(true)}
+                      onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                      placeholder="Acme Inc."
+                      className="input-field pl-12"
+                      autoComplete="off"
+                    />
+                  )}
                   {searchingCompanies && (
                     <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-dark-500 animate-spin" />
                   )}
                 </div>
 
                 {/* Company Suggestions Dropdown */}
-                {showSuggestions && companySuggestions.length > 0 && (
+                {!inviteToken && !inviteCompanyName && showSuggestions && companySuggestions.length > 0 && (
                   <div className="absolute z-50 w-full mt-1 bg-dark-800 border border-dark-700 rounded-xl shadow-xl overflow-hidden">
                     {companySuggestions.map((company) => (
                       <button

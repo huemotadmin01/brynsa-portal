@@ -36,6 +36,10 @@ function InviteTeamMemberModal({ isOpen, onClose, onInviteSent }) {
         setEmail('');
         setRole('member');
         if (onInviteSent) onInviteSent();
+        // Auto-close modal after 1.5 seconds
+        setTimeout(() => {
+          handleClose();
+        }, 1500);
       } else {
         setError(res.error || 'Failed to send invite');
       }

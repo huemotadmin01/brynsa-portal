@@ -431,14 +431,16 @@ function SettingsPage() {
 
             <div className="mb-6">
               <p className="text-dark-300 mb-4">
-                This will permanently delete your account, including:
+                This will permanently delete your portal account, including:
               </p>
               <ul className="text-dark-400 text-sm space-y-1 mb-4">
-                <li>• Your profile and settings</li>
-                <li>• All saved contacts</li>
-                <li>• Generated emails and messages</li>
+                <li>• Your profile, settings, and preferences</li>
+                <li>• Email sequences and automation rules</li>
                 <li>• Usage history and statistics</li>
               </ul>
+              <p className="text-dark-500 text-xs mb-4">
+                Note: Your leads data will be preserved and not deleted.
+              </p>
               <p className="text-dark-400 text-sm">
                 To confirm, please type <span className="text-white font-mono bg-dark-800 px-2 py-0.5 rounded">{CONFIRM_TEXT}</span> below:
               </p>

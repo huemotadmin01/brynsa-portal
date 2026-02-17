@@ -15,6 +15,7 @@ import PrivacyPage from './pages/PrivacyPage';
 import TeamDashboardPage from './pages/TeamDashboardPage';
 import TeamContactsPage from './pages/TeamContactsPage';
 import TeamListsPage from './pages/TeamListsPage';
+import InviteAcceptPage from './pages/InviteAcceptPage';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
@@ -28,6 +29,7 @@ function App() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/signup" element={<SignupPage />} />
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/invite" element={<InviteAcceptPage />} />
           <Route path="/privacy" element={<PrivacyPage />} />
 
           {/* Protected Routes */}

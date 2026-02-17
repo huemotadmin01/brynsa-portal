@@ -639,6 +639,49 @@ class ApiClient {
     });
   }
 
+  async suspendTeamMember(userId) {
+    return this.request(`/api/team/members/${userId}/suspend`, {
+      method: 'PUT',
+    });
+  }
+
+  async deleteTeamMember(userId) {
+    return this.request(`/api/team/members/${userId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async inviteTeamMember(email, role = 'member') {
+    return this.request('/api/team/invite', {
+      method: 'POST',
+      body: JSON.stringify({ email, role }),
+    });
+  }
+
+  async getTeamInvites() {
+    return this.request('/api/team/invites');
+  }
+
+  async cancelTeamInvite(inviteId) {
+    return this.request(`/api/team/invites/${inviteId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async validateInviteToken(token) {
+    return this.request('/api/team/invite/validate', {
+      method: 'POST',
+      body: JSON.stringify({ token }),
+    });
+  }
+
+  async acceptInvite(token, name, password) {
+    return this.request('/api/team/invite/accept', {
+      method: 'POST',
+      body: JSON.stringify({ token, name, password }),
+    });
+  }
+
   // Team Dashboard
   async getDashboardStats({ dateFrom, dateTo } = {}) {
     const params = new URLSearchParams();

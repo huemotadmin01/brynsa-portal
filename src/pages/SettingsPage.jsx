@@ -4,11 +4,13 @@ import { useAuth } from '../context/AuthContext';
 import {
   User, Shield, Bell, CreditCard, Users,
   Trash2, AlertTriangle, Loader2, X, LogOut,
-  Mail, Building2, Crown, Briefcase, Check, Search, ChevronDown
+  Mail, Building2, Crown, Briefcase, Check, Search, ChevronDown,
+  UserPlus, MoreVertical, Ban, UserX, Clock
 } from 'lucide-react';
 import Layout from '../components/Layout';
 import api from '../utils/api';
 import ComingSoonModal from '../components/ComingSoonModal';
+import InviteTeamMemberModal from '../components/InviteTeamMemberModal';
 
 function SettingsPage() {
   const navigate = useNavigate();
@@ -501,10 +503,16 @@ function TeamManagement({ user, canChangeRoles = false }) {
   const [loading, setLoading] = useState(true);
   const [updatingRole, setUpdatingRole] = useState(null);
   const [openDropdown, setOpenDropdown] = useState(null);
+  const [actionMenu, setActionMenu] = useState(null);
   const [error, setError] = useState('');
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [invites, setInvites] = useState([]);
+  const [confirmAction, setConfirmAction] = useState(null); // { type: 'suspend'|'delete', member }
+  const [actionLoading, setActionLoading] = useState(null);
 
   useEffect(() => {
     loadTeam();
+    if (canChangeRoles) loadInvites();
   }, []);
 
   async function loadTeam() {
@@ -519,6 +527,13 @@ function TeamManagement({ user, canChangeRoles = false }) {
     } finally {
       setLoading(false);
     }
+  }
+
+  async function loadInvites() {
+    try {
+      const res = await api.getTeamInvites();
+      if (res.success) setInvites(res.invites || []);
+    } catch (err) { /* ignore */ }
   }
 
   async function handleRoleChange(memberId, newRole) {
@@ -539,6 +554,52 @@ function TeamManagement({ user, canChangeRoles = false }) {
     }
   }
 
+  async function handleSuspend(memberId) {
+    setActionLoading(memberId);
+    setConfirmAction(null);
+    try {
+      const res = await api.suspendTeamMember(memberId);
+      if (res.success) {
+        setMembers(prev => prev.map(m =>
+          m.id === memberId ? { ...m, status: res.status } : m
+        ));
+      }
+    } catch (err) {
+      setError(err.message || 'Failed to update member');
+      setTimeout(() => setError(''), 3000);
+    } finally {
+      setActionLoading(null);
+    }
+  }
+
+  async function handleDelete(memberId) {
+    setActionLoading(memberId);
+    setConfirmAction(null);
+    try {
+      const res = await api.deleteTeamMember(memberId);
+      if (res.success) {
+        setMembers(prev => prev.filter(m => m.id !== memberId));
+      }
+    } catch (err) {
+      setError(err.message || 'Failed to remove member');
+      setTimeout(() => setError(''), 3000);
+    } finally {
+      setActionLoading(null);
+    }
+  }
+
+  async function handleCancelInvite(inviteId) {
+    try {
+      const res = await api.cancelTeamInvite(inviteId);
+      if (res.success) {
+        setInvites(prev => prev.filter(i => i.id !== inviteId));
+      }
+    } catch (err) {
+      setError(err.message || 'Failed to cancel invite');
+      setTimeout(() => setError(''), 3000);
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-48">
@@ -547,7 +608,7 @@ function TeamManagement({ user, canChangeRoles = false }) {
     );
   }
 
-  const adminCount = members.filter(m => m.role === 'admin').length;
+  const adminCount = members.filter(m => m.role === 'admin' && m.status !== 'suspended').length;
 
   return (
     <div className="space-y-6">
@@ -557,9 +618,18 @@ function TeamManagement({ user, canChangeRoles = false }) {
             <h2 className="text-lg font-semibold text-white">Team Members</h2>
             <p className="text-dark-400 text-sm mt-1">
               {companyName && <span className="text-dark-300">{companyName}</span>}
-              {companyName && ' · '}{members.length} member{members.length !== 1 ? 's' : ''}
+              {companyName && ' · '}{members.filter(m => m.status !== 'suspended').length} active member{members.filter(m => m.status !== 'suspended').length !== 1 ? 's' : ''}
             </p>
           </div>
+          {canChangeRoles && (
+            <button
+              onClick={() => setInviteOpen(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-rivvra-500 text-dark-950 rounded-xl text-sm font-semibold hover:bg-rivvra-400 transition-colors"
+            >
+              <UserPlus className="w-4 h-4" />
+              Invite Member
+            </button>
+          )}
         </div>
 
         {error && (
@@ -572,12 +642,17 @@ function TeamManagement({ user, canChangeRoles = false }) {
           {members.map((member) => {
             const isCurrentUser = member.id === user?.id;
             const isOnlyAdmin = member.role === 'admin' && adminCount <= 1;
+            const isSuspended = member.status === 'suspended';
 
             return (
               <div
                 key={member.id}
                 className={`flex items-center gap-4 px-4 py-3 rounded-xl transition-colors ${
-                  isCurrentUser ? 'bg-rivvra-500/5 border border-rivvra-500/20' : 'bg-dark-800/40 border border-dark-700/50'
+                  isSuspended
+                    ? 'bg-red-500/5 border border-red-500/10 opacity-60'
+                    : isCurrentUser
+                    ? 'bg-rivvra-500/5 border border-rivvra-500/20'
+                    : 'bg-dark-800/40 border border-dark-700/50'
                 }`}
               >
                 {/* Avatar */}
@@ -598,6 +673,9 @@ function TeamManagement({ user, canChangeRoles = false }) {
                     {isCurrentUser && (
                       <span className="text-[10px] text-rivvra-400 bg-rivvra-500/10 px-1.5 py-0.5 rounded font-medium">You</span>
                     )}
+                    {isSuspended && (
+                      <span className="text-[10px] text-red-400 bg-red-500/10 px-1.5 py-0.5 rounded font-medium">Suspended</span>
+                    )}
                   </div>
                   <p className="text-xs text-dark-400 truncate">{member.email}</p>
                   {member.senderTitle && (
@@ -607,7 +685,7 @@ function TeamManagement({ user, canChangeRoles = false }) {
 
                 {/* Role badge / dropdown */}
                 <div className="relative flex-shrink-0">
-                  {updatingRole === member.id ? (
+                  {updatingRole === member.id || actionLoading === member.id ? (
                     <Loader2 className="w-4 h-4 text-rivvra-500 animate-spin" />
                   ) : canChangeRoles ? (
                     <button
@@ -640,7 +718,7 @@ function TeamManagement({ user, canChangeRoles = false }) {
                   {canChangeRoles && openDropdown === member.id && (
                     <>
                       <div className="fixed inset-0 z-40" onClick={() => setOpenDropdown(null)} />
-                      <div className="absolute right-0 top-full mt-1 z-50 bg-dark-800 border border-dark-600 rounded-xl shadow-2xl py-1 min-w-[140px]">
+                      <div className="absolute right-0 top-full mt-1 z-50 bg-dark-800 border border-dark-600 rounded-xl shadow-2xl py-1 min-w-[160px]">
                         {[
                           { value: 'admin', label: 'Admin' },
                           { value: 'team_lead', label: 'Team Lead' },
@@ -658,6 +736,27 @@ function TeamManagement({ user, canChangeRoles = false }) {
                             <span className={member.role === roleOption.value ? '' : 'ml-5'}>{roleOption.label}</span>
                           </button>
                         ))}
+
+                        {/* Separator + Admin actions */}
+                        {!isCurrentUser && (
+                          <>
+                            <div className="border-t border-dark-600 my-1" />
+                            <button
+                              onClick={() => { setOpenDropdown(null); setConfirmAction({ type: 'suspend', member }); }}
+                              className="w-full px-4 py-2 text-left text-xs hover:bg-dark-700 transition-colors flex items-center gap-2 text-amber-400"
+                            >
+                              <Ban className="w-3 h-3" />
+                              {isSuspended ? 'Reactivate' : 'Suspend'}
+                            </button>
+                            <button
+                              onClick={() => { setOpenDropdown(null); setConfirmAction({ type: 'delete', member }); }}
+                              className="w-full px-4 py-2 text-left text-xs hover:bg-dark-700 transition-colors flex items-center gap-2 text-red-400"
+                            >
+                              <UserX className="w-3 h-3" />
+                              Remove from Team
+                            </button>
+                          </>
+                        )}
                       </div>
                     </>
                   )}
@@ -667,6 +766,101 @@ function TeamManagement({ user, canChangeRoles = false }) {
           })}
         </div>
       </div>
+
+      {/* Pending Invites */}
+      {canChangeRoles && invites.length > 0 && (
+        <div className="card p-6">
+          <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
+            <Clock className="w-4 h-4 text-dark-400" />
+            Pending Invites
+          </h3>
+          <div className="space-y-2">
+            {invites.map((invite) => (
+              <div key={invite.id} className="flex items-center gap-4 px-4 py-3 rounded-xl bg-dark-800/40 border border-dark-700/50">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center flex-shrink-0">
+                  <Mail className="w-4 h-4 text-amber-400" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-white truncate">{invite.email}</p>
+                  <p className="text-xs text-dark-500">
+                    Invited as {invite.role === 'team_lead' ? 'Team Lead' : 'Member'} · {new Date(invite.createdAt).toLocaleDateString()}
+                  </p>
+                </div>
+                <button
+                  onClick={() => handleCancelInvite(invite.id)}
+                  className="text-xs text-red-400 hover:text-red-300 transition-colors px-3 py-1.5 hover:bg-red-500/10 rounded-lg"
+                >
+                  Cancel
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Invite Modal */}
+      <InviteTeamMemberModal
+        isOpen={inviteOpen}
+        onClose={() => setInviteOpen(false)}
+        onInviteSent={loadInvites}
+      />
+
+      {/* Confirm Action Modal */}
+      {confirmAction && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-dark-950/80 backdrop-blur-sm" onClick={() => setConfirmAction(null)} />
+          <div className="relative bg-dark-900 border border-dark-700 rounded-2xl w-full max-w-sm shadow-2xl p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                confirmAction.type === 'delete' ? 'bg-red-500/10' : 'bg-amber-500/10'
+              }`}>
+                {confirmAction.type === 'delete'
+                  ? <UserX className="w-5 h-5 text-red-400" />
+                  : <Ban className="w-5 h-5 text-amber-400" />
+                }
+              </div>
+              <div>
+                <h3 className="text-white font-semibold">
+                  {confirmAction.type === 'delete' ? 'Remove from Team' :
+                   confirmAction.member.status === 'suspended' ? 'Reactivate User' : 'Suspend User'}
+                </h3>
+                <p className="text-dark-400 text-sm">{confirmAction.member.name || confirmAction.member.email}</p>
+              </div>
+            </div>
+            <p className="text-dark-300 text-sm mb-6">
+              {confirmAction.type === 'delete'
+                ? 'This will remove this user from your team. They will lose access to all team data.'
+                : confirmAction.member.status === 'suspended'
+                ? 'This will reactivate the user and allow them to log in again.'
+                : 'This will prevent the user from logging in until reactivated.'}
+            </p>
+            <div className="flex items-center justify-end gap-3">
+              <button
+                onClick={() => setConfirmAction(null)}
+                className="px-4 py-2 text-sm text-dark-400 hover:text-white transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => confirmAction.type === 'delete'
+                  ? handleDelete(confirmAction.member.id)
+                  : handleSuspend(confirmAction.member.id)
+                }
+                className={`px-5 py-2 rounded-xl text-sm font-semibold transition-colors ${
+                  confirmAction.type === 'delete'
+                    ? 'bg-red-500 text-white hover:bg-red-400'
+                    : confirmAction.member.status === 'suspended'
+                    ? 'bg-rivvra-500 text-dark-950 hover:bg-rivvra-400'
+                    : 'bg-amber-500 text-dark-950 hover:bg-amber-400'
+                }`}
+              >
+                {confirmAction.type === 'delete' ? 'Remove' :
+                 confirmAction.member.status === 'suspended' ? 'Reactivate' : 'Suspend'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

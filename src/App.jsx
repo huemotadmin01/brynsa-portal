@@ -14,6 +14,7 @@ import SequenceWizardPage from './pages/SequenceWizardPage';
 import PrivacyPage from './pages/PrivacyPage';
 import TeamDashboardPage from './pages/TeamDashboardPage';
 import TeamContactsPage from './pages/TeamContactsPage';
+import TeamListsPage from './pages/TeamListsPage';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
@@ -94,6 +95,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <TeamContactsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/team-lists"
+            element={
+              <ProtectedRoute>
+                <TeamListsPage />
               </ProtectedRoute>
             }
           />

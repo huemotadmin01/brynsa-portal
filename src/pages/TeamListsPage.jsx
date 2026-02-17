@@ -1,12 +1,12 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
   Users, ChevronRight, ChevronLeft, Linkedin,
-  Trash2, Plus, Search, List, FolderOpen,
-  Copy, RefreshCw, Building2, MapPin, Mail,
-  MessageSquare, ArrowUpDown, StickyNote, AlertTriangle,
-  Filter, Download, Lock, Edit3, Check, X, Loader2
+  Search, List, FolderOpen, Layers,
+  Building2, MapPin, Mail, RefreshCw,
+  ArrowUpDown, StickyNote, Filter, Download, Lock,
+  MessageSquare, Copy, Edit3, Check, X, Loader2
 } from 'lucide-react';
 import Layout from '../components/Layout';
 import LeadDetailPanel from '../components/LeadDetailPanel';
@@ -20,12 +20,12 @@ import AddToSequenceModal from '../components/AddToSequenceModal';
 import EditContactModal from '../components/EditContactModal';
 import { useToast } from '../context/ToastContext';
 
-function MyListsPage() {
-  const navigate = useNavigate();
+function TeamListsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { user, isAuthenticated } = useAuth();
   const { showToast } = useToast();
   const [lists, setLists] = useState([]);
+  const [teamMembers, setTeamMembers] = useState([]);
   const [selectedList, setSelectedList] = useState(searchParams.get('list') || null);
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -34,16 +34,10 @@ function MyListsPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [totalLeads, setTotalLeads] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [newListName, setNewListName] = useState('');
   const [refreshing, setRefreshing] = useState(false);
 
-  // New states for Lusha-style UI
   const [selectedLeads, setSelectedLeads] = useState([]);
   const [selectedLead, setSelectedLead] = useState(null);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [deleteTarget, setDeleteTarget] = useState(null);
-  const [deleting, setDeleting] = useState(false);
   const [showComingSoon, setShowComingSoon] = useState(false);
   const [comingSoonFeature, setComingSoonFeature] = useState('');
   const [showAddToList, setShowAddToList] = useState(false);
@@ -55,12 +49,13 @@ function MyListsPage() {
   const [showEditContact, setShowEditContact] = useState(false);
   const [editContactTarget, setEditContactTarget] = useState(null);
   const [showFilters, setShowFilters] = useState(false);
-  const [renamingList, setRenamingList] = useState(null); // { id, name }
-  const [renameValue, setRenameValue] = useState('');
-  const [renaming, setRenaming] = useState(false);
   const [setupComplete, setSetupComplete] = useState(null);
   const [profileTypeFilter, setProfileTypeFilter] = useState('all');
   const [outreachStatusFilter, setOutreachStatusFilter] = useState('all');
+  const [ownerFilter, setOwnerFilter] = useState('all');
+  const [renamingList, setRenamingList] = useState(null);
+  const [renameValue, setRenameValue] = useState('');
+  const [renaming, setRenaming] = useState(false);
   const filterRef = useRef(null);
 
   const isPro = user?.plan === 'pro' || user?.plan === 'premium';
@@ -70,14 +65,14 @@ function MyListsPage() {
     if (!listName) return;
     try {
       setLeadsLoading(true);
-      const res = await api.getListLeads(listName, pageNum, leadsPerPage);
+      const res = await api.getTeamListLeads(listName, pageNum, leadsPerPage);
       if (res.success) {
         setLeads(res.leads || []);
         setTotalPages(res.totalPages || 1);
         setTotalLeads(res.total || 0);
       }
     } catch (err) {
-      console.error('Failed to load leads:', err);
+      console.error('Failed to load team list leads:', err);
       setLeads([]);
     } finally {
       setLeadsLoading(false);
@@ -87,17 +82,16 @@ function MyListsPage() {
   const loadLists = useCallback(async (showRefreshIndicator = false) => {
     if (showRefreshIndicator) setRefreshing(true);
     try {
-      const res = await api.getLists();
+      const res = await api.getTeamLists();
       if (res.success) {
-        // Filter out default lists — those now live on the Team Lists page
-        const customLists = (res.lists || []).filter(l => !l.isDefault);
-        setLists(customLists);
-        if (!selectedList && customLists.length > 0) {
-          setSelectedList(customLists[0].name);
+        setLists(res.lists || []);
+        setTeamMembers(res.teamMembers || []);
+        if (!selectedList && res.lists?.length > 0) {
+          setSelectedList(res.lists[0].name);
         }
       }
     } catch (err) {
-      console.error('Failed to load lists:', err);
+      console.error('Failed to load team lists:', err);
       setLists([]);
     } finally {
       setLoading(false);
@@ -108,78 +102,16 @@ function MyListsPage() {
   useEffect(() => {
     if (isAuthenticated) {
       loadLists();
-      // Check setup status for sequence guard
       api.getSetupStatus().then(res => {
         setSetupComplete(res.success ? res.allComplete : false);
       }).catch(() => setSetupComplete(false));
     }
   }, [isAuthenticated]);
 
-  // Track last seen timestamp to detect new saves
-  const [lastSeenTimestamp, setLastSeenTimestamp] = useState(0);
-
-  useEffect(() => {
-    const handleStorageChange = (e) => {
-      if (e.key === 'rivvra_lead_saved') {
-        console.log('Lead saved from extension (storage event), refreshing...');
-        setTimeout(() => {
-          loadLists(true);
-          if (selectedList) {
-            loadLeads(selectedList, page);
-          }
-        }, 500);
-      }
-    };
-
-    const handleCustomEvent = (e) => {
-      console.log('Lead saved from extension (custom event), refreshing...', e.detail);
-      setTimeout(() => {
-        loadLists(true);
-        if (selectedList) {
-          loadLeads(selectedList, page);
-        }
-      }, 500);
-    };
-
-    const handleFocus = () => checkForNewSaves();
-
-    const checkForNewSaves = () => {
-      const lastSave = localStorage.getItem('rivvra_lead_saved');
-      if (lastSave) {
-        try {
-          const data = JSON.parse(lastSave);
-          const saveTime = data.timestamp;
-          if (saveTime > lastSeenTimestamp) {
-            console.log('New lead detected, refreshing...');
-            setLastSeenTimestamp(saveTime);
-            loadLists(true);
-            if (selectedList) {
-              loadLeads(selectedList, page);
-            }
-          }
-        } catch (err) {}
-      }
-    };
-
-    const pollInterval = setInterval(checkForNewSaves, 2000);
-
-    window.addEventListener('storage', handleStorageChange);
-    window.addEventListener('focus', handleFocus);
-    window.addEventListener('rivvra_lead_saved', handleCustomEvent);
-
-    return () => {
-      clearInterval(pollInterval);
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('focus', handleFocus);
-      window.removeEventListener('rivvra_lead_saved', handleCustomEvent);
-    };
-  }, [loadLists, loadLeads, selectedList, page, lastSeenTimestamp]);
-
   useEffect(() => {
     if (selectedList) {
       loadLeads(selectedList, page);
       setSearchParams({ list: selectedList });
-      // Clear selection when switching lists
       setSelectedLeads([]);
       setSelectedLead(null);
     } else {
@@ -195,49 +127,16 @@ function MyListsPage() {
         setShowFilters(false);
       }
     };
-
     if (showFilters) {
       document.addEventListener('mousedown', handleClickOutside);
     }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
+    return () => { document.removeEventListener('mousedown', handleClickOutside); };
   }, [showFilters]);
 
-  const handleCreateList = async () => {
-    if (!newListName.trim()) return;
-    try {
-      const res = await api.createList(newListName.trim());
-      if (res.success) {
-        setLists([...lists, { name: newListName.trim(), count: 0 }]);
-        setNewListName('');
-        setShowCreateModal(false);
-      }
-    } catch (err) {
-      console.error('Failed to create list:', err);
-      setLists([...lists, { name: newListName.trim(), count: 0 }]);
-      setNewListName('');
-      setShowCreateModal(false);
-    }
-  };
-
-  const handleDeleteList = async (listName, idx) => {
-    if (!confirm(`Delete list "${listName}"? This will not delete the contacts.`)) return;
-    try {
-      await api.deleteList(listName);
-      const newLists = lists.filter((_, i) => i !== idx);
-      setLists(newLists);
-      if (selectedList === listName) {
-        setSelectedList(newLists[0]?.name || null);
-      }
-    } catch (err) {
-      console.error('Failed to delete list:', err);
-      const newLists = lists.filter((_, i) => i !== idx);
-      setLists(newLists);
-      if (selectedList === listName) {
-        setSelectedList(newLists[0]?.name || null);
-      }
+  const handleManualRefresh = () => {
+    loadLists(true);
+    if (selectedList) {
+      loadLeads(selectedList, page);
     }
   };
 
@@ -271,59 +170,6 @@ function MyListsPage() {
     }
   };
 
-  const handleManualRefresh = () => {
-    loadLists(true);
-    if (selectedList) {
-      loadLeads(selectedList, page);
-    }
-  };
-
-  const handleRemoveFromList = (lead) => {
-    setDeleteTarget(lead);
-    setShowDeleteModal(true);
-  };
-
-  const handleBulkRemoveFromList = () => {
-    if (selectedLeads.length === 0) return;
-    setDeleteTarget(null);
-    setShowDeleteModal(true);
-  };
-
-  const confirmRemoveFromList = async () => {
-    if (!selectedList) return;
-    setDeleting(true);
-    try {
-      if (deleteTarget) {
-        await api.removeLeadFromList(deleteTarget._id, selectedList);
-        setLeads(leads.filter(l => l._id !== deleteTarget._id));
-        setTotalLeads(prev => prev - 1);
-        if (selectedLead?._id === deleteTarget._id) {
-          setSelectedLead(null);
-        }
-        setLists(lists.map(l =>
-          l.name === selectedList ? { ...l, count: Math.max(0, (l.count || 0) - 1) } : l
-        ));
-      } else {
-        await Promise.all(selectedLeads.map(id => api.removeLeadFromList(id, selectedList)));
-        setLeads(leads.filter(l => !selectedLeads.includes(l._id)));
-        setTotalLeads(prev => prev - selectedLeads.length);
-        if (selectedLead && selectedLeads.includes(selectedLead._id)) {
-          setSelectedLead(null);
-        }
-        setLists(lists.map(l =>
-          l.name === selectedList ? { ...l, count: Math.max(0, (l.count || 0) - selectedLeads.length) } : l
-        ));
-        setSelectedLeads([]);
-      }
-    } catch (err) {
-      console.error('Failed to remove from list:', err);
-    } finally {
-      setDeleting(false);
-      setShowDeleteModal(false);
-      setDeleteTarget(null);
-    }
-  };
-
   const handleRowClick = (lead) => {
     setSelectedLead(lead);
   };
@@ -351,7 +197,7 @@ function MyListsPage() {
     }
   };
 
-  const activeFilterCount = (profileTypeFilter !== 'all' ? 1 : 0) + (outreachStatusFilter !== 'all' ? 1 : 0);
+  const activeFilterCount = (profileTypeFilter !== 'all' ? 1 : 0) + (outreachStatusFilter !== 'all' ? 1 : 0) + (ownerFilter !== 'all' ? 1 : 0);
 
   const filteredLeads = leads.filter(lead => {
     const searchLower = searchQuery.toLowerCase();
@@ -368,7 +214,9 @@ function MyListsPage() {
     const leadStatus = lead.outreachStatus || 'not_contacted';
     const matchesOutreachStatus = outreachStatusFilter === 'all' || leadStatus === outreachStatusFilter;
 
-    return matchesSearch && matchesProfileType && matchesOutreachStatus;
+    const matchesOwner = ownerFilter === 'all' || lead.ownerName === ownerFilter;
+
+    return matchesSearch && matchesProfileType && matchesOutreachStatus && matchesOwner;
   });
 
   return (
@@ -377,23 +225,18 @@ function MyListsPage() {
         {/* Left Sidebar - Lists */}
         <div className="w-64 flex-shrink-0 border-r border-dark-700 p-4">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-white">My Lists</h2>
-            <div className="flex items-center gap-1">
-              <button
-                onClick={handleManualRefresh}
-                disabled={refreshing}
-                className={`p-1.5 rounded-lg text-dark-400 hover:text-rivvra-400 hover:bg-dark-700 transition-colors ${refreshing ? 'opacity-50' : ''}`}
-                title="Refresh"
-              >
-                <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-              </button>
-              <button
-                onClick={() => setShowCreateModal(true)}
-                className="p-1.5 rounded-lg bg-rivvra-500/10 text-rivvra-400 hover:bg-rivvra-500/20 transition-colors"
-              >
-                <Plus className="w-4 h-4" />
-              </button>
+            <div className="flex items-center gap-2">
+              <Layers className="w-5 h-5 text-rivvra-400" />
+              <h2 className="text-lg font-semibold text-white">Team Lists</h2>
             </div>
+            <button
+              onClick={handleManualRefresh}
+              disabled={refreshing}
+              className={`p-1.5 rounded-lg text-dark-400 hover:text-rivvra-400 hover:bg-dark-700 transition-colors ${refreshing ? 'opacity-50' : ''}`}
+              title="Refresh"
+            >
+              <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+            </button>
           </div>
 
           {loading ? (
@@ -401,13 +244,7 @@ function MyListsPage() {
           ) : lists.length === 0 ? (
             <div className="text-center py-8">
               <FolderOpen className="w-10 h-10 text-dark-600 mx-auto mb-2" />
-              <p className="text-dark-400 text-sm">No lists yet</p>
-              <button
-                onClick={() => setShowCreateModal(true)}
-                className="mt-2 text-sm text-rivvra-400 hover:text-rivvra-300"
-              >
-                Create your first list
-              </button>
+              <p className="text-dark-400 text-sm">No team lists found</p>
             </div>
           ) : (
             <div className="space-y-1">
@@ -424,16 +261,19 @@ function MyListsPage() {
                   <div className="flex items-center gap-2 flex-1 min-w-0">
                     <List className="w-4 h-4 flex-shrink-0" />
                     <span className="text-sm font-medium truncate max-w-[120px]">{list.name}</span>
+                    {user?.role === 'admin' ? (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setRenamingList({ id: list._id, name: list.name }); setRenameValue(list.name); }}
+                        className="p-0.5 text-dark-500 hover:text-rivvra-400 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                        title="Rename list"
+                      >
+                        <Edit3 className="w-3 h-3" />
+                      </button>
+                    ) : (
+                      <Lock className="w-3 h-3 text-dark-600 flex-shrink-0" title="Default list" />
+                    )}
                   </div>
-                  <div className="flex items-center gap-1 flex-shrink-0">
-                    <span className="text-xs text-dark-500">{list.count || 0}</span>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); handleDeleteList(list.name, idx); }}
-                      className="p-1 rounded opacity-0 group-hover:opacity-100 hover:bg-dark-600 transition-opacity"
-                    >
-                      <Trash2 className="w-3.5 h-3.5 text-red-400" />
-                    </button>
-                  </div>
+                  <span className="text-xs text-dark-500 flex-shrink-0">{list.count || 0}</span>
                 </div>
               ))}
             </div>
@@ -461,15 +301,6 @@ function MyListsPage() {
                 </div>
 
                 <div className="flex items-center gap-3">
-                  {selectedLeads.length > 0 && (
-                    <button
-                      onClick={handleBulkRemoveFromList}
-                      className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                      Remove ({selectedLeads.length})
-                    </button>
-                  )}
                   <button
                     onClick={handleManualRefresh}
                     disabled={refreshing || leadsLoading}
@@ -484,17 +315,11 @@ function MyListsPage() {
                       if (selectedLeads.length > 0) {
                         leadsToExport = filteredLeads.filter(l => selectedLeads.includes(l._id));
                       } else {
-                        try {
-                          const response = await api.getLeads(selectedList);
-                          leadsToExport = response.leads || [];
-                        } catch (err) {
-                          console.error('Failed to fetch leads for export:', err);
-                          leadsToExport = filteredLeads;
-                        }
+                        leadsToExport = filteredLeads;
                       }
                       if (leadsToExport.length > 0) {
-                        const prefix = `rivvra-${(selectedList || 'list').replace(/\s+/g, '-').toLowerCase()}`;
-                        exportLeadsToCSV(leadsToExport, prefix);
+                        const prefix = `rivvra-team-${(selectedList || 'list').replace(/\s+/g, '-').toLowerCase()}`;
+                        exportLeadsToCSV(leadsToExport, prefix, { includeOwner: true });
                       }
                     }}
                     className="flex items-center gap-2 px-4 py-2 rounded-lg bg-dark-800 text-white hover:bg-dark-700 transition-colors"
@@ -541,12 +366,27 @@ function MyListsPage() {
                           <span className="text-sm font-medium text-white">Filters</span>
                           {activeFilterCount > 0 && (
                             <button
-                              onClick={() => { setProfileTypeFilter('all'); setOutreachStatusFilter('all'); }}
+                              onClick={() => { setProfileTypeFilter('all'); setOutreachStatusFilter('all'); setOwnerFilter('all'); }}
                               className="text-xs text-rivvra-400 hover:text-rivvra-300"
                             >
                               Clear all
                             </button>
                           )}
+                        </div>
+
+                        {/* Owner Filter */}
+                        <div className="mb-3">
+                          <label className="block text-xs text-dark-400 mb-2">Contact Owner</label>
+                          <select
+                            value={ownerFilter}
+                            onChange={(e) => setOwnerFilter(e.target.value)}
+                            className="w-full px-3 py-2 bg-dark-900 border border-dark-600 rounded-lg text-sm text-white focus:outline-none focus:border-rivvra-500"
+                          >
+                            <option value="all">All Owners</option>
+                            {teamMembers.map(m => (
+                              <option key={m._id} value={m.name}>{m.name}</option>
+                            ))}
+                          </select>
                         </div>
 
                         {/* Profile Type Filter */}
@@ -606,17 +446,16 @@ function MyListsPage() {
                     <div>
                       <Users className="w-16 h-16 text-dark-600 mx-auto mb-4" />
                       <h3 className="text-lg font-semibold text-white mb-2">No Contacts in This List</h3>
-                      <p className="text-dark-400">Use the Chrome extension to add contacts to this list.</p>
+                      <p className="text-dark-400">Contacts are automatically added to this list based on their outreach status.</p>
                     </div>
                   </div>
                 ) : (
                   <>
                     {/* Scrollable Table Wrapper */}
                     <div className="flex-1 overflow-auto relative">
-                      <table className="w-full min-w-[1100px]">
+                      <table className="w-full min-w-[1200px]">
                         <thead className="sticky top-0 z-20">
                           <tr className="border-b border-dark-700 bg-dark-800">
-                            {/* Sticky Checkbox Column */}
                             <th className="sticky left-0 z-30 bg-dark-800 px-4 py-3 text-left w-12">
                               <input
                                 type="checkbox"
@@ -625,15 +464,13 @@ function MyListsPage() {
                                 className="w-4 h-4 rounded border-dark-600 bg-dark-700 text-rivvra-500 focus:ring-rivvra-500"
                               />
                             </th>
-                            {/* Sticky Name Column */}
                             <th className="sticky left-12 z-30 bg-dark-800 px-4 py-3 text-left w-[200px] min-w-[200px]">
                               <button className="flex items-center gap-1 text-sm font-medium text-dark-400 hover:text-white">
                                 Contact <ArrowUpDown className="w-3 h-3" />
                               </button>
                             </th>
-                            {/* Sticky Manage Column */}
                             <th className="sticky left-[260px] z-30 bg-dark-800 px-4 py-3 text-left w-[110px] min-w-[110px] shadow-[2px_0_5px_-2px_rgba(0,0,0,0.3)]"></th>
-                            {/* Scrollable Columns */}
+                            <th className="px-4 py-3 text-left text-sm font-medium text-dark-400 min-w-[140px]">Contact Owner</th>
                             <th className="px-4 py-3 text-left text-sm font-medium text-dark-400 min-w-[120px]">Profile Type</th>
                             <th className="px-4 py-3 text-left text-sm font-medium text-dark-400 min-w-[150px]">Status</th>
                             <th className="px-4 py-3 text-left text-sm font-medium text-dark-400 min-w-[180px]">Company</th>
@@ -651,7 +488,6 @@ function MyListsPage() {
                                 selectedLead?._id === lead._id ? 'bg-dark-800/70' : ''
                               }`}
                             >
-                              {/* Sticky Checkbox */}
                               <td className="sticky left-0 z-10 bg-dark-900 px-4 py-3">
                                 <input
                                   type="checkbox"
@@ -661,7 +497,6 @@ function MyListsPage() {
                                   className="w-4 h-4 rounded border-dark-600 bg-dark-700 text-rivvra-500 focus:ring-rivvra-500"
                                 />
                               </td>
-                              {/* Sticky Name Column */}
                               <td className="sticky left-12 z-10 bg-dark-900 px-4 py-3 w-[200px] min-w-[200px]">
                                 <div className="flex items-center gap-3">
                                   {lead.profilePicture ? (
@@ -689,7 +524,6 @@ function MyListsPage() {
                                   </div>
                                 </div>
                               </td>
-                              {/* Sticky Manage Dropdown */}
                               <td className="sticky left-[260px] z-10 bg-dark-900 px-4 py-3 w-[110px] min-w-[110px] shadow-[2px_0_5px_-2px_rgba(0,0,0,0.3)]" onClick={(e) => e.stopPropagation()}>
                                 <ManageDropdown
                                   lead={lead}
@@ -719,11 +553,17 @@ function MyListsPage() {
                                     setShowEditContact(true);
                                   }}
                                   onTagContact={() => handleFeatureClick('Tag Contact')}
-                                  onRemoveContact={() => handleRemoveFromList(lead)}
-                                  removeLabel="Remove from list"
                                 />
                               </td>
-                              {/* Scrollable Columns */}
+                              {/* Contact Owner */}
+                              <td className="px-4 py-3">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-6 h-6 rounded-full bg-dark-700 flex items-center justify-center flex-shrink-0">
+                                    <span className="text-[10px] font-bold text-dark-300">{lead.ownerName?.charAt(0)?.toUpperCase() || '?'}</span>
+                                  </div>
+                                  <span className="text-sm text-dark-300 truncate max-w-[100px]">{lead.ownerName || 'Unknown'}</span>
+                                </div>
+                              </td>
                               <td className="px-4 py-3">
                                 {lead.profileType ? (
                                   <span className={`px-2 py-1 text-xs font-medium rounded-full ${
@@ -852,88 +692,39 @@ function MyListsPage() {
           lead={selectedLead}
           onClose={() => setSelectedLead(null)}
           onUpdate={handleLeadUpdate}
+          teamMode={true}
+          teamMembers={teamMembers}
         />
       )}
 
-      {/* Remove from List Confirmation Modal */}
-      {showDeleteModal && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-          <div
-            className="absolute inset-0 bg-dark-950/80 backdrop-blur-sm"
-            onClick={() => !deleting && setShowDeleteModal(false)}
-          />
-
-          <div className="relative bg-dark-900 border border-dark-700 rounded-2xl p-6 max-w-md w-full shadow-2xl">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center">
-                <AlertTriangle className="w-6 h-6 text-amber-400" />
-              </div>
-              <div>
-                <h2 className="text-xl font-bold text-white">
-                  Remove from List
-                </h2>
-                <p className="text-dark-400 text-sm">Contact will remain in My Contacts</p>
-              </div>
-            </div>
-
-            <p className="text-dark-300 mb-6">
-              {deleteTarget
-                ? `Remove "${deleteTarget.name}" from "${selectedList}"?`
-                : `Remove ${selectedLeads.length} selected contacts from "${selectedList}"?`
-              }
-            </p>
-
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowDeleteModal(false)}
-                disabled={deleting}
-                className="flex-1 px-4 py-2.5 rounded-xl bg-dark-800 text-white font-medium hover:bg-dark-700 transition-colors disabled:opacity-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={confirmRemoveFromList}
-                disabled={deleting}
-                className="flex-1 px-4 py-2.5 rounded-xl bg-amber-500 text-dark-950 font-semibold hover:bg-amber-400 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                {deleting ? (
-                  <RefreshCw className="w-4 h-4 animate-spin" />
-                ) : (
-                  'Remove'
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Create List Modal */}
-      {showCreateModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
-          <div className="bg-dark-800 rounded-xl w-full max-w-md p-6 border border-dark-700">
-            <h3 className="text-lg font-semibold text-white mb-4">Create New List</h3>
+      {/* Rename Default List Modal (Admin only) */}
+      {renamingList && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-dark-950/80 backdrop-blur-sm" onClick={() => { setRenamingList(null); setRenameValue(''); }} />
+          <div className="relative bg-dark-900 border border-dark-700 rounded-2xl p-6 max-w-sm w-full shadow-2xl">
+            <button onClick={() => { setRenamingList(null); setRenameValue(''); }} className="absolute top-4 right-4 p-1 text-dark-400 hover:text-white">
+              <X className="w-5 h-5" />
+            </button>
+            <h3 className="text-lg font-semibold text-white mb-4">Rename List</h3>
+            <p className="text-dark-400 text-sm mb-3">Current name: <span className="text-dark-300">{renamingList.name}</span></p>
             <input
               type="text"
-              value={newListName}
-              onChange={(e) => setNewListName(e.target.value)}
-              placeholder="Enter list name..."
-              className="w-full bg-dark-900 border border-dark-600 rounded-lg px-4 py-3 text-white placeholder-dark-400 focus:outline-none focus:border-rivvra-500 mb-4"
+              defaultValue={renamingList.name}
+              onChange={(e) => setRenameValue(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleRenameList(); }}
               autoFocus
-              onKeyPress={(e) => e.key === 'Enter' && handleCreateList()}
+              placeholder="New list name"
+              className="w-full px-3 py-2 bg-dark-800 border border-dark-600 rounded-lg text-white text-sm placeholder-dark-500 focus:outline-none focus:border-rivvra-500 mb-4"
             />
-            <div className="flex gap-3">
+            <div className="flex items-center justify-end gap-3">
+              <button onClick={() => { setRenamingList(null); setRenameValue(''); }} className="px-4 py-2 text-dark-400 text-sm hover:text-white">Cancel</button>
               <button
-                onClick={() => { setShowCreateModal(false); setNewListName(''); }}
-                className="flex-1 py-2.5 border border-dark-600 rounded-lg text-dark-300 hover:bg-dark-700 transition-colors"
+                onClick={handleRenameList}
+                disabled={renaming || !renameValue.trim() || renameValue.trim() === renamingList.name}
+                className="px-4 py-2 bg-rivvra-500 text-dark-950 rounded-lg text-sm font-semibold hover:bg-rivvra-400 disabled:opacity-50 flex items-center gap-2"
               >
-                Cancel
-              </button>
-              <button
-                onClick={handleCreateList}
-                disabled={!newListName.trim()}
-                className="flex-1 py-2.5 bg-rivvra-500 text-dark-950 rounded-lg font-medium disabled:opacity-50 hover:bg-rivvra-400 transition-colors"
-              >
-                Create List
+                {renaming ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                Rename
               </button>
             </div>
           </div>
@@ -975,7 +766,6 @@ function MyListsPage() {
           setSequenceTarget(null);
         }}
         onEnrolled={({ leadIds: enrolledIds }) => {
-          // Instantly update local state so status reflects without waiting for API
           setLeads(prev => prev.map(l =>
             enrolledIds.includes(l._id) ? { ...l, outreachStatus: 'in_sequence' } : l
           ));
@@ -996,42 +786,8 @@ function MyListsPage() {
         }}
         onLeadUpdate={handleLeadUpdate}
       />
-
-      {/* Rename Default List Modal (Admin only) */}
-      {renamingList && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-dark-950/80 backdrop-blur-sm" onClick={() => { setRenamingList(null); setRenameValue(''); }} />
-          <div className="relative bg-dark-900 border border-dark-700 rounded-2xl p-6 max-w-sm w-full shadow-2xl">
-            <button onClick={() => { setRenamingList(null); setRenameValue(''); }} className="absolute top-4 right-4 p-1 text-dark-400 hover:text-white">
-              <X className="w-5 h-5" />
-            </button>
-            <h3 className="text-lg font-semibold text-white mb-4">Rename Default List</h3>
-            <p className="text-dark-400 text-sm mb-3">Current name: <span className="text-dark-300">{renamingList.name}</span></p>
-            <input
-              type="text"
-              defaultValue={renamingList.name}
-              onChange={(e) => setRenameValue(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') handleRenameList(); }}
-              autoFocus
-              placeholder="New list name"
-              className="w-full px-3 py-2 bg-dark-800 border border-dark-600 rounded-lg text-white text-sm placeholder-dark-500 focus:outline-none focus:border-rivvra-500 mb-4"
-            />
-            <div className="flex items-center justify-end gap-3">
-              <button onClick={() => { setRenamingList(null); setRenameValue(''); }} className="px-4 py-2 text-dark-400 text-sm hover:text-white">Cancel</button>
-              <button
-                onClick={handleRenameList}
-                disabled={renaming || !renameValue.trim() || renameValue.trim() === renamingList.name}
-                className="px-4 py-2 bg-rivvra-500 text-dark-950 rounded-lg text-sm font-semibold hover:bg-rivvra-400 disabled:opacity-50 flex items-center gap-2"
-              >
-                {renaming ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
-                Rename
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </Layout>
   );
 }
 
-export default MyListsPage;
+export default TeamListsPage;

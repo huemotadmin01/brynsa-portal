@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
   Home, Send, Users, List, Settings, LogOut,
-  ChevronRight, Crown, BarChart3, UsersRound
+  ChevronRight, ChevronDown, Crown, BarChart3, UsersRound, Layers
 } from 'lucide-react';
 import RivvraLogo from './BrynsaLogo';
 import ComingSoonModal from './ComingSoonModal';
@@ -15,25 +15,35 @@ function Sidebar() {
   const isPro = user?.plan === 'pro' || user?.plan === 'premium';
   const [showWipModal, setShowWipModal] = useState(false);
 
+  const isAdmin = user?.role === 'admin' || user?.role === 'team_lead';
+
+  // Collapsible groups — start expanded
+  const [contactsExpanded, setContactsExpanded] = useState(true);
+  const [listsExpanded, setListsExpanded] = useState(true);
+
   const handleLogout = () => {
     logout();
     navigate('/login');
   };
 
-  const navItems = [
+  const isActive = (path) => location.pathname === path;
+
+  // Keep groups expanded if any child is active
+  const contactsPaths = ['/leads', '/team-contacts'];
+  const listsPaths = ['/lists', '/team-lists'];
+  const isContactsGroupActive = contactsPaths.some(p => isActive(p));
+  const isListsGroupActive = listsPaths.some(p => isActive(p));
+
+  // Top-level standalone items
+  const topItems = [
     { path: '/dashboard', label: 'Home', icon: Home },
     { path: '/engage', label: 'Engage', icon: Send },
-    { path: '/leads', label: 'My Contacts', icon: Users },
-    { path: '/lists', label: 'My Lists', icon: List },
-    ...((user?.role === 'admin' || user?.role === 'team_lead')
-      ? [
-          { path: '/team-dashboard', label: 'Team Dashboard', icon: BarChart3 },
-          { path: '/team-contacts', label: 'Team Contacts', icon: UsersRound },
-        ]
-      : []),
   ];
 
-  const isActive = (path) => location.pathname === path;
+  // Bottom standalone items (admin only)
+  const bottomItems = isAdmin
+    ? [{ path: '/team-dashboard', label: 'Team Dashboard', icon: BarChart3 }]
+    : [];
 
   return (
     <aside className="w-64 min-h-screen bg-dark-900 border-r border-dark-800 flex flex-col fixed left-0 top-0 z-40">
@@ -49,7 +59,8 @@ function Sidebar() {
 
       {/* Navigation */}
       <nav className="flex-1 p-4 space-y-1">
-        {navItems.map((item) => (
+        {/* Top standalone items */}
+        {topItems.map((item) => (
           <Link
             key={item.path}
             to={item.path}
@@ -61,14 +72,124 @@ function Sidebar() {
           >
             <item.icon className="w-5 h-5" />
             <span className="flex-1">{item.label}</span>
-            {item.badge && (
-              <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-rivvra-500 text-dark-950">
-                {item.badge}
-              </span>
-            )}
-            {isActive(item.path) && (
+            {isActive(item.path) && <ChevronRight className="w-4 h-4" />}
+          </Link>
+        ))}
+
+        {/* All Contacts Group */}
+        <div className="pt-2">
+          <button
+            onClick={() => setContactsExpanded(!contactsExpanded)}
+            className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors w-full text-left ${
+              isContactsGroupActive
+                ? 'text-rivvra-400'
+                : 'text-dark-400 hover:text-white hover:bg-dark-800/50'
+            }`}
+          >
+            <Users className="w-5 h-5" />
+            <span className="flex-1 text-sm font-semibold uppercase tracking-wider">Contacts</span>
+            {(contactsExpanded || isContactsGroupActive) ? (
+              <ChevronDown className="w-4 h-4" />
+            ) : (
               <ChevronRight className="w-4 h-4" />
             )}
+          </button>
+          {(contactsExpanded || isContactsGroupActive) && (
+            <div className="ml-4 mt-0.5 space-y-0.5 border-l border-dark-800 pl-3">
+              <Link
+                to="/leads"
+                className={`flex items-center gap-2.5 px-3 py-2 rounded-lg transition-colors text-sm ${
+                  isActive('/leads')
+                    ? 'bg-rivvra-500/10 text-rivvra-400'
+                    : 'text-dark-400 hover:text-white hover:bg-dark-800/50'
+                }`}
+              >
+                <Users className="w-4 h-4" />
+                <span className="flex-1">My Contacts</span>
+                {isActive('/leads') && <ChevronRight className="w-3.5 h-3.5" />}
+              </Link>
+              {isAdmin && (
+                <Link
+                  to="/team-contacts"
+                  className={`flex items-center gap-2.5 px-3 py-2 rounded-lg transition-colors text-sm ${
+                    isActive('/team-contacts')
+                      ? 'bg-rivvra-500/10 text-rivvra-400'
+                      : 'text-dark-400 hover:text-white hover:bg-dark-800/50'
+                  }`}
+                >
+                  <UsersRound className="w-4 h-4" />
+                  <span className="flex-1">Team Contacts</span>
+                  {isActive('/team-contacts') && <ChevronRight className="w-3.5 h-3.5" />}
+                </Link>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* All Lists Group */}
+        <div className="pt-1">
+          <button
+            onClick={() => setListsExpanded(!listsExpanded)}
+            className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors w-full text-left ${
+              isListsGroupActive
+                ? 'text-rivvra-400'
+                : 'text-dark-400 hover:text-white hover:bg-dark-800/50'
+            }`}
+          >
+            <Layers className="w-5 h-5" />
+            <span className="flex-1 text-sm font-semibold uppercase tracking-wider">Lists</span>
+            {(listsExpanded || isListsGroupActive) ? (
+              <ChevronDown className="w-4 h-4" />
+            ) : (
+              <ChevronRight className="w-4 h-4" />
+            )}
+          </button>
+          {(listsExpanded || isListsGroupActive) && (
+            <div className="ml-4 mt-0.5 space-y-0.5 border-l border-dark-800 pl-3">
+              <Link
+                to="/lists"
+                className={`flex items-center gap-2.5 px-3 py-2 rounded-lg transition-colors text-sm ${
+                  isActive('/lists')
+                    ? 'bg-rivvra-500/10 text-rivvra-400'
+                    : 'text-dark-400 hover:text-white hover:bg-dark-800/50'
+                }`}
+              >
+                <List className="w-4 h-4" />
+                <span className="flex-1">My Lists</span>
+                {isActive('/lists') && <ChevronRight className="w-3.5 h-3.5" />}
+              </Link>
+              {isAdmin && (
+                <Link
+                  to="/team-lists"
+                  className={`flex items-center gap-2.5 px-3 py-2 rounded-lg transition-colors text-sm ${
+                    isActive('/team-lists')
+                      ? 'bg-rivvra-500/10 text-rivvra-400'
+                      : 'text-dark-400 hover:text-white hover:bg-dark-800/50'
+                  }`}
+                >
+                  <Layers className="w-4 h-4" />
+                  <span className="flex-1">Team Lists</span>
+                  {isActive('/team-lists') && <ChevronRight className="w-3.5 h-3.5" />}
+                </Link>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Bottom standalone items */}
+        {bottomItems.map((item) => (
+          <Link
+            key={item.path}
+            to={item.path}
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
+              isActive(item.path)
+                ? 'bg-rivvra-500/10 text-rivvra-400'
+                : 'text-dark-400 hover:text-white hover:bg-dark-800/50'
+            }`}
+          >
+            <item.icon className="w-5 h-5" />
+            <span className="flex-1">{item.label}</span>
+            {isActive(item.path) && <ChevronRight className="w-4 h-4" />}
           </Link>
         ))}
       </nav>

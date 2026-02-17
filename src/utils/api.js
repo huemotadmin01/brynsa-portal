@@ -656,6 +656,15 @@ class ApiClient {
     });
   }
 
+  // Team Lists (admin/team_lead only)
+  async getTeamLists() {
+    return this.request('/api/lists/team');
+  }
+
+  async getTeamListLeads(listName, page = 1, limit = 10) {
+    return this.request(`/api/lists/team/${encodeURIComponent(listName)}/leads?page=${page}&limit=${limit}`);
+  }
+
   // Team Leads (admin/team_lead only)
   async getTeamLeads(listName = null) {
     const baseUrl = '/api/portal/leads/team?limit=10000';

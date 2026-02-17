@@ -3,7 +3,7 @@ import { useAuth } from '../hooks/useAuth';
 import api from '../services/api';
 import toast from 'react-hot-toast';
 import LoadingSpinner from '../components/common/LoadingSpinner';
-import { ChevronLeft, ChevronRight, Save, Send, AlertCircle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Save, Send, AlertCircle, RotateCcw } from 'lucide-react';
 
 const statusColors = {
   'working': 'bg-green-500',
@@ -177,6 +177,21 @@ export default function TimesheetPage() {
     }
   };
 
+  const handleReset = () => {
+    const daysInMo = new Date(year, month, 0).getDate();
+    const defaultMap = {};
+    for (let d = 1; d <= daysInMo; d++) {
+      const dayOfWeek = new Date(year, month - 1, d).getDay();
+      if (dayOfWeek === 0 || dayOfWeek === 6) {
+        defaultMap[d] = { hours: 0, status: 'weekend' };
+      } else {
+        defaultMap[d] = { hours: '', status: null };
+      }
+    }
+    setEntries(defaultMap);
+    toast.success('Timesheet reset');
+  };
+
   const prevMonth = () => {
     if (month === 1) { setMonth(12); setYear(y => y - 1); }
     else setMonth(m => m - 1);
@@ -337,6 +352,13 @@ export default function TimesheetPage() {
           {/* Actions */}
           {!isReadOnly && (
             <div className="flex gap-3">
+              <button
+                onClick={handleReset}
+                disabled={saving}
+                className="bg-white border border-gray-300 text-gray-500 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 flex items-center gap-2 disabled:opacity-50"
+              >
+                <RotateCcw size={16} /> Reset
+              </button>
               <button
                 onClick={handleSave}
                 disabled={saving}

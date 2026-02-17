@@ -21,7 +21,6 @@ import EditContactModal from '../components/EditContactModal';
 import { useToast } from '../context/ToastContext';
 
 function MyListsPage() {
-  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { user, isAuthenticated } = useAuth();
   const { showToast } = useToast();

@@ -531,7 +531,7 @@ function SequenceDetailPage({ sequenceId, onBack }) {
           enrollments={enrollments}
           enrollmentTotal={enrollmentTotal}
           user={user}
-          onLoadMore={() => loadEnrollments(enrollmentPage + 1)}
+          onLoadMore={(opts) => loadEnrollments(enrollmentPage + 1, opts)}
           onRemoveEnrollment={handleRemoveEnrollment}
           onPauseEnrollment={handlePauseEnrollment}
           onMarkReplied={handleMarkReplied}
@@ -1190,7 +1190,10 @@ function ContactsTab({ sequence, enrollments, enrollmentTotal, user, onLoadMore,
     setSearchLoading(true);
     if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
     searchTimeoutRef.current = setTimeout(async () => {
-      if (onReloadEnrollments) await onReloadEnrollments(1, { search: value });
+      if (onReloadEnrollments) await onReloadEnrollments(1, {
+        search: value,
+        status: contactFilter !== 'all' ? contactFilter : undefined
+      });
       setSearchLoading(false);
     }, 300);
   }
@@ -1198,7 +1201,11 @@ function ContactsTab({ sequence, enrollments, enrollmentTotal, user, onLoadMore,
   function handleContactFilterChange(status) {
     setContactFilter(status);
     setShowContactFilter(false);
-    // Status filter is now client-side — no backend reload needed
+    // Reload from backend with status filter for instant results
+    if (onReloadEnrollments) onReloadEnrollments(1, {
+      status: status === 'all' ? undefined : status,
+      search: contactSearch || undefined
+    });
   }
 
   function handleSort(key) {
@@ -1215,19 +1222,7 @@ function ContactsTab({ sequence, enrollments, enrollmentTotal, user, onLoadMore,
     return [...owners].sort();
   }, [enrollments]);
 
-  // Auto-load ALL remaining enrollments when a client-side filter is active
-  // Without this, filters like "Today" only apply to the first loaded page (50 of 94),
-  // showing misleading results and a confusing "Load more" button
   const isFiltered = contactFilter !== 'all' || ownerFilter !== 'all' || dateFilter !== 'all';
-  const autoLoadingRef = useRef(false);
-  useEffect(() => {
-    if (isFiltered && enrollments.length < enrollmentTotal && !autoLoadingRef.current) {
-      autoLoadingRef.current = true;
-      Promise.resolve(onLoadMore()).finally(() => {
-        autoLoadingRef.current = false;
-      });
-    }
-  }, [isFiltered, enrollments.length, enrollmentTotal, onLoadMore]);
 
   // Date filter helpers
   const getDateRange = (filterType) => {
@@ -1251,10 +1246,7 @@ function ContactsTab({ sequence, enrollments, enrollmentTotal, user, onLoadMore,
   const sortedEnrollments = useMemo(() => {
     let filtered = [...enrollments];
 
-    // Status filter (client-side)
-    if (contactFilter !== 'all') {
-      filtered = filtered.filter(e => e.status === contactFilter);
-    }
+    // Status filter is now server-side (passed via API query param)
 
     // Owner filter
     if (ownerFilter !== 'all') {
@@ -1288,7 +1280,7 @@ function ContactsTab({ sequence, enrollments, enrollmentTotal, user, onLoadMore,
     });
 
     return filtered;
-  }, [enrollments, contactFilter, ownerFilter, dateFilter, customDateFrom, customDateTo, sort]);
+  }, [enrollments, ownerFilter, dateFilter, customDateFrom, customDateTo, sort]);
 
   const allSelected = enrollments.length > 0 && selectedContacts.size === enrollments.length;
 
@@ -1540,7 +1532,7 @@ function ContactsTab({ sequence, enrollments, enrollmentTotal, user, onLoadMore,
           {/* Active filter badges — clear all */}
           {(contactFilter !== 'all' || ownerFilter !== 'all' || dateFilter !== 'all') && (
             <button
-              onClick={() => { setContactFilter('all'); setOwnerFilter('all'); setDateFilter('all'); setCustomDateFrom(''); setCustomDateTo(''); }}
+              onClick={() => { setContactFilter('all'); setOwnerFilter('all'); setDateFilter('all'); setCustomDateFrom(''); setCustomDateTo(''); if (onReloadEnrollments) onReloadEnrollments(1); }}
               className="flex items-center gap-1 px-2 py-1 text-xs text-dark-400 hover:text-white transition-colors"
             >
               <X className="w-3 h-3" />
@@ -1791,19 +1783,17 @@ function ContactsTab({ sequence, enrollments, enrollmentTotal, user, onLoadMore,
           </table>
         </div>
 
-        {enrollments.length < enrollmentTotal && !isFiltered && (
+        {enrollments.length < enrollmentTotal && (
           <div className="text-center py-4 border-t border-dark-800">
             <button
-              onClick={onLoadMore}
+              onClick={() => onLoadMore({
+                status: contactFilter !== 'all' ? contactFilter : undefined,
+                search: contactSearch || undefined
+              })}
               className="text-sm text-rivvra-400 hover:text-rivvra-300 font-medium transition-colors"
             >
               Load more ({enrollmentTotal - enrollments.length} remaining)
             </button>
-          </div>
-        )}
-        {enrollments.length < enrollmentTotal && isFiltered && (
-          <div className="text-center py-4 border-t border-dark-800">
-            <span className="text-xs text-dark-500">Loading all contacts for accurate filtering...</span>
           </div>
         )}
       </div>

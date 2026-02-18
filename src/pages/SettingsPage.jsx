@@ -5,7 +5,7 @@ import {
   User, Shield, Bell, CreditCard, Users,
   Trash2, AlertTriangle, Loader2, X, LogOut,
   Mail, Building2, Crown, Briefcase, Check, Search, ChevronDown,
-  UserPlus, UserX, Clock, Plus, Pencil, UsersRound
+  UserPlus, UserX, Clock, Plus, Pencil, UsersRound, ArrowLeftRight
 } from 'lucide-react';
 import Layout from '../components/Layout';
 import api from '../utils/api';
@@ -500,6 +500,8 @@ function SettingsPage() {
 // ========================== TEAM MANAGEMENT ==========================
 
 function TeamManagement({ user, canChangeRoles = false }) {
+  const { impersonateUser } = useAuth();
+  const navigate = useNavigate();
   const [members, setMembers] = useState([]);
   const [companyName, setCompanyName] = useState('');
   const [loading, setLoading] = useState(true);
@@ -689,6 +691,16 @@ function TeamManagement({ user, canChangeRoles = false }) {
     }
   }
 
+  async function handleImpersonate(memberId) {
+    const result = await impersonateUser(memberId);
+    if (result.success) {
+      navigate('/dashboard');
+    } else {
+      setError(result.error || 'Failed to impersonate user');
+      setTimeout(() => setError(''), 3000);
+    }
+  }
+
   async function handleCancelInvite(inviteId) {
     try {
       const res = await api.cancelTeamInvite(inviteId);
@@ -875,6 +887,13 @@ function TeamManagement({ user, canChangeRoles = false }) {
                         {!isCurrentUser && (
                           <>
                             <div className="border-t border-dark-600 my-1" />
+                            <button
+                              onClick={() => { setOpenDropdown(null); handleImpersonate(member.id); }}
+                              className="w-full px-4 py-2 text-left text-xs hover:bg-dark-700 transition-colors flex items-center gap-2 text-amber-400"
+                            >
+                              <ArrowLeftRight className="w-3 h-3" />
+                              Login As
+                            </button>
                             <button
                               onClick={() => { setOpenDropdown(null); setConfirmAction({ type: 'delete', member }); }}
                               className="w-full px-4 py-2 text-left text-xs hover:bg-dark-700 transition-colors flex items-center gap-2 text-red-400"

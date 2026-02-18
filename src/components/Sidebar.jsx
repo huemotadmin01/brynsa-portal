@@ -11,7 +11,7 @@ import ComingSoonModal from './ComingSoonModal';
 function Sidebar() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { user, logout, isImpersonating } = useAuth();
   const isPro = user?.plan === 'pro' || user?.plan === 'premium';
   const [showWipModal, setShowWipModal] = useState(false);
 
@@ -46,7 +46,9 @@ function Sidebar() {
     : [];
 
   return (
-    <aside className="w-64 h-screen bg-dark-900 border-r border-dark-800 flex flex-col fixed left-0 top-0 z-40">
+    <aside className={`w-64 bg-dark-900 border-r border-dark-800 flex flex-col fixed left-0 z-40 ${
+      isImpersonating ? 'top-10 h-[calc(100vh-2.5rem)]' : 'top-0 h-screen'
+    }`}>
       {/* Logo */}
       <div className="p-4 border-b border-dark-800 shrink-0">
         <Link to="/dashboard" className="flex items-center gap-2">

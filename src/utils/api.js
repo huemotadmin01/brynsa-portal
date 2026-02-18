@@ -681,6 +681,14 @@ class ApiClient {
     });
   }
 
+  // Admin impersonation
+  async impersonateUser(targetUserId) {
+    return this.request('/api/admin/impersonate', {
+      method: 'POST',
+      body: JSON.stringify({ targetUserId }),
+    });
+  }
+
   // Sub-Teams CRUD
   async getTeams() {
     return this.request('/api/teams');

@@ -46,9 +46,9 @@ function Sidebar() {
     : [];
 
   return (
-    <aside className="w-64 min-h-screen bg-dark-900 border-r border-dark-800 flex flex-col fixed left-0 top-0 z-40">
+    <aside className="w-64 h-screen bg-dark-900 border-r border-dark-800 flex flex-col fixed left-0 top-0 z-40">
       {/* Logo */}
-      <div className="p-4 border-b border-dark-800">
+      <div className="p-4 border-b border-dark-800 shrink-0">
         <Link to="/dashboard" className="flex items-center gap-2">
           <div className="w-9 h-9 rounded-lg bg-dark-800 flex items-center justify-center">
             <RivvraLogo className="w-6 h-6" />
@@ -58,7 +58,7 @@ function Sidebar() {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-4 space-y-1">
+      <nav className="flex-1 p-4 space-y-1 overflow-y-auto min-h-0">
         {/* Top standalone items */}
         {topItems.map((item) => (
           <Link
@@ -196,7 +196,7 @@ function Sidebar() {
 
       {/* Upgrade Banner (for free users) */}
       {!isPro && (
-        <div className="p-4 border-t border-dark-800">
+        <div className="p-4 border-t border-dark-800 shrink-0">
           <div className="p-4 rounded-xl bg-gradient-to-br from-amber-500/10 to-orange-500/10 border border-amber-500/20">
             <div className="flex items-center gap-2 mb-2">
               <Crown className="w-5 h-5 text-amber-400" />
@@ -216,7 +216,7 @@ function Sidebar() {
       )}
 
       {/* User Menu */}
-      <div className="p-4 border-t border-dark-800">
+      <div className="p-4 border-t border-dark-800 shrink-0">
         <div className="flex items-center gap-3 mb-3">
           {user?.picture ? (
             <img src={user.picture} alt="" className="w-10 h-10 rounded-full object-cover" referrerPolicy="no-referrer" />

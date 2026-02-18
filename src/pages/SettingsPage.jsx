@@ -511,6 +511,7 @@ function TeamManagement({ user, canChangeRoles = false }) {
   const [invites, setInvites] = useState([]);
   const [confirmAction, setConfirmAction] = useState(null); // { type: 'delete', member }
   const [actionLoading, setActionLoading] = useState(null);
+  const [licenses, setLicenses] = useState(null);
 
   useEffect(() => {
     loadTeam();
@@ -523,6 +524,7 @@ function TeamManagement({ user, canChangeRoles = false }) {
       if (res.success) {
         setMembers(res.members);
         setCompanyName(res.companyName || '');
+        setLicenses(res.licenses || null);
       }
     } catch (err) {
       setError(err.message || 'Failed to load team');
@@ -563,6 +565,8 @@ function TeamManagement({ user, canChangeRoles = false }) {
       const res = await api.deleteTeamMember(memberId);
       if (res.success) {
         setMembers(prev => prev.filter(m => m.id !== memberId));
+        // Refresh to update license counts
+        loadTeam();
       }
     } catch (err) {
       setError(err.message || 'Failed to remove member');
@@ -577,6 +581,8 @@ function TeamManagement({ user, canChangeRoles = false }) {
       const res = await api.cancelTeamInvite(inviteId);
       if (res.success) {
         setInvites(prev => prev.filter(i => i.id !== inviteId));
+        // Refresh to update license counts (pending invites freed)
+        loadTeam();
       }
     } catch (err) {
       setError(err.message || 'Failed to cancel invite');
@@ -603,18 +609,50 @@ function TeamManagement({ user, canChangeRoles = false }) {
             <p className="text-dark-400 text-sm mt-1">
               {companyName && <span className="text-dark-300">{companyName}</span>}
               {companyName && ' · '}{members.length} member{members.length !== 1 ? 's' : ''}
+              {licenses && (
+                <span className="ml-2 text-dark-500">
+                  · <span className={licenses.remaining <= 0 ? 'text-red-400' : 'text-rivvra-400'}>{licenses.used}/{licenses.total}</span> licenses used
+                </span>
+              )}
             </p>
           </div>
           {canChangeRoles && (
             <button
               onClick={() => setInviteOpen(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-rivvra-500 text-dark-950 rounded-xl text-sm font-semibold hover:bg-rivvra-400 transition-colors"
+              disabled={licenses && licenses.remaining <= 0}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-colors ${
+                licenses && licenses.remaining <= 0
+                  ? 'bg-dark-700 text-dark-400 cursor-not-allowed'
+                  : 'bg-rivvra-500 text-dark-950 hover:bg-rivvra-400'
+              }`}
+              title={licenses && licenses.remaining <= 0 ? 'All licenses are in use' : undefined}
             >
               <UserPlus className="w-4 h-4" />
               Invite Member
             </button>
           )}
         </div>
+
+        {/* License info banner */}
+        {licenses && (
+          <div className={`mb-4 px-4 py-3 rounded-xl text-sm flex items-center justify-between ${
+            licenses.remaining <= 0
+              ? 'bg-red-500/10 border border-red-500/20'
+              : 'bg-rivvra-500/5 border border-rivvra-500/20'
+          }`}>
+            <div className="flex items-center gap-2">
+              <Users className="w-4 h-4 text-dark-400" />
+              <span className={licenses.remaining <= 0 ? 'text-red-400' : 'text-dark-300'}>
+                {licenses.remaining > 0
+                  ? `${licenses.remaining} license${licenses.remaining !== 1 ? 's' : ''} remaining`
+                  : 'All licenses are in use'}
+              </span>
+            </div>
+            <span className="text-dark-500 text-xs">
+              {licenses.used} active{licenses.pendingInvites > 0 ? ` · ${licenses.pendingInvites} pending` : ''} / {licenses.total} total
+            </span>
+          </div>
+        )}
 
         {error && (
           <div className="mb-4 px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm">
@@ -773,7 +811,8 @@ function TeamManagement({ user, canChangeRoles = false }) {
       <InviteTeamMemberModal
         isOpen={inviteOpen}
         onClose={() => setInviteOpen(false)}
-        onInviteSent={loadInvites}
+        onInviteSent={() => { loadInvites(); loadTeam(); }}
+        licenses={licenses}
       />
 
       {/* Confirm Remove Modal */}

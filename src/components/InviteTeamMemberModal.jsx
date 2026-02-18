@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { X, Mail, UserPlus, Loader2, CheckCircle } from 'lucide-react';
+import { X, Mail, UserPlus, Loader2, CheckCircle, AlertTriangle } from 'lucide-react';
 import api from '../utils/api';
 
-function InviteTeamMemberModal({ isOpen, onClose, onInviteSent }) {
+function InviteTeamMemberModal({ isOpen, onClose, onInviteSent, licenses }) {
   const [email, setEmail] = useState('');
   const [role, setRole] = useState('member');
   const [sending, setSending] = useState(false);
@@ -83,6 +83,27 @@ function InviteTeamMemberModal({ isOpen, onClose, onInviteSent }) {
         </div>
 
         <form onSubmit={handleSubmit} className="px-6 pb-6 space-y-4">
+          {/* License info banner */}
+          {licenses && (
+            <div className={`px-4 py-3 rounded-xl text-sm flex items-center gap-2 ${
+              licenses.remaining <= 0
+                ? 'bg-red-500/10 border border-red-500/20 text-red-400'
+                : 'bg-rivvra-500/5 border border-rivvra-500/20 text-dark-300'
+            }`}>
+              {licenses.remaining <= 0 ? (
+                <>
+                  <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                  <span>All {licenses.total} licenses are in use. Remove a member or upgrade to invite more.</span>
+                </>
+              ) : (
+                <>
+                  <UserPlus className="w-4 h-4 flex-shrink-0 text-rivvra-400" />
+                  <span>{licenses.remaining} license{licenses.remaining !== 1 ? 's' : ''} remaining</span>
+                </>
+              )}
+            </div>
+          )}
+
           {error && (
             <div className="px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm">
               {error}
@@ -145,7 +166,7 @@ function InviteTeamMemberModal({ isOpen, onClose, onInviteSent }) {
             </button>
             <button
               type="submit"
-              disabled={sending || !email.trim()}
+              disabled={sending || !email.trim() || (licenses && licenses.remaining <= 0)}
               className="px-5 py-2.5 bg-rivvra-500 text-dark-950 rounded-xl text-sm font-semibold hover:bg-rivvra-400 transition-colors disabled:opacity-50 flex items-center gap-2"
             >
               {sending ? (

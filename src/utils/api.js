@@ -681,6 +681,44 @@ class ApiClient {
     });
   }
 
+  // Sub-Teams CRUD
+  async getTeams() {
+    return this.request('/api/teams');
+  }
+
+  async createTeam(name, leaderId = null) {
+    return this.request('/api/teams', {
+      method: 'POST',
+      body: JSON.stringify({ name, leaderId }),
+    });
+  }
+
+  async updateTeam(teamId, data) {
+    return this.request(`/api/teams/${teamId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteTeam(teamId) {
+    return this.request(`/api/teams/${teamId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async addTeamMembers(teamId, userIds) {
+    return this.request(`/api/teams/${teamId}/members`, {
+      method: 'POST',
+      body: JSON.stringify({ userIds }),
+    });
+  }
+
+  async removeTeamMember(teamId, userId) {
+    return this.request(`/api/teams/${teamId}/members/${userId}`, {
+      method: 'DELETE',
+    });
+  }
+
   // Team Dashboard
   async getDashboardStats({ dateFrom, dateTo } = {}) {
     const params = new URLSearchParams();

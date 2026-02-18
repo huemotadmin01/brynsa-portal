@@ -235,7 +235,12 @@ function TeamContactsPage() {
                 <h1 className="text-2xl font-bold text-white">Team Contacts</h1>
               </div>
               <p className="text-dark-400">
-                {totalCount.toLocaleString()} contacts across your team {selectedLeads.length > 0 && `\u2022 ${selectedLeads.length} selected`}
+                {user?.teamName ? (
+                  <span className="text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded text-xs font-medium mr-1.5">{user.teamName}</span>
+                ) : user?.role === 'admin' ? (
+                  <span className="text-rivvra-400 bg-rivvra-500/10 px-1.5 py-0.5 rounded text-xs font-medium mr-1.5">All Teams</span>
+                ) : null}
+                {totalCount.toLocaleString()} contacts {selectedLeads.length > 0 && `\u2022 ${selectedLeads.length} selected`}
               </p>
             </div>
 

@@ -264,6 +264,11 @@ export default function TeamDashboardPage() {
               Team Performance
             </h1>
             <p className="text-xs text-dark-500 mt-1 ml-[42px]">
+              {user?.teamName ? (
+                <span className="text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded font-medium mr-1.5">{user.teamName}</span>
+              ) : user?.role === 'admin' ? (
+                <span className="text-rivvra-400 bg-rivvra-500/10 px-1.5 py-0.5 rounded font-medium mr-1.5">All Teams</span>
+              ) : null}
               {data?.teamMembers?.length || 0} members
               {lastUpdated && ` · ${lastUpdated.toLocaleTimeString()}`}
               <span className="inline-flex items-center gap-1 ml-2">

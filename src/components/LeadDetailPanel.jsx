@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import {
   X, Linkedin, Mail, Phone, Building2, MapPin, Briefcase,
   Calendar, Globe, StickyNote, Plus, Trash2, ExternalLink,
-  User, Clock, Tag, RefreshCw
+  User, Clock, Tag, RefreshCw, Reply, ChevronDown, ChevronUp, MessageSquareText
 } from 'lucide-react';
 import api from '../utils/api';
 import { useToast } from '../context/ToastContext';
@@ -26,6 +26,25 @@ function LeadDetailPanel({ lead, onClose, onUpdate, teamMode = false, teamMember
   const [savingTags, setSavingTags] = useState(false);
   const [outreachStatus, setOutreachStatus] = useState(lead?.outreachStatus || 'not_contacted');
   const [savingOutreachStatus, setSavingOutreachStatus] = useState(false);
+  const [replyData, setReplyData] = useState(null);
+  const [loadingReply, setLoadingReply] = useState(false);
+  const [replyExpanded, setReplyExpanded] = useState(false);
+
+  // Fetch reply when lead changes (only for replied leads)
+  useEffect(() => {
+    const status = lead?.outreachStatus;
+    if (status === 'replied' || status === 'replied_not_interested') {
+      setLoadingReply(true);
+      setReplyData(null);
+      setReplyExpanded(false);
+      api.getLeadReply(lead._id)
+        .then(res => { if (res.reply) setReplyData(res.reply); })
+        .catch(() => {})
+        .finally(() => setLoadingReply(false));
+    } else {
+      setReplyData(null);
+    }
+  }, [lead?._id, lead?.outreachStatus]);
 
   // Sync notes when lead changes
   useEffect(() => {
@@ -279,6 +298,80 @@ function LeadDetailPanel({ lead, onClose, onUpdate, teamMode = false, teamMember
 
       {/* Scrollable Content */}
       <div className="flex-1 overflow-y-auto">
+        {/* Latest Reply — shown for replied leads */}
+        {(replyData || loadingReply) && (
+          <div className="p-4 border-b border-dark-700">
+            <h3 className="text-sm font-semibold text-dark-300 uppercase tracking-wider mb-3 flex items-center gap-2">
+              <MessageSquareText className="w-3.5 h-3.5" />
+              Latest Reply
+            </h3>
+            {loadingReply ? (
+              <div className="flex items-center gap-2 text-xs text-dark-500">
+                <RefreshCw className="w-3 h-3 animate-spin" />
+                Loading reply...
+              </div>
+            ) : replyData && (
+              <div className={`rounded-xl p-3 border ${
+                replyData.status === 'replied'
+                  ? 'border-emerald-500/30 bg-emerald-500/5'
+                  : 'border-orange-500/30 bg-orange-500/5'
+              }`}>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <Reply className="w-3.5 h-3.5 text-dark-400" />
+                    <span className="text-xs text-dark-400 truncate max-w-[180px]">
+                      {replyData.replyFrom || lead.email || 'Contact'}
+                    </span>
+                    <span className={`inline-flex items-center px-1.5 py-0.5 text-[10px] font-medium rounded border ${
+                      replyData.status === 'replied'
+                        ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
+                        : 'text-orange-400 bg-orange-500/10 border-orange-500/20'
+                    }`}>
+                      {replyData.status === 'replied' ? 'Interested' : 'Not Interested'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 mb-2">
+                  <Clock className="w-3 h-3 text-dark-600" />
+                  <span className="text-[10px] text-dark-500">
+                    {replyData.replyDate
+                      ? new Date(replyData.replyDate).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })
+                      : '-'}
+                  </span>
+                  {replyData.sequenceName && (
+                    <>
+                      <span className="text-dark-600">·</span>
+                      <span className="text-[10px] text-dark-500 truncate max-w-[150px]">{replyData.sequenceName}</span>
+                    </>
+                  )}
+                </div>
+
+                {(() => {
+                  const text = replyData.replyBody || replyData.replySnippet || '';
+                  if (!text) return null;
+                  const isLong = text.length > 200;
+                  return (
+                    <div>
+                      <p className={`text-sm text-dark-200 whitespace-pre-wrap leading-relaxed ${!replyExpanded && isLong ? 'line-clamp-4' : ''}`}>
+                        {text}
+                      </p>
+                      {isLong && (
+                        <button
+                          onClick={() => setReplyExpanded(!replyExpanded)}
+                          className="flex items-center gap-1 text-[11px] text-rivvra-400 hover:text-rivvra-300 mt-1.5 font-medium"
+                        >
+                          {replyExpanded ? <><ChevronUp className="w-3 h-3" /> Show less</> : <><ChevronDown className="w-3 h-3" /> Read full reply</>}
+                        </button>
+                      )}
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Contact Information */}
         <div className="p-4 border-b border-dark-700">
           <h3 className="text-sm font-semibold text-dark-300 uppercase tracking-wider mb-3">

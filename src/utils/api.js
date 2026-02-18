@@ -391,6 +391,10 @@ class ApiClient {
     });
   }
 
+  async getLeadReply(leadId) {
+    return this.request(`/api/portal/leads/${leadId}/reply`);
+  }
+
   // Account management
   async deleteAccount() {
     return this.request('/api/user/delete-account', {

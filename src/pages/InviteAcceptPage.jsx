@@ -183,59 +183,32 @@ function InviteAcceptPage() {
   const alreadyInTeam = invite?.alreadyInTeam;
   const isLoggedInAsInvitee = isAuthenticated && user?.email?.toLowerCase() === invite?.email?.toLowerCase();
 
-  // ── Already in Team State ──
-  if (alreadyInTeam) {
-    return (
-      <div className="min-h-screen bg-dark-950 flex items-center justify-center p-4">
-        <div className="bg-dark-900 border border-dark-700 rounded-2xl p-8 max-w-md w-full text-center">
-          <div className="w-14 h-14 rounded-2xl bg-rivvra-500/10 flex items-center justify-center mx-auto mb-4">
-            <CheckCircle className="w-7 h-7 text-rivvra-400" />
-          </div>
-          <h1 className="text-xl font-bold text-white mb-2">
-            You're already part of {invite.companyName}
-          </h1>
-          <p className="text-dark-400 text-sm mb-6">
-            Your account <span className="text-white font-medium">{invite.email}</span> is already a member of this team. No action needed.
-          </p>
-          <button
-            onClick={() => {
-              window.location.href = '/#/';
-              window.location.reload();
-            }}
-            className="w-full py-3 bg-rivvra-500 text-dark-950 rounded-xl text-sm font-semibold hover:bg-rivvra-400 transition-colors flex items-center justify-center gap-2"
-          >
-            <LogIn className="w-4 h-4" />
-            Go to Dashboard
-          </button>
-          <p className="text-dark-500 text-xs mt-4">
-            Not you?{' '}
-            <button onClick={() => navigate('/login')} className="text-rivvra-400 hover:text-rivvra-300">
-              Sign in with a different account
-            </button>
-          </p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-dark-950 flex items-center justify-center p-4">
       <div className="bg-dark-900 border border-dark-700 rounded-2xl p-8 max-w-md w-full">
         {/* Header */}
         <div className="text-center mb-8">
           <div className="w-14 h-14 rounded-2xl bg-rivvra-500/10 flex items-center justify-center mx-auto mb-4">
-            <Building2 className="w-7 h-7 text-rivvra-400" />
+            {alreadyInTeam ? (
+              <CheckCircle className="w-7 h-7 text-rivvra-400" />
+            ) : (
+              <Building2 className="w-7 h-7 text-rivvra-400" />
+            )}
           </div>
           <h1 className="text-xl font-bold text-white mb-2">
-            Join {invite.companyName}
+            {alreadyInTeam ? `Welcome to ${invite.companyName}` : `Join ${invite.companyName}`}
           </h1>
           <p className="text-dark-400 text-sm">
-            You've been invited to join as{' '}
-            <span className="text-rivvra-400 font-medium">
-              {invite.role === 'team_lead' ? 'Team Lead' : 'Member'}
-            </span>
+            {alreadyInTeam ? (
+              <>Sign in to access your <span className="text-rivvra-400 font-medium">{invite.companyName}</span> team account</>
+            ) : (
+              <>You've been invited to join as{' '}
+              <span className="text-rivvra-400 font-medium">
+                {invite.role === 'team_lead' ? 'Team Lead' : 'Member'}
+              </span></>
+            )}
           </p>
-          {invite.invitedByName && (
+          {!alreadyInTeam && invite.invitedByName && (
             <p className="text-dark-500 text-xs mt-1">Invited by {invite.invitedByName}</p>
           )}
         </div>
@@ -282,7 +255,7 @@ function InviteAcceptPage() {
               ) : (
                 <>
                   <LogIn className="w-4 h-4" />
-                  Join {invite.companyName}
+                  {alreadyInTeam ? 'Continue to Dashboard' : `Join ${invite.companyName}`}
                 </>
               )}
             </button>
@@ -297,7 +270,9 @@ function InviteAcceptPage() {
               <p className="text-dark-300 text-sm text-center">
                 Welcome back, <span className="text-white font-medium">{invite.userName || invite.email}</span>
               </p>
-              <p className="text-dark-500 text-xs text-center mt-1">Sign in to join the team</p>
+              <p className="text-dark-500 text-xs text-center mt-1">
+                {alreadyInTeam ? 'Sign in to access your team account' : 'Sign in to join the team'}
+              </p>
             </div>
 
             {/* Google Sign-in */}

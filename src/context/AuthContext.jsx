@@ -278,6 +278,9 @@ export function AuthProvider({ children }) {
     localStorage.removeItem('rivvra_original_admin');
 
     broadcastAuthChange(adminUser, adminToken);
+
+    // Force page reload to refresh all data with restored admin context
+    window.location.reload();
   }, [originalAdmin, broadcastAuthChange]);
 
   const value = {

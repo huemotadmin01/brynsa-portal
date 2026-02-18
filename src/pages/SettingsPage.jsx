@@ -864,7 +864,7 @@ function TeamManagement({ user, canChangeRoles = false }) {
                   {canChangeRoles && openDropdown === member.id && (
                     <>
                       <div className="fixed inset-0 z-40" onClick={() => setOpenDropdown(null)} />
-                      <div className="absolute right-0 top-full mt-1 z-50 bg-dark-800 border border-dark-600 rounded-xl shadow-2xl py-1 min-w-[160px]">
+                      <div className="absolute right-0 bottom-full mb-1 z-50 bg-dark-800 border border-dark-600 rounded-xl shadow-2xl py-1 min-w-[160px]">
                         {[
                           { value: 'admin', label: 'Admin' },
                           { value: 'team_lead', label: 'Team Lead' },

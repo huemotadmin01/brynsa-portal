@@ -5,7 +5,7 @@ import {
   AlertTriangle, XCircle, ChevronDown, ChevronUp, ThumbsDown, Loader2,
   Calendar, MoreVertical, Search, Linkedin, UserPlus, Pause, Play,
   ArrowUpDown, ChevronLeft, ChevronRight, Save, Check, X, Edit3, Trash2,
-  UserMinus, Zap, Filter, Info, Plus, Share2, Paperclip, FileText
+  UserMinus, Zap, Filter, Info, Plus, Share2, Paperclip, FileText, Reply
 } from 'lucide-react';
 import api from '../utils/api';
 import ToggleSwitch from './ToggleSwitch';
@@ -2246,6 +2246,60 @@ function EmailsTab({ sequenceId, sequence, enrollments, enrollmentTotal, onLoadM
                     </div>
                   );
                 })}
+
+                {/* Reply card — shown when contact has replied */}
+                {selectedContact && (selectedContact.status === 'replied' || selectedContact.status === 'replied_not_interested') && selectedContact.repliedAt && (() => {
+                  const isInterested = selectedContact.status === 'replied';
+                  const replyText = selectedContact.replyBody || selectedContact.replySnippet || '';
+                  const replyFrom = selectedContact.replyFrom || selectedContact.leadEmail || '';
+                  const replyDate = selectedContact.replyDate || selectedContact.repliedAt;
+                  const replyDateStr = new Date(replyDate).toLocaleString('en-US', {
+                    month: '2-digit', day: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true
+                  });
+                  const isReplyExpanded = expandedEmails.has('reply');
+                  const borderColor = isInterested
+                    ? 'border-emerald-500/40'
+                    : 'border-orange-500/40';
+                  const badgeStyle = isInterested
+                    ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
+                    : 'text-orange-400 bg-orange-500/10 border-orange-500/20';
+                  const badgeLabel = isInterested ? 'Interested' : 'Not Interested';
+
+                  return (
+                    <div className={`bg-dark-800/40 rounded-xl p-4 border ${borderColor}`}>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-3">
+                          <Reply className="w-3.5 h-3.5 text-dark-400" />
+                          <span className="text-sm font-medium text-white truncate max-w-xs">
+                            Reply from {replyFrom}
+                          </span>
+                          <span className={`inline-flex items-center px-2 py-0.5 text-xs font-medium rounded border ${badgeStyle}`}>
+                            {badgeLabel}
+                          </span>
+                        </div>
+                        <span className="text-xs text-dark-500">{replyDateStr}</span>
+                      </div>
+
+                      {replyText && (
+                        <div className="mt-2">
+                          <div
+                            className={`text-sm text-dark-200 whitespace-pre-wrap leading-relaxed ${!isReplyExpanded ? 'line-clamp-6' : ''}`}
+                          >
+                            {replyText}
+                          </div>
+                          {replyText.length > 300 && (
+                            <button
+                              onClick={() => toggleExpandEmail('reply')}
+                              className="text-xs text-rivvra-400 hover:text-rivvra-300 mt-2 font-medium"
+                            >
+                              {isReplyExpanded ? 'Show less' : 'Read full reply'}
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
             )}
           </div>

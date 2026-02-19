@@ -56,6 +56,9 @@ function TeamListsPage() {
   const [renamingList, setRenamingList] = useState(null);
   const [renameValue, setRenameValue] = useState('');
   const [renaming, setRenaming] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleting, setDeleting] = useState(false);
   const filterRef = useRef(null);
   const filterDropdownRef = useRef(null);
 
@@ -180,6 +183,33 @@ function TeamListsPage() {
   const handleLeadUpdate = (updatedLead) => {
     setLeads(leads.map(l => l._id === updatedLead._id ? updatedLead : l));
     setSelectedLead(updatedLead);
+  };
+
+  const handleRemoveFromList = (lead) => {
+    setDeleteTarget(lead);
+    setShowDeleteModal(true);
+  };
+
+  const confirmRemoveFromList = async () => {
+    if (!selectedList || !deleteTarget) return;
+    setDeleting(true);
+    try {
+      await api.removeLeadFromList(deleteTarget._id, selectedList);
+      setLeads(leads.filter(l => l._id !== deleteTarget._id));
+      setTotalLeads(prev => prev - 1);
+      if (selectedLead?._id === deleteTarget._id) setSelectedLead(null);
+      setLists(lists.map(l =>
+        l.name === selectedList ? { ...l, count: Math.max(0, (l.count || 0) - 1) } : l
+      ));
+      showToast(`Removed from "${selectedList}"`);
+    } catch (err) {
+      console.error('Failed to remove from list:', err);
+      showToast('Failed to remove contact', 'error');
+    } finally {
+      setDeleting(false);
+      setShowDeleteModal(false);
+      setDeleteTarget(null);
+    }
   };
 
   const toggleSelectAll = (e) => {
@@ -567,6 +597,8 @@ function TeamListsPage() {
                                     setShowEditContact(true);
                                   }}
                                   onTagContact={() => handleFeatureClick('Tag Contact')}
+                                  onRemoveContact={() => handleRemoveFromList(lead)}
+                                  removeLabel="Remove from list"
                                 />
                               </td>
                               {/* Contact Owner */}
@@ -739,6 +771,33 @@ function TeamListsPage() {
               >
                 {renaming ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
                 Rename
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Remove from List Confirmation Modal */}
+      {showDeleteModal && deleteTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-dark-950/80 backdrop-blur-sm" onClick={() => { setShowDeleteModal(false); setDeleteTarget(null); }} />
+          <div className="relative bg-dark-900 border border-dark-700 rounded-2xl p-6 max-w-sm w-full shadow-2xl">
+            <button onClick={() => { setShowDeleteModal(false); setDeleteTarget(null); }} className="absolute top-4 right-4 p-1 text-dark-400 hover:text-white">
+              <X className="w-5 h-5" />
+            </button>
+            <h3 className="text-lg font-semibold text-white mb-2">Remove from list</h3>
+            <p className="text-dark-400 text-sm mb-5">
+              Remove <span className="text-white font-medium">{deleteTarget.name}</span> from <span className="text-white font-medium">{selectedList}</span>? The contact will not be deleted.
+            </p>
+            <div className="flex items-center justify-end gap-3">
+              <button onClick={() => { setShowDeleteModal(false); setDeleteTarget(null); }} className="px-4 py-2 text-dark-400 text-sm hover:text-white">Cancel</button>
+              <button
+                onClick={confirmRemoveFromList}
+                disabled={deleting}
+                className="px-4 py-2 bg-red-500 text-white rounded-lg text-sm font-semibold hover:bg-red-400 disabled:opacity-50 flex items-center gap-2"
+              >
+                {deleting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                Remove
               </button>
             </div>
           </div>

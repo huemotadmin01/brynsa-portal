@@ -149,10 +149,10 @@ function SettingsPage() {
 
   const isAdmin = user?.role === 'admin';
   const isTeamLead = user?.role === 'team_lead';
-  const canViewTeam = isAdmin || isTeamLead;
+  const canViewTeam = true; // All team members can view the team list
   const tabs = [
     { id: 'profile', label: 'Profile', icon: User },
-    ...(canViewTeam ? [{ id: 'team', label: 'Team', icon: Users }] : []),
+    { id: 'team', label: 'Team', icon: Users },
     { id: 'notifications', label: 'Notifications', icon: Bell, comingSoon: true },
     { id: 'billing', label: 'Billing', icon: CreditCard, comingSoon: true },
     { id: 'security', label: 'Security', icon: Shield },

@@ -1707,7 +1707,7 @@ function ContactsTab({ sequence, enrollments, enrollmentTotal, user, onLoadMore,
                     </td>
                     <td className="py-3 px-4 text-dark-300">{emailStats.sent || 0}</td>
                     <td className="py-3 px-4 text-dark-300">{emailStats.delivered || 0}</td>
-                    <td className="py-3 px-4 text-dark-300">{emailStats.opened || 0}</td>
+                    <td className="py-3 px-4 text-dark-300">{enrollment.status === 'bounced' ? '—' : (emailStats.opened || 0)}</td>
                     <td className="py-3 px-4">
                       {enrollment.lastEmailSentAt ? (
                         <span className="text-xs text-dark-400" title={new Date(enrollment.lastEmailSentAt).toLocaleString()}>
@@ -1975,7 +1975,8 @@ function EmailsTab({ sequenceId, sequence, enrollments, enrollmentTotal, onLoadM
         openCount: h.openCount || 0,
         clicked: h.clicked || false,
         stepIndex: h.stepIndex,
-        body: h.body || null
+        body: h.body || null,
+        enrollmentStatus: enrollment.status // Track enrollment-level status (bounced, etc.)
       }))
       .sort((a, b) => (b.stepIndex ?? 999) - (a.stepIndex ?? 999)); // Newest first (Email 3, 2, 1)
 
@@ -2220,12 +2221,12 @@ function EmailsTab({ sequenceId, sequence, enrollments, enrollmentTotal, onLoadM
                 {contactEmails.map((email, i) => {
                   const isExpanded = expandedEmails.has(i);
                   const emailNumber = email.stepIndex !== undefined ? email.stepIndex + 1 : i + 1;
-                  const statusBadge = email.opened
+                  const statusBadge = (email.status === 'bounced' || email.enrollmentStatus === 'bounced')
+                    ? { color: 'text-red-400 bg-red-500/10 border-red-500/20', label: 'Bounced' }
+                    : email.opened
                     ? { color: 'text-green-400 bg-green-500/10 border-green-500/20', label: 'Opened' }
                     : email.status === 'sent'
                     ? { color: 'text-blue-400 bg-blue-500/10 border-blue-500/20', label: 'Delivered' }
-                    : email.status === 'bounced'
-                    ? { color: 'text-red-400 bg-red-500/10 border-red-500/20', label: 'Bounced' }
                     : { color: 'text-amber-400 bg-amber-500/10 border-amber-500/20', label: 'Scheduled' };
 
                   const sentDate = email.sentAt
@@ -2280,7 +2281,7 @@ function EmailsTab({ sequenceId, sequence, enrollments, enrollmentTotal, onLoadM
                         </div>
                         <div className="flex items-center gap-2">
                           <span className="text-xs text-dark-500">{sentDate}</span>
-                          {email.openCount > 1 && (
+                          {email.openCount > 1 && statusBadge.label !== 'Bounced' && (
                             <span className="text-xs text-dark-500">({email.openCount} opens)</span>
                           )}
                         </div>

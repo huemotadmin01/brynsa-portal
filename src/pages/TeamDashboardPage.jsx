@@ -7,7 +7,7 @@ import {
   UserCheck, MessageSquare, ArrowDownRight,
   Target, Zap, CalendarDays, ChevronDown, Calendar
 } from 'lucide-react';
-import Layout from '../components/Layout';
+
 import api from '../utils/api';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -196,24 +196,24 @@ export default function TeamDashboardPage() {
 
   if (!canView) {
     return (
-      <Layout>
+      <>
         <div className="p-8 flex flex-col items-center justify-center min-h-[60vh]">
           <ShieldAlert className="w-12 h-12 text-dark-600 mb-4" />
           <h2 className="text-lg font-semibold text-white mb-1">Access Restricted</h2>
           <p className="text-sm text-dark-400">This dashboard is available to Admin and Team Lead roles only.</p>
         </div>
-      </Layout>
+      </>
     );
   }
 
   if (loading) {
     return (
-      <Layout>
+      <>
         <div className="p-8 flex flex-col items-center justify-center min-h-[60vh] gap-3">
           <Loader2 className="w-8 h-8 text-rivvra-500 animate-spin" />
           <p className="text-sm text-dark-400">Loading dashboard...</p>
         </div>
-      </Layout>
+      </>
     );
   }
 
@@ -246,13 +246,13 @@ export default function TeamDashboardPage() {
 
   // Pipeline: Total → In Sequence → Replied
   const pipelineSteps = [
-    { label: 'Total Leads', value: data?.totalLeads || 0, color: '#6b7280', link: '/leads' },
-    { label: 'In Sequence', value: totalInSequence, color: '#3b82f6', link: '/team-contacts?status=in_sequence' },
-    { label: 'Responded', value: data?.repliedCount || 0, color: '#22c55e', link: '/team-contacts?status=replied' },
+    { label: 'Total Leads', value: data?.totalLeads || 0, color: '#6b7280', link: '/outreach/leads' },
+    { label: 'In Sequence', value: totalInSequence, color: '#3b82f6', link: '/outreach/team-contacts?status=in_sequence' },
+    { label: 'Responded', value: data?.repliedCount || 0, color: '#22c55e', link: '/outreach/team-contacts?status=replied' },
   ];
 
   return (
-    <Layout>
+    <>
       <div className="p-6 max-w-[1400px] mx-auto space-y-5">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -380,7 +380,7 @@ export default function TeamDashboardPage() {
             gradient="from-blue-500/20 to-blue-600/5"
             iconColor="text-blue-400"
             subtitle="all time"
-            onClick={() => navigate('/team-contacts')}
+            onClick={() => navigate('/outreach/team-contacts')}
           />
           <KPICard
             label="In Sequence"
@@ -389,7 +389,7 @@ export default function TeamDashboardPage() {
             gradient="from-rivvra-500/20 to-rivvra-600/5"
             iconColor="text-rivvra-400"
             subtitle="current"
-            onClick={() => navigate('/team-contacts?status=in_sequence')}
+            onClick={() => navigate('/outreach/team-contacts?status=in_sequence')}
           />
           <KPICard
             label="Response Rate"
@@ -398,7 +398,7 @@ export default function TeamDashboardPage() {
             gradient="from-emerald-500/20 to-emerald-600/5"
             iconColor="text-emerald-400"
             subtitle={`${data?.responseRate?.replied || 0} of ${data?.responseRate?.totalContacted || 0}`}
-            onClick={() => navigate('/team-contacts?status=replied')}
+            onClick={() => navigate('/outreach/team-contacts?status=replied')}
           />
           <KPICard
             label={`Scraped`}
@@ -407,7 +407,7 @@ export default function TeamDashboardPage() {
             gradient="from-amber-500/20 to-amber-600/5"
             iconColor="text-amber-400"
             subtitle={dateLabel.toLowerCase()}
-            onClick={() => navigate('/team-contacts')}
+            onClick={() => navigate('/outreach/team-contacts')}
           />
           <KPICard
             label="Emails Scheduled"
@@ -416,7 +416,7 @@ export default function TeamDashboardPage() {
             gradient="from-purple-500/20 to-purple-600/5"
             iconColor="text-purple-400"
             subtitle={dateLabel.toLowerCase()}
-            onClick={() => navigate('/engage')}
+            onClick={() => navigate('/outreach/engage')}
           />
         </div>
 
@@ -795,7 +795,7 @@ export default function TeamDashboardPage() {
               return (
                 <button
                   key={key}
-                  onClick={() => navigate(`/team-contacts?status=${key}`)}
+                  onClick={() => navigate(`/outreach/team-contacts?status=${key}`)}
                   className="bg-dark-800/40 rounded-xl p-3.5 border border-dark-700/40 hover:border-dark-500 transition-all cursor-pointer text-left"
                 >
                   <div className="flex items-center gap-1.5 mb-2">
@@ -906,7 +906,7 @@ export default function TeamDashboardPage() {
           </div>
         </div>
       </div>
-    </Layout>
+    </>
   );
 }
 

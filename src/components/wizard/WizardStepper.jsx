@@ -14,7 +14,7 @@ function WizardStepper({ currentStep, completedSteps = [], sequenceName, onStepC
 
   function handleExit() {
     if (confirm('Leave the wizard? Unsaved changes will be lost.')) {
-      navigate('/engage');
+      navigate('/outreach/engage');
     }
   }
 

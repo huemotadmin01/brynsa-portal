@@ -8,7 +8,7 @@ import {
   ArrowUpDown, StickyNote, AlertTriangle,
   Filter, Download
 } from 'lucide-react';
-import Layout from '../components/Layout';
+
 import LeadDetailPanel from '../components/LeadDetailPanel';
 import ManageDropdown from '../components/ManageDropdown';
 import api from '../utils/api';
@@ -345,7 +345,7 @@ function MyListsPage() {
   });
 
   return (
-    <Layout>
+    <>
       <div className={`flex h-full transition-all duration-300 ${selectedLead ? 'mr-[420px]' : ''}`}>
         {/* Left Sidebar - Lists */}
         <div className="w-64 flex-shrink-0 border-r border-dark-700 p-4">
@@ -971,7 +971,7 @@ function MyListsPage() {
         onLeadUpdate={handleLeadUpdate}
       />
 
-    </Layout>
+    </>
   );
 }
 

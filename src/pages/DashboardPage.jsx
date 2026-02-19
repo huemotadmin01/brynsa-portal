@@ -7,7 +7,6 @@ import {
   Sparkles, ArrowRight, Plus, MapPin, X, Filter,
   ChevronLeft, Briefcase, Loader2, Download, UserPlus, List, CheckCircle2
 } from 'lucide-react';
-import Layout from '../components/Layout';
 import LeadDetailPanel from '../components/LeadDetailPanel';
 import api from '../utils/api';
 import { exportLeadsToCSV } from '../utils/csvExport';
@@ -602,7 +601,7 @@ function DashboardPage() {
   };
 
   return (
-    <Layout>
+    <>
       <div className="min-h-screen">
         <div className="p-8">
           {/* ======== WELCOME SECTION ======== */}
@@ -870,14 +869,14 @@ function DashboardPage() {
                 <div className="card p-6">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="font-semibold text-white">My Lists</h3>
-                    <Link to="/lists" className="text-sm text-rivvra-400 hover:text-rivvra-300 flex items-center gap-1">
+                    <Link to="/outreach/lists" className="text-sm text-rivvra-400 hover:text-rivvra-300 flex items-center gap-1">
                       View all <ChevronRight className="w-4 h-4" />
                     </Link>
                   </div>
                   {lists.length === 0 ? (
                     <div className="text-center py-8 bg-dark-800/30 rounded-xl">
                       <p className="text-dark-400 mb-3">No lists yet</p>
-                      <Link to="/lists" className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-rivvra-500/10 text-rivvra-400 hover:bg-rivvra-500/20 transition-colors text-sm">
+                      <Link to="/outreach/lists" className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-rivvra-500/10 text-rivvra-400 hover:bg-rivvra-500/20 transition-colors text-sm">
                         <Plus className="w-4 h-4" />
                         Create List
                       </Link>
@@ -887,7 +886,7 @@ function DashboardPage() {
                       {lists.slice(0, 4).map((list, idx) => (
                         <Link
                           key={idx}
-                          to={`/lists?list=${encodeURIComponent(list.name)}`}
+                          to={`/outreach/lists?list=${encodeURIComponent(list.name)}`}
                           className="flex items-center justify-between p-3 bg-dark-800/30 rounded-lg hover:bg-dark-800/50 transition-colors"
                         >
                           <span className="text-white">{list.name}</span>
@@ -954,7 +953,7 @@ function DashboardPage() {
         onClose={() => setShowComingSoon(false)}
         feature={comingSoonFeature}
       />
-    </Layout>
+    </>
   );
 }
 

@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
-import Layout from '../components/Layout';
 import SequenceDetailPage from '../components/SequenceDetailPage';
 import EngageSettings from '../components/EngageSettings';
 import EngageSetupGuide from '../components/EngageSetupGuide';
@@ -88,7 +87,7 @@ function EngagePage() {
       const gmailCode = params.get('gmail_code');
       if (gmailCode) {
         // Clean up URL
-        window.location.hash = '#/engage';
+        window.location.hash = '#/outreach/engage';
         // Exchange the code
         (async () => {
           try {
@@ -285,7 +284,7 @@ function EngagePage() {
       showToast('Complete the setup guide to create sequences', 'error');
       return;
     }
-    navigate('/engage/new-sequence');
+    navigate('/outreach/engage/new-sequence');
   }
 
   function handleOpenDetail(seq) {
@@ -313,19 +312,19 @@ function EngagePage() {
   // Detail view
   if (view === 'detail' && selectedSequenceId) {
     return (
-      <Layout>
+      <>
         <div className="p-6 lg:p-8 max-w-7xl mx-auto">
           <SequenceDetailPage
             sequenceId={selectedSequenceId}
             onBack={handleBackToList}
           />
         </div>
-      </Layout>
+      </>
     );
   }
 
   return (
-    <Layout>
+    <>
       <div className="p-6 lg:p-8 max-w-7xl mx-auto">
         {/* Setup Guide (replaces gmail banners when active) */}
         {showSetupGuide && (
@@ -443,7 +442,7 @@ function EngagePage() {
             onFilter={setFilterStatus}
             onNewSequence={handleNewSequence}
             onOpenDetail={handleOpenDetail}
-            onEdit={(seq) => { navigate(`/engage/edit-sequence/${seq._id}`); setActionMenuId(null); }}
+            onEdit={(seq) => { navigate(`/outreach/engage/edit-sequence/${seq._id}`); setActionMenuId(null); }}
             onDuplicate={handleDuplicateSequence}
             onDelete={handleDeleteSequence}
             onShare={handleShareSequence}
@@ -491,7 +490,7 @@ function EngagePage() {
           />
         )}
       </div>
-    </Layout>
+    </>
   );
 }
 

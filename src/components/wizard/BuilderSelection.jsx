@@ -11,7 +11,7 @@ function BuilderSelection({ onSelectTemplate, onSelectScratch }) {
     <div className="max-w-3xl mx-auto">
       {/* Back */}
       <button
-        onClick={() => navigate('/engage')}
+        onClick={() => navigate('/outreach/engage')}
         className="flex items-center gap-1.5 text-sm text-dark-400 hover:text-white transition-colors mb-8"
       >
         <ChevronLeft className="w-4 h-4" />

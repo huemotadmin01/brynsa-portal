@@ -8,7 +8,7 @@ import {
   ArrowUpDown, RefreshCw, Trash2, AlertTriangle,
   StickyNote, UserCog
 } from 'lucide-react';
-import Layout from '../components/Layout';
+
 import LeadDetailPanel from '../components/LeadDetailPanel';
 import ManageDropdown from '../components/ManageDropdown';
 import AssignOwnerModal from '../components/AssignOwnerModal';
@@ -224,7 +224,7 @@ function TeamContactsPage() {
   };
 
   return (
-    <Layout>
+    <>
       <div className={`flex h-full transition-all duration-300 ${selectedLead ? 'mr-[420px]' : ''}`}>
         <div className="flex-1 p-8 overflow-hidden flex flex-col">
           {/* Header */}
@@ -711,7 +711,7 @@ function TeamContactsPage() {
       />
       <EditContactModal lead={editContactTarget} isOpen={showEditContact} onClose={() => { setShowEditContact(false); setEditContactTarget(null); }} onLeadUpdate={handleLeadUpdate} />
       <AssignOwnerModal isOpen={showAssignOwner} onClose={() => { setShowAssignOwner(false); setAssignTarget(null); }} teamMembers={teamMembers} selectedCount={assignTarget ? 1 : selectedLeads.length} onConfirm={handleAssignOwner} />
-    </Layout>
+    </>
   );
 }
 

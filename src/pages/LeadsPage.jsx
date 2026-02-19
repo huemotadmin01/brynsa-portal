@@ -8,7 +8,7 @@ import {
   ArrowUpDown, RefreshCw, Trash2, AlertTriangle,
   StickyNote, UserPlus
 } from 'lucide-react';
-import Layout from '../components/Layout';
+
 import LeadDetailPanel from '../components/LeadDetailPanel';
 import ManageDropdown from '../components/ManageDropdown';
 import api from '../utils/api';
@@ -263,7 +263,7 @@ function LeadsPage() {
   };
 
   return (
-    <Layout>
+    <>
       <div className={`flex h-full transition-all duration-300 ${selectedLead ? 'mr-[420px]' : ''}`}>
         <div className="flex-1 p-8 overflow-hidden flex flex-col">
           {/* Header */}
@@ -787,7 +787,7 @@ function LeadsPage() {
           setLeads(prev => [newLead, ...prev]);
         }}
       />
-    </Layout>
+    </>
   );
 }
 

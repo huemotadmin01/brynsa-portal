@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import Layout from '../components/Layout';
 import WizardStepper from '../components/wizard/WizardStepper';
 import BuilderSelection from '../components/wizard/BuilderSelection';
 import ComposeStep from '../components/wizard/ComposeStep';
@@ -60,7 +59,7 @@ function SequenceWizardPage() {
       } catch (err) {
         console.error('Failed to load sequence:', err);
         showToast('Failed to load sequence', 'error');
-        navigate('/engage');
+        navigate('/outreach/engage');
       } finally {
         setLoadingSequence(false);
       }
@@ -141,7 +140,7 @@ function SequenceWizardPage() {
         }
         showToast('Sequence saved as draft');
       }
-      navigate('/engage');
+      navigate('/outreach/engage');
     } catch (err) {
       setError(err.message || 'Failed to save sequence');
     } finally {
@@ -168,7 +167,7 @@ function SequenceWizardPage() {
         }
         showToast('Sequence created and activated');
       }
-      navigate('/engage');
+      navigate('/outreach/engage');
     } catch (err) {
       setError(err.message || 'Failed to save sequence');
     } finally {
@@ -179,16 +178,16 @@ function SequenceWizardPage() {
   // Loading state for edit mode
   if (loadingSequence) {
     return (
-      <Layout>
+      <>
         <div className="flex items-center justify-center h-96">
           <Loader2 className="w-8 h-8 text-rivvra-500 animate-spin" />
         </div>
-      </Layout>
+      </>
     );
   }
 
   return (
-    <Layout>
+    <>
       <div className="p-6 lg:p-8 max-w-5xl mx-auto">
         {/* Stepper — shown for all steps except selection */}
         {wizardStep !== 'selection' && (
@@ -217,7 +216,7 @@ function SequenceWizardPage() {
             onNameChange={setName}
             onDescChange={setDescription}
             onNext={() => completeAndNext('compose', 'schedule')}
-            onBack={() => isEditMode ? navigate('/engage') : setWizardStep('selection')}
+            onBack={() => isEditMode ? navigate('/outreach/engage') : setWizardStep('selection')}
             onSaveDraft={handleSaveDraft}
             saving={saving}
             sequenceId={sequenceId}
@@ -246,7 +245,7 @@ function SequenceWizardPage() {
           />
         )}
       </div>
-    </Layout>
+    </>
   );
 }
 

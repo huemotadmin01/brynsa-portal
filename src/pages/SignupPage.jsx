@@ -179,7 +179,7 @@ function SignupPage() {
     if (isAuthenticated && currentStep === STEPS.AUTH) {
       const user = JSON.parse(localStorage.getItem('rivvra_user') || '{}');
       if (user.onboarding?.completed) {
-        navigate('/dashboard');
+        navigate('/home');
       } else {
         setCurrentStep(STEPS.COMPANY);
       }
@@ -339,7 +339,7 @@ function SignupPage() {
         // Check if user needs onboarding
         const user = result.user;
         if (user.onboarding?.completed) {
-          navigate('/dashboard');
+          navigate('/home');
         } else {
           setCurrentStep(STEPS.COMPANY);
         }
@@ -470,10 +470,10 @@ function SignupPage() {
       });
       const data = await response.json();
       console.log('Onboarding saved:', data);
-      navigate('/dashboard');
+      navigate('/home');
     } catch (err) {
       console.error('Failed to save onboarding data:', err);
-      navigate('/dashboard');
+      navigate('/home');
     }
   };
 

@@ -7,7 +7,7 @@ import {
   Mail, Building2, Crown, Briefcase, Check, Search, ChevronDown,
   UserPlus, UserX, Clock, Plus, Pencil, UsersRound, ArrowLeftRight
 } from 'lucide-react';
-import Layout from '../components/Layout';
+
 import api from '../utils/api';
 import ComingSoonModal from '../components/ComingSoonModal';
 import InviteTeamMemberModal from '../components/InviteTeamMemberModal';
@@ -159,7 +159,7 @@ function SettingsPage() {
   ];
 
   return (
-    <Layout>
+    <>
       <div className="p-8 max-w-4xl">
         <h1 className="text-2xl font-bold text-white mb-8">Settings</h1>
 
@@ -493,7 +493,7 @@ function SettingsPage() {
         onClose={() => setShowComingSoon(false)}
         feature={comingSoonFeature}
       />
-    </Layout>
+    </>
   );
 }
 
@@ -735,7 +735,7 @@ function TeamManagement({ user, canChangeRoles = false }) {
   async function handleImpersonate(memberId) {
     const result = await impersonateUser(memberId);
     if (result.success) {
-      navigate('/dashboard');
+      navigate('/outreach/dashboard');
     } else {
       setError(result.error || 'Failed to impersonate user');
       setTimeout(() => setError(''), 3000);

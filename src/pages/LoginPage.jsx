@@ -19,7 +19,7 @@ function LoginPage() {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const from = location.state?.from?.pathname || '/dashboard';
+  const from = location.state?.from?.pathname || '/home';
 
   useEffect(() => {
     if (isAuthenticated) {

@@ -32,8 +32,8 @@ function App() {
       <Router>
         <PlatformProvider>
           <Routes>
-            {/* Public Routes — app.rivvra.com goes straight to login */}
-            <Route path="/" element={<Navigate to="/login" replace />} />
+            {/* Public Routes */}
+            <Route path="/" element={<LandingPage />} />
             <Route path="/signup" element={<SignupPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/invite" element={<InviteAcceptPage />} />
@@ -72,7 +72,7 @@ function App() {
             <Route path="/app/*" element={<Navigate to="/home" replace />} />
 
             {/* Fallback */}
-            <Route path="*" element={<Navigate to="/login" replace />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </PlatformProvider>
       </Router>

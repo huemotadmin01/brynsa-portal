@@ -570,6 +570,10 @@ function TeamManagement({ user, canChangeRoles = false }) {
       if (res.success) {
         setMemberRateLimits(prev => ({ ...prev, [memberId]: res.settings }));
         setEditingRateLimits(null);
+        if (res.enrollmentsReset > 0) {
+          setError(`✅ Limits updated — ${res.enrollmentsReset} pending emails will start sending now`);
+          setTimeout(() => setError(''), 5000);
+        }
       } else {
         setError(res.error || 'Failed to update rate limits');
         setTimeout(() => setError(''), 3000);
@@ -816,7 +820,7 @@ function TeamManagement({ user, canChangeRoles = false }) {
         )}
 
         {error && (
-          <div className="mb-4 px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm">
+          <div className={`mb-4 px-4 py-3 rounded-xl text-sm ${error.startsWith('✅') ? 'bg-green-500/10 border border-green-500/20 text-green-400' : 'bg-red-500/10 border border-red-500/20 text-red-400'}`}>
             {error}
           </div>
         )}

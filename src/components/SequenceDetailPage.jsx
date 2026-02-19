@@ -59,6 +59,7 @@ function SequenceDetailPage({ sequenceId, onBack }) {
   const [enrollments, setEnrollments] = useState([]);
   const [enrollmentTotal, setEnrollmentTotal] = useState(0);
   const [enrollmentPage, setEnrollmentPage] = useState(1);
+  const [ownerCounts, setOwnerCounts] = useState({});
 
   // Email log state
   const [emailLog, setEmailLog] = useState([]);
@@ -114,6 +115,9 @@ function SequenceDetailPage({ sequenceId, onBack }) {
         setEnrollments(prev => page === 1 ? res.enrollments : [...prev, ...res.enrollments]);
         setEnrollmentTotal(res.pagination.total);
         setEnrollmentPage(page);
+        if (res.ownerCounts && Object.keys(res.ownerCounts).length > 0) {
+          setOwnerCounts(res.ownerCounts);
+        }
       }
     } catch (err) {
       console.error('Failed to load enrollments:', err);
@@ -557,6 +561,7 @@ function SequenceDetailPage({ sequenceId, onBack }) {
           sequence={sequence}
           enrollments={enrollments}
           enrollmentTotal={enrollmentTotal}
+          ownerCounts={ownerCounts}
           user={user}
           onLoadMore={(opts) => loadEnrollments(enrollmentPage + 1, opts)}
           onRemoveEnrollment={handleRemoveEnrollment}
@@ -1181,7 +1186,7 @@ const SortableHeader = memo(function SortableHeader({ label, sortKey, currentSor
 
 // ========================== CONTACTS TAB ==========================
 
-function ContactsTab({ sequence, enrollments, enrollmentTotal, user, onLoadMore, onRemoveEnrollment, onPauseEnrollment, onMarkReplied, onReloadEnrollments, onBulkPause, onBulkRemove, onViewContactEmails, persistedFilters, onFilterChange }) {
+function ContactsTab({ sequence, enrollments, enrollmentTotal, ownerCounts, user, onLoadMore, onRemoveEnrollment, onPauseEnrollment, onMarkReplied, onReloadEnrollments, onBulkPause, onBulkRemove, onViewContactEmails, persistedFilters, onFilterChange }) {
   const [contactSearch, setContactSearch] = useState(persistedFilters?.contactSearch || '');
   const [contactFilter, setContactFilter] = useState(persistedFilters?.contactFilter || 'all');
   const [showContactFilter, setShowContactFilter] = useState(false);
@@ -1257,11 +1262,15 @@ function ContactsTab({ sequence, enrollments, enrollmentTotal, user, onLoadMore,
   }
 
   // Get unique owners for the owner filter dropdown
+  // Use server-provided ownerCounts (accurate across all pages) when available
   const uniqueOwners = useMemo(() => {
+    if (ownerCounts && Object.keys(ownerCounts).length > 0) {
+      return Object.keys(ownerCounts).sort();
+    }
     const owners = new Set();
     enrollments.forEach(e => { if (e.enrolledByName) owners.add(e.enrolledByName); });
     return [...owners].sort();
-  }, [enrollments]);
+  }, [enrollments, ownerCounts]);
 
   const isFiltered = contactFilter !== 'all' || ownerFilter !== 'all' || dateFilter !== 'all';
 
@@ -1489,11 +1498,12 @@ function ContactsTab({ sequence, enrollments, enrollmentTotal, user, onLoadMore,
                       <button
                         key={name}
                         onClick={() => { setOwnerFilter(name); setShowOwnerFilter(false); if (onFilterChange) onFilterChange({ ownerFilter: name }); }}
-                        className={`w-full text-left px-3 py-1.5 text-xs hover:bg-dark-700 transition-colors ${
+                        className={`w-full text-left px-3 py-1.5 text-xs hover:bg-dark-700 transition-colors flex items-center justify-between ${
                           ownerFilter === name ? 'text-rivvra-400' : 'text-dark-300'
                         }`}
                       >
-                        {name}
+                        <span>{name}</span>
+                        {ownerCounts?.[name] && <span className="text-dark-500 text-[10px]">{ownerCounts[name]}</span>}
                       </button>
                     ))}
                   </div>

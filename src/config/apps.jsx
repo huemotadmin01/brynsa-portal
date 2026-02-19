@@ -1,6 +1,7 @@
 import {
   Send, Users, List, Home, BarChart3, UsersRound, Layers,
-  Clock, Briefcase, UserSearch, Mail
+  Clock, Briefcase, UserSearch, Mail, CalendarDays, IndianRupee,
+  CheckCircle2, Download, Settings
 } from 'lucide-react';
 
 export const APP_REGISTRY = {
@@ -48,9 +49,32 @@ export const APP_REGISTRY = {
     icon: Clock,
     color: 'blue',
     basePath: '/timesheet',
-    status: 'coming_soon',
+    status: 'active',
     defaultRoute: '/timesheet/dashboard',
-    getSidebarItems: () => [],
+    getSidebarItems: (user, timesheetUser) => {
+      const tsRole = timesheetUser?.role || 'contractor';
+      const isAdmin = tsRole === 'admin';
+      const isManager = tsRole === 'manager';
+      return [
+        { type: 'item', path: '/timesheet/dashboard', label: 'Dashboard', icon: Home },
+        // Contractor-only pages
+        ...(tsRole === 'contractor' ? [
+          { type: 'item', path: '/timesheet/my-timesheet', label: 'My Timesheet', icon: CalendarDays },
+          { type: 'item', path: '/timesheet/earnings', label: 'My Earnings', icon: IndianRupee },
+        ] : []),
+        // Admin + Manager
+        ...((isAdmin || isManager) ? [
+          { type: 'item', path: '/timesheet/approvals', label: 'Approvals', icon: CheckCircle2 },
+        ] : []),
+        // Admin only
+        ...(isAdmin ? [
+          { type: 'item', path: '/timesheet/users', label: 'Users', icon: Users },
+          { type: 'item', path: '/timesheet/projects', label: 'Projects & Clients', icon: Briefcase },
+          { type: 'item', path: '/timesheet/export', label: 'Export Data', icon: Download },
+          { type: 'item', path: '/timesheet/payroll-settings', label: 'Payroll Settings', icon: Settings },
+        ] : []),
+      ];
+    },
   },
 
   crm: {

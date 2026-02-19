@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { usePlatform } from '../../context/PlatformContext';
+import { useTimesheetContext } from '../../context/TimesheetContext';
 import {
   ChevronRight, ChevronDown, Crown, Settings, LogOut
 } from 'lucide-react';
@@ -12,13 +13,14 @@ function AppSidebar() {
   const navigate = useNavigate();
   const { user, logout, isImpersonating } = useAuth();
   const { currentApp } = usePlatform();
+  const { timesheetUser } = useTimesheetContext();
   const isPro = user?.plan === 'pro' || user?.plan === 'premium';
   const [showWipModal, setShowWipModal] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState({});
 
   if (!currentApp) return null;
 
-  const sidebarItems = currentApp.getSidebarItems(user);
+  const sidebarItems = currentApp.getSidebarItems(user, timesheetUser);
 
   const isActive = (path) => location.pathname === path;
 

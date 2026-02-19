@@ -1,6 +1,7 @@
 import { Outlet } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { usePlatform } from '../../context/PlatformContext';
+import { TimesheetProvider } from '../../context/TimesheetContext';
 import TopBar from './TopBar';
 import AppSidebar from './AppSidebar';
 import { ArrowLeftRight, X } from 'lucide-react';
@@ -35,16 +36,18 @@ function PlatformLayout() {
   const { currentApp } = usePlatform();
 
   return (
-    <div className={`min-h-screen bg-dark-950 ${isImpersonating ? 'pt-10' : ''}`}>
-      <ImpersonationBanner />
-      <TopBar />
-      <div className="flex">
-        <AppSidebar />
-        <main className={`flex-1 min-h-[calc(100vh-3.5rem)] ${currentApp ? 'ml-64' : ''}`}>
-          <Outlet />
-        </main>
+    <TimesheetProvider>
+      <div className={`min-h-screen bg-dark-950 ${isImpersonating ? 'pt-10' : ''}`}>
+        <ImpersonationBanner />
+        <TopBar />
+        <div className="flex">
+          <AppSidebar />
+          <main className={`flex-1 min-h-[calc(100vh-3.5rem)] ${currentApp ? 'ml-64' : ''}`}>
+            <Outlet />
+          </main>
+        </div>
       </div>
-    </div>
+    </TimesheetProvider>
   );
 }
 

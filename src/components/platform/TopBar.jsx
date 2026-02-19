@@ -4,6 +4,13 @@ import { usePlatform } from '../../context/PlatformContext';
 import { LayoutGrid, LogOut, Settings, Crown } from 'lucide-react';
 import RivvraLogo from '../BrynsaLogo';
 
+const appColorMap = {
+  rivvra: 'text-rivvra-400',
+  blue: 'text-blue-400',
+  purple: 'text-purple-400',
+  orange: 'text-orange-400',
+};
+
 function TopBar() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
@@ -31,7 +38,7 @@ function TopBar() {
             <>
               <div className="w-px h-5 bg-dark-700" />
               <div className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-dark-800/50">
-                <currentApp.icon className="w-4 h-4 text-rivvra-400" />
+                <currentApp.icon className={`w-4 h-4 ${appColorMap[currentApp.color] || 'text-rivvra-400'}`} />
                 <span className="text-sm font-medium text-dark-200">{currentApp.name}</span>
               </div>
             </>

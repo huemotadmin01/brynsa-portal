@@ -24,6 +24,16 @@ import TeamDashboardPage from './pages/TeamDashboardPage';
 import TeamContactsPage from './pages/TeamContactsPage';
 import TeamListsPage from './pages/TeamListsPage';
 
+// Timesheet app pages
+import TimesheetDashboard from './pages/timesheet/TimesheetDashboard';
+import TimesheetEntry from './pages/timesheet/TimesheetEntry';
+import TimesheetEarnings from './pages/timesheet/TimesheetEarnings';
+import TimesheetApprovals from './pages/timesheet/TimesheetApprovals';
+import TimesheetUsers from './pages/timesheet/TimesheetUsers';
+import TimesheetProjects from './pages/timesheet/TimesheetProjects';
+import TimesheetExport from './pages/timesheet/TimesheetExport';
+import TimesheetPayrollSettings from './pages/timesheet/TimesheetPayrollSettings';
+
 function App() {
   return (
     <AuthProvider>
@@ -54,6 +64,16 @@ function App() {
               <Route path="/outreach/team-dashboard" element={<TeamDashboardPage />} />
               <Route path="/outreach/team-contacts" element={<TeamContactsPage />} />
               <Route path="/outreach/team-lists" element={<TeamListsPage />} />
+
+              {/* Timesheet app routes */}
+              <Route path="/timesheet/dashboard" element={<TimesheetDashboard />} />
+              <Route path="/timesheet/my-timesheet" element={<TimesheetEntry />} />
+              <Route path="/timesheet/earnings" element={<TimesheetEarnings />} />
+              <Route path="/timesheet/approvals" element={<TimesheetApprovals />} />
+              <Route path="/timesheet/users" element={<TimesheetUsers />} />
+              <Route path="/timesheet/projects" element={<TimesheetProjects />} />
+              <Route path="/timesheet/export" element={<TimesheetExport />} />
+              <Route path="/timesheet/payroll-settings" element={<TimesheetPayrollSettings />} />
             </Route>
 
             {/* Legacy redirects — keeps extension & bookmarks working */}

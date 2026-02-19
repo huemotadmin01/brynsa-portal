@@ -1270,7 +1270,8 @@ function ContactsTab({ sequence, enrollments, enrollmentTotal, ownerCounts, user
 
   // Date filter helpers
   const getDateRange = (filterType, cdf, cdt) => {
-    const ft = filterType || dateFilter;
+    const ft = filterType !== undefined ? filterType : dateFilter;
+    if (!ft || ft === 'all') return null;
     const fromVal = cdf !== undefined ? cdf : customDateFrom;
     const toVal = cdt !== undefined ? cdt : customDateTo;
     const now = new Date();
@@ -1290,14 +1291,15 @@ function ContactsTab({ sequence, enrollments, enrollmentTotal, ownerCounts, user
   };
 
   // Helper to build all filter opts for server-side reload
+  // Use 'key' in overrides to check presence (allows explicit undefined/null clearing)
   function buildFilterOpts(overrides = {}) {
-    const currentStatus = overrides.status !== undefined ? overrides.status : (contactFilter !== 'all' ? contactFilter : undefined);
-    const currentSearch = overrides.search !== undefined ? overrides.search : (contactSearch || undefined);
-    const currentOwner = overrides.owner !== undefined ? overrides.owner : (ownerFilter !== 'all' ? ownerFilter : undefined);
-    const df = overrides.dateFilter !== undefined ? overrides.dateFilter : dateFilter;
-    const cdf = overrides.customDateFrom !== undefined ? overrides.customDateFrom : customDateFrom;
-    const cdt = overrides.customDateTo !== undefined ? overrides.customDateTo : customDateTo;
-    const range = getDateRange(df === 'all' ? null : df, cdf, cdt);
+    const currentStatus = 'status' in overrides ? overrides.status : (contactFilter !== 'all' ? contactFilter : undefined);
+    const currentSearch = 'search' in overrides ? overrides.search : (contactSearch || undefined);
+    const currentOwner = 'owner' in overrides ? overrides.owner : (ownerFilter !== 'all' ? ownerFilter : undefined);
+    const df = 'dateFilter' in overrides ? overrides.dateFilter : dateFilter;
+    const cdf = 'customDateFrom' in overrides ? overrides.customDateFrom : customDateFrom;
+    const cdt = 'customDateTo' in overrides ? overrides.customDateTo : customDateTo;
+    const range = getDateRange(df, cdf, cdt);
     return {
       status: currentStatus,
       search: currentSearch,

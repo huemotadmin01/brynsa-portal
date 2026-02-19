@@ -24,6 +24,7 @@ function TeamListsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { user, isAuthenticated } = useAuth();
   const { showToast } = useToast();
+  const canEdit = user?.role === 'admin' || user?.role === 'team_lead';
   const [lists, setLists] = useState([]);
   const [teamMembers, setTeamMembers] = useState([]);
   const [selectedList, setSelectedList] = useState(searchParams.get('list') || null);
@@ -513,7 +514,7 @@ function TeamListsPage() {
                                 Contact <ArrowUpDown className="w-3 h-3" />
                               </button>
                             </th>
-                            <th className="sticky left-[260px] z-30 bg-dark-800 px-4 py-3 text-left w-[110px] min-w-[110px] shadow-[2px_0_5px_-2px_rgba(0,0,0,0.3)]"></th>
+                            {canEdit && <th className="sticky left-[260px] z-30 bg-dark-800 px-4 py-3 text-left w-[110px] min-w-[110px] shadow-[2px_0_5px_-2px_rgba(0,0,0,0.3)]"></th>}
                             <th className="px-4 py-3 text-left text-sm font-medium text-dark-400 min-w-[140px]">Contact Owner</th>
                             <th className="px-4 py-3 text-left text-sm font-medium text-dark-400 min-w-[120px]">Profile Type</th>
                             <th className="px-4 py-3 text-left text-sm font-medium text-dark-400 min-w-[150px]">Status</th>
@@ -568,6 +569,7 @@ function TeamListsPage() {
                                   </div>
                                 </div>
                               </td>
+                              {canEdit && (
                               <td className="sticky left-[260px] z-10 bg-dark-900 px-4 py-3 w-[110px] min-w-[110px] shadow-[2px_0_5px_-2px_rgba(0,0,0,0.3)]" onClick={(e) => e.stopPropagation()}>
                                 <ManageDropdown
                                   lead={lead}
@@ -601,6 +603,7 @@ function TeamListsPage() {
                                   removeLabel="Remove from list"
                                 />
                               </td>
+                              )}
                               {/* Contact Owner */}
                               <td className="px-4 py-3">
                                 <div className="flex items-center gap-2">

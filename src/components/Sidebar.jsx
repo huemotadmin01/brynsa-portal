@@ -160,20 +160,18 @@ function Sidebar() {
                 <span className="flex-1">My Lists</span>
                 {isActive('/lists') && <ChevronRight className="w-3.5 h-3.5" />}
               </Link>
-              {isAdmin && (
-                <Link
-                  to="/team-lists"
-                  className={`flex items-center gap-2.5 px-3 py-2 rounded-lg transition-colors text-sm ${
-                    isActive('/team-lists')
-                      ? 'bg-rivvra-500/10 text-rivvra-400'
-                      : 'text-dark-400 hover:text-white hover:bg-dark-800/50'
-                  }`}
-                >
-                  <Layers className="w-4 h-4" />
-                  <span className="flex-1">Team Lists</span>
-                  {isActive('/team-lists') && <ChevronRight className="w-3.5 h-3.5" />}
-                </Link>
-              )}
+              <Link
+                to="/team-lists"
+                className={`flex items-center gap-2.5 px-3 py-2 rounded-lg transition-colors text-sm ${
+                  isActive('/team-lists')
+                    ? 'bg-rivvra-500/10 text-rivvra-400'
+                    : 'text-dark-400 hover:text-white hover:bg-dark-800/50'
+                }`}
+              >
+                <Layers className="w-4 h-4" />
+                <span className="flex-1">Team Lists</span>
+                {isActive('/team-lists') && <ChevronRight className="w-3.5 h-3.5" />}
+              </Link>
             </div>
           )}
         </div>

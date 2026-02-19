@@ -81,6 +81,12 @@ function SequenceDetailPage({ sequenceId, onBack }) {
   // Track current contact filters so polling/tab-switch reloads preserve them
   const activeFilterRef = useRef({ status: undefined, search: undefined });
 
+  // Lift filter state to parent so it persists across tab switches (ContactsTab unmounts/remounts)
+  const [persistedContactFilter, setPersistedContactFilter] = useState('all');
+  const [persistedOwnerFilter, setPersistedOwnerFilter] = useState('all');
+  const [persistedDateFilter, setPersistedDateFilter] = useState('all');
+  const [persistedContactSearch, setPersistedContactSearch] = useState('');
+
   const loadSequence = useCallback(async () => {
     try {
       const res = await api.getSequence(sequenceId);
@@ -550,6 +556,18 @@ function SequenceDetailPage({ sequenceId, onBack }) {
           onViewContactEmails={(enrollment) => {
             setPreselectedEnrollment(enrollment);
             setActiveTab('emails');
+          }}
+          persistedFilters={{
+            contactFilter: persistedContactFilter,
+            ownerFilter: persistedOwnerFilter,
+            dateFilter: persistedDateFilter,
+            contactSearch: persistedContactSearch
+          }}
+          onFilterChange={(filters) => {
+            if (filters.contactFilter !== undefined) setPersistedContactFilter(filters.contactFilter);
+            if (filters.ownerFilter !== undefined) setPersistedOwnerFilter(filters.ownerFilter);
+            if (filters.dateFilter !== undefined) setPersistedDateFilter(filters.dateFilter);
+            if (filters.contactSearch !== undefined) setPersistedContactSearch(filters.contactSearch);
           }}
         />
       )}
@@ -1151,9 +1169,9 @@ const SortableHeader = memo(function SortableHeader({ label, sortKey, currentSor
 
 // ========================== CONTACTS TAB ==========================
 
-function ContactsTab({ sequence, enrollments, enrollmentTotal, user, onLoadMore, onRemoveEnrollment, onPauseEnrollment, onMarkReplied, onReloadEnrollments, onBulkPause, onBulkRemove, onViewContactEmails }) {
-  const [contactSearch, setContactSearch] = useState('');
-  const [contactFilter, setContactFilter] = useState('all');
+function ContactsTab({ sequence, enrollments, enrollmentTotal, user, onLoadMore, onRemoveEnrollment, onPauseEnrollment, onMarkReplied, onReloadEnrollments, onBulkPause, onBulkRemove, onViewContactEmails, persistedFilters, onFilterChange }) {
+  const [contactSearch, setContactSearch] = useState(persistedFilters?.contactSearch || '');
+  const [contactFilter, setContactFilter] = useState(persistedFilters?.contactFilter || 'all');
   const [showContactFilter, setShowContactFilter] = useState(false);
   const [selectedContacts, setSelectedContacts] = useState(new Set());
   const [sort, setSort] = useState({ key: 'enrolledAt', dir: 'desc' });
@@ -1163,11 +1181,11 @@ function ContactsTab({ sequence, enrollments, enrollmentTotal, user, onLoadMore,
   const contactMenuBtnRectRef = useRef(null);
 
   // Owner filter
-  const [ownerFilter, setOwnerFilter] = useState('all');
+  const [ownerFilter, setOwnerFilter] = useState(persistedFilters?.ownerFilter || 'all');
   const [showOwnerFilter, setShowOwnerFilter] = useState(false);
 
   // Date filter
-  const [dateFilter, setDateFilter] = useState('all');
+  const [dateFilter, setDateFilter] = useState(persistedFilters?.dateFilter || 'all');
   const [showDateFilter, setShowDateFilter] = useState(false);
   const [customDateFrom, setCustomDateFrom] = useState('');
   const [customDateTo, setCustomDateTo] = useState('');
@@ -1196,6 +1214,7 @@ function ContactsTab({ sequence, enrollments, enrollmentTotal, user, onLoadMore,
 
   function handleContactSearch(value) {
     setContactSearch(value);
+    if (onFilterChange) onFilterChange({ contactSearch: value });
     setSearchLoading(true);
     if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
     searchTimeoutRef.current = setTimeout(async () => {
@@ -1210,6 +1229,7 @@ function ContactsTab({ sequence, enrollments, enrollmentTotal, user, onLoadMore,
   function handleContactFilterChange(status) {
     setContactFilter(status);
     setShowContactFilter(false);
+    if (onFilterChange) onFilterChange({ contactFilter: status });
     // Reload from backend with status filter for instant results
     if (onReloadEnrollments) onReloadEnrollments(1, {
       status: status === 'all' ? undefined : status,
@@ -1441,7 +1461,7 @@ function ContactsTab({ sequence, enrollments, enrollmentTotal, user, onLoadMore,
                   <div className="fixed inset-0 z-10" onClick={() => setShowOwnerFilter(false)} />
                   <div className="absolute left-0 top-full mt-1 w-48 bg-dark-800 border border-dark-600 rounded-xl shadow-xl py-1 z-20">
                     <button
-                      onClick={() => { setOwnerFilter('all'); setShowOwnerFilter(false); }}
+                      onClick={() => { setOwnerFilter('all'); setShowOwnerFilter(false); if (onFilterChange) onFilterChange({ ownerFilter: 'all' }); }}
                       className={`w-full text-left px-3 py-1.5 text-xs hover:bg-dark-700 transition-colors ${
                         ownerFilter === 'all' ? 'text-rivvra-400' : 'text-dark-300'
                       }`}
@@ -1451,7 +1471,7 @@ function ContactsTab({ sequence, enrollments, enrollmentTotal, user, onLoadMore,
                     {uniqueOwners.map(name => (
                       <button
                         key={name}
-                        onClick={() => { setOwnerFilter(name); setShowOwnerFilter(false); }}
+                        onClick={() => { setOwnerFilter(name); setShowOwnerFilter(false); if (onFilterChange) onFilterChange({ ownerFilter: name }); }}
                         className={`w-full text-left px-3 py-1.5 text-xs hover:bg-dark-700 transition-colors ${
                           ownerFilter === name ? 'text-rivvra-400' : 'text-dark-300'
                         }`}
@@ -1488,7 +1508,7 @@ function ContactsTab({ sequence, enrollments, enrollmentTotal, user, onLoadMore,
                   ].map(opt => (
                     <button
                       key={opt.value}
-                      onClick={() => { setDateFilter(opt.value); setShowDateFilter(false); setShowCustomDatePicker(false); }}
+                      onClick={() => { setDateFilter(opt.value); setShowDateFilter(false); setShowCustomDatePicker(false); if (onFilterChange) onFilterChange({ dateFilter: opt.value }); }}
                       className={`w-full text-left px-3 py-1.5 text-xs hover:bg-dark-700 transition-colors ${
                         dateFilter === opt.value ? 'text-rivvra-400' : 'text-dark-300'
                       }`}
@@ -1525,7 +1545,7 @@ function ContactsTab({ sequence, enrollments, enrollmentTotal, user, onLoadMore,
                         />
                       </div>
                       <button
-                        onClick={() => { setDateFilter('custom'); setShowDateFilter(false); setShowCustomDatePicker(false); }}
+                        onClick={() => { setDateFilter('custom'); setShowDateFilter(false); setShowCustomDatePicker(false); if (onFilterChange) onFilterChange({ dateFilter: 'custom' }); }}
                         disabled={!customDateFrom}
                         className="w-full px-2 py-1 text-xs bg-rivvra-500 text-white rounded hover:bg-rivvra-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                       >
@@ -1541,7 +1561,7 @@ function ContactsTab({ sequence, enrollments, enrollmentTotal, user, onLoadMore,
           {/* Active filter badges — clear all */}
           {(contactFilter !== 'all' || ownerFilter !== 'all' || dateFilter !== 'all') && (
             <button
-              onClick={() => { setContactFilter('all'); setOwnerFilter('all'); setDateFilter('all'); setCustomDateFrom(''); setCustomDateTo(''); if (onReloadEnrollments) onReloadEnrollments(1, {}); }}
+              onClick={() => { setContactFilter('all'); setOwnerFilter('all'); setDateFilter('all'); setCustomDateFrom(''); setCustomDateTo(''); if (onFilterChange) onFilterChange({ contactFilter: 'all', ownerFilter: 'all', dateFilter: 'all', contactSearch: '' }); if (onReloadEnrollments) onReloadEnrollments(1, {}); }}
               className="flex items-center gap-1 px-2 py-1 text-xs text-dark-400 hover:text-white transition-colors"
             >
               <X className="w-3 h-3" />
@@ -1792,7 +1812,7 @@ function ContactsTab({ sequence, enrollments, enrollmentTotal, user, onLoadMore,
           </table>
         </div>
 
-        {enrollments.length < enrollmentTotal && (
+        {enrollments.length < enrollmentTotal && ownerFilter === 'all' && dateFilter === 'all' && (
           <div className="text-center py-4 border-t border-dark-800">
             <button
               onClick={() => onLoadMore({

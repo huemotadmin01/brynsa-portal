@@ -145,24 +145,36 @@ function SequenceDetailPage({ sequenceId, onBack }) {
   const lastActivityRef = useRef(null);
   const pollErrorCountRef = useRef(0);
   const [refreshing, setRefreshing] = useState(false);
+  const activeTabRef = useRef(activeTab);
+  const mountedRef = useRef(true);
+
+  // Keep activeTabRef in sync without causing polling interval recreation
+  useEffect(() => { activeTabRef.current = activeTab; }, [activeTab]);
+  useEffect(() => { mountedRef.current = true; return () => { mountedRef.current = false; }; }, []);
 
   const fullReload = useCallback(() => {
+    if (!mountedRef.current) return;
     loadSequence();
     loadEnrollments();
-    if (activeTab === 'emails') loadEmailLog();
-  }, [loadSequence, loadEnrollments, loadEmailLog, activeTab]);
+    if (activeTabRef.current === 'emails') loadEmailLog();
+  }, [loadSequence, loadEnrollments, loadEmailLog]);
 
   useEffect(() => {
     if (sequence?.status !== 'active') return;
     pollErrorCountRef.current = 0; // Reset on status change
     const interval = setInterval(async () => {
+      if (!mountedRef.current) return;
       // M1: Stop polling when tab is in background to save resources
       if (document.hidden) return;
-      // Skip polling after 3+ consecutive errors (exponential backoff)
-      if (pollErrorCountRef.current >= 3) return;
+      // Skip polling after 3+ consecutive errors, but auto-recover after 30s
+      if (pollErrorCountRef.current >= 3) {
+        // Auto-recover: reset error count so polling resumes
+        pollErrorCountRef.current = 0;
+        return;
+      }
       try {
         const res = await api.pollSequence(sequenceId);
-        if (!res.success) return;
+        if (!res.success || !mountedRef.current) return;
         pollErrorCountRef.current = 0; // Reset on success
         const newActivity = res.lastActivity;
         // Update stats immediately (very cheap)
@@ -175,7 +187,7 @@ function SequenceDetailPage({ sequenceId, onBack }) {
       } catch {
         pollErrorCountRef.current += 1;
         // Only reload on first error, skip on subsequent
-        if (pollErrorCountRef.current === 1) {
+        if (pollErrorCountRef.current === 1 && mountedRef.current) {
           fullReload();
         }
       }

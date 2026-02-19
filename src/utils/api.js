@@ -351,10 +351,13 @@ class ApiClient {
     });
   }
 
-  async getSequenceEnrollments(id, page = 1, limit = 50, { status, search } = {}) {
+  async getSequenceEnrollments(id, page = 1, limit = 50, { status, search, owner, dateFrom, dateTo } = {}) {
     let url = `/api/sequences/${id}/enrollments?page=${page}&limit=${limit}`;
     if (status && status !== 'all') url += `&status=${status}`;
     if (search) url += `&search=${encodeURIComponent(search)}`;
+    if (owner && owner !== 'all') url += `&owner=${encodeURIComponent(owner)}`;
+    if (dateFrom) url += `&dateFrom=${encodeURIComponent(dateFrom)}`;
+    if (dateTo) url += `&dateTo=${encodeURIComponent(dateTo)}`;
     return this.request(url);
   }
 

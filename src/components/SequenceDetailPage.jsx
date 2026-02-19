@@ -106,11 +106,11 @@ function SequenceDetailPage({ sequenceId, onBack }) {
     // When explicit opts are passed (from filter change), save them as the active filter
     // When no opts passed (from polling/tab-switch), reuse the last active filter
     if (opts !== undefined) {
-      activeFilterRef.current = { status: opts.status, search: opts.search };
+      activeFilterRef.current = { status: opts.status, search: opts.search, owner: opts.owner, dateFrom: opts.dateFrom, dateTo: opts.dateTo };
     }
-    const { status, search } = activeFilterRef.current;
+    const { status, search, owner, dateFrom, dateTo } = activeFilterRef.current;
     try {
-      const res = await api.getSequenceEnrollments(sequenceId, page, 50, { status, search });
+      const res = await api.getSequenceEnrollments(sequenceId, page, 50, { status, search, owner, dateFrom, dateTo });
       if (res.success) {
         setEnrollments(prev => page === 1 ? res.enrollments : [...prev, ...res.enrollments]);
         setEnrollmentTotal(res.pagination.total);
@@ -1235,10 +1235,7 @@ function ContactsTab({ sequence, enrollments, enrollmentTotal, ownerCounts, user
     setSearchLoading(true);
     if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
     searchTimeoutRef.current = setTimeout(async () => {
-      if (onReloadEnrollments) await onReloadEnrollments(1, {
-        search: value,
-        status: contactFilter !== 'all' ? contactFilter : undefined
-      });
+      if (onReloadEnrollments) await onReloadEnrollments(1, buildFilterOpts({ search: value }));
       setSearchLoading(false);
     }, 300);
   }
@@ -1247,11 +1244,8 @@ function ContactsTab({ sequence, enrollments, enrollmentTotal, ownerCounts, user
     setContactFilter(status);
     setShowContactFilter(false);
     if (onFilterChange) onFilterChange({ contactFilter: status });
-    // Reload from backend with status filter for instant results
-    if (onReloadEnrollments) onReloadEnrollments(1, {
-      status: status === 'all' ? undefined : status,
-      search: contactSearch || undefined
-    });
+    // Reload from backend with all active filters
+    if (onReloadEnrollments) onReloadEnrollments(1, buildFilterOpts({ status: status === 'all' ? undefined : status }));
   }
 
   function handleSort(key) {
@@ -1275,42 +1269,47 @@ function ContactsTab({ sequence, enrollments, enrollmentTotal, ownerCounts, user
   const isFiltered = contactFilter !== 'all' || ownerFilter !== 'all' || dateFilter !== 'all';
 
   // Date filter helpers
-  const getDateRange = (filterType) => {
+  const getDateRange = (filterType, cdf, cdt) => {
+    const ft = filterType || dateFilter;
+    const fromVal = cdf !== undefined ? cdf : customDateFrom;
+    const toVal = cdt !== undefined ? cdt : customDateTo;
     const now = new Date();
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
-    if (filterType === 'today') return { from: todayStart, to: todayEnd };
-    if (filterType === 'yesterday') {
+    if (ft === 'today') return { from: todayStart, to: todayEnd };
+    if (ft === 'yesterday') {
       const yesterdayStart = new Date(todayStart.getTime() - 24 * 60 * 60 * 1000);
       return { from: yesterdayStart, to: todayStart };
     }
-    if (filterType === 'custom' && customDateFrom) {
-      const from = new Date(customDateFrom);
-      const to = customDateTo ? new Date(new Date(customDateTo).getTime() + 24 * 60 * 60 * 1000) : new Date(from.getTime() + 24 * 60 * 60 * 1000);
+    if (ft === 'custom' && fromVal) {
+      const from = new Date(fromVal);
+      const to = toVal ? new Date(new Date(toVal).getTime() + 24 * 60 * 60 * 1000) : new Date(from.getTime() + 24 * 60 * 60 * 1000);
       return { from, to };
     }
     return null;
   };
 
-  // Filter + sort enrollments client-side
+  // Helper to build all filter opts for server-side reload
+  function buildFilterOpts(overrides = {}) {
+    const currentStatus = overrides.status !== undefined ? overrides.status : (contactFilter !== 'all' ? contactFilter : undefined);
+    const currentSearch = overrides.search !== undefined ? overrides.search : (contactSearch || undefined);
+    const currentOwner = overrides.owner !== undefined ? overrides.owner : (ownerFilter !== 'all' ? ownerFilter : undefined);
+    const df = overrides.dateFilter !== undefined ? overrides.dateFilter : dateFilter;
+    const cdf = overrides.customDateFrom !== undefined ? overrides.customDateFrom : customDateFrom;
+    const cdt = overrides.customDateTo !== undefined ? overrides.customDateTo : customDateTo;
+    const range = getDateRange(df === 'all' ? null : df, cdf, cdt);
+    return {
+      status: currentStatus,
+      search: currentSearch,
+      owner: currentOwner,
+      dateFrom: range?.from?.toISOString(),
+      dateTo: range?.to?.toISOString()
+    };
+  }
+
+  // Status, owner, and date filters are now server-side — only sort client-side
   const sortedEnrollments = useMemo(() => {
     let filtered = [...enrollments];
-
-    // Status filter is now server-side (passed via API query param)
-
-    // Owner filter
-    if (ownerFilter !== 'all') {
-      filtered = filtered.filter(e => (e.enrolledByName || '') === ownerFilter);
-    }
-
-    // Date filter
-    const range = getDateRange(dateFilter);
-    if (range) {
-      filtered = filtered.filter(e => {
-        const d = new Date(e.enrolledAt || 0);
-        return d >= range.from && d < range.to;
-      });
-    }
 
     // Sort
     filtered.sort((a, b) => {
@@ -1335,7 +1334,7 @@ function ContactsTab({ sequence, enrollments, enrollmentTotal, ownerCounts, user
     });
 
     return filtered;
-  }, [enrollments, ownerFilter, dateFilter, customDateFrom, customDateTo, sort]);
+  }, [enrollments, sort]);
 
   const allSelected = enrollments.length > 0 && selectedContacts.size === enrollments.length;
 
@@ -1487,7 +1486,7 @@ function ContactsTab({ sequence, enrollments, enrollmentTotal, ownerCounts, user
                   <div className="fixed inset-0 z-10" onClick={() => setShowOwnerFilter(false)} />
                   <div className="absolute left-0 top-full mt-1 w-48 bg-dark-800 border border-dark-600 rounded-xl shadow-xl py-1 z-20">
                     <button
-                      onClick={() => { setOwnerFilter('all'); setShowOwnerFilter(false); if (onFilterChange) onFilterChange({ ownerFilter: 'all' }); }}
+                      onClick={() => { setOwnerFilter('all'); setShowOwnerFilter(false); if (onFilterChange) onFilterChange({ ownerFilter: 'all' }); if (onReloadEnrollments) onReloadEnrollments(1, buildFilterOpts({ owner: undefined })); }}
                       className={`w-full text-left px-3 py-1.5 text-xs hover:bg-dark-700 transition-colors ${
                         ownerFilter === 'all' ? 'text-rivvra-400' : 'text-dark-300'
                       }`}
@@ -1497,7 +1496,7 @@ function ContactsTab({ sequence, enrollments, enrollmentTotal, ownerCounts, user
                     {uniqueOwners.map(name => (
                       <button
                         key={name}
-                        onClick={() => { setOwnerFilter(name); setShowOwnerFilter(false); if (onFilterChange) onFilterChange({ ownerFilter: name }); }}
+                        onClick={() => { setOwnerFilter(name); setShowOwnerFilter(false); if (onFilterChange) onFilterChange({ ownerFilter: name }); if (onReloadEnrollments) onReloadEnrollments(1, buildFilterOpts({ owner: name })); }}
                         className={`w-full text-left px-3 py-1.5 text-xs hover:bg-dark-700 transition-colors flex items-center justify-between ${
                           ownerFilter === name ? 'text-rivvra-400' : 'text-dark-300'
                         }`}
@@ -1535,7 +1534,7 @@ function ContactsTab({ sequence, enrollments, enrollmentTotal, ownerCounts, user
                   ].map(opt => (
                     <button
                       key={opt.value}
-                      onClick={() => { setDateFilter(opt.value); setShowDateFilter(false); setShowCustomDatePicker(false); if (onFilterChange) onFilterChange({ dateFilter: opt.value }); }}
+                      onClick={() => { setDateFilter(opt.value); setShowDateFilter(false); setShowCustomDatePicker(false); if (onFilterChange) onFilterChange({ dateFilter: opt.value }); if (onReloadEnrollments) onReloadEnrollments(1, buildFilterOpts({ dateFilter: opt.value })); }}
                       className={`w-full text-left px-3 py-1.5 text-xs hover:bg-dark-700 transition-colors ${
                         dateFilter === opt.value ? 'text-rivvra-400' : 'text-dark-300'
                       }`}
@@ -1572,7 +1571,7 @@ function ContactsTab({ sequence, enrollments, enrollmentTotal, ownerCounts, user
                         />
                       </div>
                       <button
-                        onClick={() => { setDateFilter('custom'); setShowDateFilter(false); setShowCustomDatePicker(false); if (onFilterChange) onFilterChange({ dateFilter: 'custom' }); }}
+                        onClick={() => { setDateFilter('custom'); setShowDateFilter(false); setShowCustomDatePicker(false); if (onFilterChange) onFilterChange({ dateFilter: 'custom' }); if (onReloadEnrollments) onReloadEnrollments(1, buildFilterOpts({ dateFilter: 'custom' })); }}
                         disabled={!customDateFrom}
                         className="w-full px-2 py-1 text-xs bg-rivvra-500 text-white rounded hover:bg-rivvra-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                       >
@@ -1615,9 +1614,9 @@ function ContactsTab({ sequence, enrollments, enrollmentTotal, ownerCounts, user
 
         <div className="flex items-center gap-3">
           <span className="text-xs text-dark-500">
-            {sortedEnrollments.length === enrollments.length
-              ? `1-${enrollments.length} of ${enrollmentTotal} Contacts`
-              : `${sortedEnrollments.length} of ${enrollmentTotal} Contacts (filtered)`
+            {isFiltered
+              ? `${enrollmentTotal} Contacts (filtered)`
+              : `1-${enrollments.length} of ${enrollmentTotal} Contacts`
             }
           </span>
         </div>
@@ -1854,13 +1853,10 @@ function ContactsTab({ sequence, enrollments, enrollmentTotal, ownerCounts, user
           </table>
         </div>
 
-        {enrollments.length < enrollmentTotal && ownerFilter === 'all' && dateFilter === 'all' && (
+        {enrollments.length < enrollmentTotal && (
           <div className="text-center py-4 border-t border-dark-800">
             <button
-              onClick={() => onLoadMore({
-                status: contactFilter !== 'all' ? contactFilter : undefined,
-                search: contactSearch || undefined
-              })}
+              onClick={() => onLoadMore(buildFilterOpts())}
               className="text-sm text-rivvra-400 hover:text-rivvra-300 font-medium transition-colors"
             >
               Load more ({enrollmentTotal - enrollments.length} remaining)

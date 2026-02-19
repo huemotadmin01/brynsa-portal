@@ -276,13 +276,40 @@ export default function UsersPage() {
                 <input type="number" value={form.clientBillingRate} onChange={e => setForm({...form, clientBillingRate: e.target.value})}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-accent" />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Assigned Client</label>
-                <select value={form.assignedClient} onChange={e => setForm({...form, assignedClient: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white outline-none focus:ring-2 focus:ring-accent">
-                  <option value="">None</option>
-                  {clients.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
-                </select>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Assigned Client</label>
+                  <select value={form.assignedClient} onChange={e => setForm({...form, assignedClient: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white outline-none focus:ring-2 focus:ring-accent">
+                    <option value="">None</option>
+                    {clients.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Assigned Projects</label>
+                  <div className="border border-gray-300 rounded-lg p-2 max-h-28 overflow-y-auto space-y-1">
+                    {projects.length === 0 ? (
+                      <p className="text-xs text-gray-400 px-1">No projects available</p>
+                    ) : (
+                      projects.map(p => (
+                        <label key={p._id} className="flex items-center gap-2 px-1 py-0.5 rounded hover:bg-gray-50 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={form.assignedProjects.includes(p._id)}
+                            onChange={e => {
+                              const updated = e.target.checked
+                                ? [...form.assignedProjects, p._id]
+                                : form.assignedProjects.filter(id => id !== p._id);
+                              setForm({...form, assignedProjects: updated});
+                            }}
+                            className="rounded border-gray-300 text-accent focus:ring-accent"
+                          />
+                          <span className="text-sm text-gray-700">{p.name}</span>
+                        </label>
+                      ))
+                    )}
+                  </div>
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>

@@ -1317,6 +1317,11 @@ function ContactsTab({ sequence, enrollments, enrollmentTotal, user, onLoadMore,
       if (key === 'sent') return ((a.emailStats?.sent || 0) - (b.emailStats?.sent || 0)) * dir;
       if (key === 'delivered') return ((a.emailStats?.delivered || 0) - (b.emailStats?.delivered || 0)) * dir;
       if (key === 'opened') return ((a.emailStats?.opened || 0) - (b.emailStats?.opened || 0)) * dir;
+      if (key === 'lastEmailSentAt') {
+        const da = a.lastEmailSentAt ? new Date(a.lastEmailSentAt).getTime() : 0;
+        const db = b.lastEmailSentAt ? new Date(b.lastEmailSentAt).getTime() : 0;
+        return (da - db) * dir;
+      }
       return 0;
     });
 
@@ -1639,6 +1644,9 @@ function ContactsTab({ sequence, enrollments, enrollmentTotal, user, onLoadMore,
                 <th className="text-left py-3 px-4">
                   <SortableHeader label="Opened" sortKey="opened" currentSort={sort} onSort={handleSort} />
                 </th>
+                <th className="text-left py-3 px-4">
+                  <SortableHeader label="Last Email" sortKey="lastEmailSentAt" currentSort={sort} onSort={handleSort} />
+                </th>
                 <th className="text-left py-3 px-4 font-medium">Contact Info</th>
                 <th className="text-right py-3 px-4 font-medium w-12"></th>
               </tr>
@@ -1700,6 +1708,18 @@ function ContactsTab({ sequence, enrollments, enrollmentTotal, user, onLoadMore,
                     <td className="py-3 px-4 text-dark-300">{emailStats.sent || 0}</td>
                     <td className="py-3 px-4 text-dark-300">{emailStats.delivered || 0}</td>
                     <td className="py-3 px-4 text-dark-300">{emailStats.opened || 0}</td>
+                    <td className="py-3 px-4">
+                      {enrollment.lastEmailSentAt ? (
+                        <span className="text-xs text-dark-400" title={new Date(enrollment.lastEmailSentAt).toLocaleString()}>
+                          {new Date(enrollment.lastEmailSentAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                          <span className="text-dark-600 ml-1">
+                            {new Date(enrollment.lastEmailSentAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+                          </span>
+                        </span>
+                      ) : (
+                        <span className="text-xs text-dark-600">—</span>
+                      )}
+                    </td>
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-2">
                         {enrollment.leadLinkedin && (

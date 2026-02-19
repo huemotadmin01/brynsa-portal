@@ -78,6 +78,9 @@ function SequenceDetailPage({ sequenceId, onBack }) {
   const [deleteStepConfirm, setDeleteStepConfirm] = useState(null); // stepIndex to confirm delete
   const [bulkRemoveConfirm, setBulkRemoveConfirm] = useState(null); // Set of enrollment ids
 
+  // Track current contact filters so polling/tab-switch reloads preserve them
+  const activeFilterRef = useRef({ status: undefined, search: undefined });
+
   const loadSequence = useCallback(async () => {
     try {
       const res = await api.getSequence(sequenceId);
@@ -92,7 +95,13 @@ function SequenceDetailPage({ sequenceId, onBack }) {
     }
   }, [sequenceId]);
 
-  const loadEnrollments = useCallback(async (page = 1, { status, search } = {}) => {
+  const loadEnrollments = useCallback(async (page = 1, opts) => {
+    // When explicit opts are passed (from filter change), save them as the active filter
+    // When no opts passed (from polling/tab-switch), reuse the last active filter
+    if (opts !== undefined) {
+      activeFilterRef.current = { status: opts.status, search: opts.search };
+    }
+    const { status, search } = activeFilterRef.current;
     try {
       const res = await api.getSequenceEnrollments(sequenceId, page, 50, { status, search });
       if (res.success) {
@@ -1532,7 +1541,7 @@ function ContactsTab({ sequence, enrollments, enrollmentTotal, user, onLoadMore,
           {/* Active filter badges — clear all */}
           {(contactFilter !== 'all' || ownerFilter !== 'all' || dateFilter !== 'all') && (
             <button
-              onClick={() => { setContactFilter('all'); setOwnerFilter('all'); setDateFilter('all'); setCustomDateFrom(''); setCustomDateTo(''); if (onReloadEnrollments) onReloadEnrollments(1); }}
+              onClick={() => { setContactFilter('all'); setOwnerFilter('all'); setDateFilter('all'); setCustomDateFrom(''); setCustomDateTo(''); if (onReloadEnrollments) onReloadEnrollments(1, {}); }}
               className="flex items-center gap-1 px-2 py-1 text-xs text-dark-400 hover:text-white transition-colors"
             >
               <X className="w-3 h-3" />

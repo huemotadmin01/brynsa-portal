@@ -515,6 +515,12 @@ function TeamManagement({ user, canChangeRoles = false }) {
   const [actionLoading, setActionLoading] = useState(null);
   const [licenses, setLicenses] = useState(null);
 
+  // Rate limit editing state
+  const [editingRateLimits, setEditingRateLimits] = useState(null); // memberId being edited
+  const [rateLimitValues, setRateLimitValues] = useState({ dailySendLimit: 50, hourlySendLimit: 6 });
+  const [savingRateLimits, setSavingRateLimits] = useState(false);
+  const [memberRateLimits, setMemberRateLimits] = useState({}); // { memberId: { daily, hourly } }
+
   // Sub-teams state
   const [teams, setTeams] = useState([]);
   const [showCreateTeam, setShowCreateTeam] = useState(false);
@@ -528,7 +534,7 @@ function TeamManagement({ user, canChangeRoles = false }) {
 
   useEffect(() => {
     loadTeam();
-    if (canChangeRoles) { loadInvites(); loadTeams(); }
+    if (canChangeRoles) { loadInvites(); loadTeams(); loadMemberRateLimits(); }
   }, []);
 
   async function loadTeam() {
@@ -543,6 +549,36 @@ function TeamManagement({ user, canChangeRoles = false }) {
       setError(err.message || 'Failed to load team');
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function loadMemberRateLimits() {
+    try {
+      const res = await api.getMemberRateLimits();
+      if (res.success) {
+        const map = {};
+        res.members.forEach(m => { map[m.id] = { dailySendLimit: m.dailySendLimit, hourlySendLimit: m.hourlySendLimit }; });
+        setMemberRateLimits(map);
+      }
+    } catch {}
+  }
+
+  async function handleSaveRateLimits(memberId) {
+    setSavingRateLimits(true);
+    try {
+      const res = await api.updateMemberRateLimits(memberId, rateLimitValues);
+      if (res.success) {
+        setMemberRateLimits(prev => ({ ...prev, [memberId]: res.settings }));
+        setEditingRateLimits(null);
+      } else {
+        setError(res.error || 'Failed to update rate limits');
+        setTimeout(() => setError(''), 3000);
+      }
+    } catch (err) {
+      setError(err.message || 'Failed to update rate limits');
+      setTimeout(() => setError(''), 3000);
+    } finally {
+      setSavingRateLimits(false);
     }
   }
 
@@ -789,124 +825,205 @@ function TeamManagement({ user, canChangeRoles = false }) {
           {members.map((member) => {
             const isCurrentUser = member.id === user?.id;
             const isOnlyAdmin = member.role === 'admin' && adminCount <= 1;
+            const limits = memberRateLimits[member.id];
+            const isEditingLimits = editingRateLimits === member.id;
 
             return (
               <div
                 key={member.id}
-                className={`flex items-center gap-4 px-4 py-3 rounded-xl transition-colors ${
+                className={`rounded-xl transition-colors ${
                   isCurrentUser
                     ? 'bg-rivvra-500/5 border border-rivvra-500/20'
                     : 'bg-dark-800/40 border border-dark-700/50'
                 }`}
               >
-                {/* Avatar */}
-                {member.picture ? (
-                  <img src={member.picture} alt="" className="w-10 h-10 rounded-xl object-cover flex-shrink-0" referrerPolicy="no-referrer" />
-                ) : (
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-dark-600 to-dark-700 flex items-center justify-center flex-shrink-0">
-                    <span className="text-sm font-bold text-dark-300">
-                      {member.name?.charAt(0)?.toUpperCase() || member.email?.charAt(0)?.toUpperCase() || '?'}
-                    </span>
-                  </div>
-                )}
-
-                {/* Info */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-white truncate">{member.name || 'Unnamed'}</span>
-                    {isCurrentUser && (
-                      <span className="text-[10px] text-rivvra-400 bg-rivvra-500/10 px-1.5 py-0.5 rounded font-medium">You</span>
-                    )}
-                  </div>
-                  <p className="text-xs text-dark-400 truncate">
-                    {member.email}
-                    {member.teamName && (
-                      <span className="ml-1.5 text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded text-[10px] font-medium">{member.teamName}</span>
-                    )}
-                  </p>
-                  {member.senderTitle && (
-                    <p className="text-xs text-dark-500 truncate">{member.senderTitle}</p>
+                <div className="flex items-center gap-4 px-4 py-3">
+                  {/* Avatar */}
+                  {member.picture ? (
+                    <img src={member.picture} alt="" className="w-10 h-10 rounded-xl object-cover flex-shrink-0" referrerPolicy="no-referrer" />
+                  ) : (
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-dark-600 to-dark-700 flex items-center justify-center flex-shrink-0">
+                      <span className="text-sm font-bold text-dark-300">
+                        {member.name?.charAt(0)?.toUpperCase() || member.email?.charAt(0)?.toUpperCase() || '?'}
+                      </span>
+                    </div>
                   )}
-                </div>
 
-                {/* Role badge / dropdown */}
-                <div className="relative flex-shrink-0">
-                  {updatingRole === member.id || actionLoading === member.id ? (
-                    <Loader2 className="w-4 h-4 text-rivvra-500 animate-spin" />
-                  ) : canChangeRoles ? (
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-white truncate">{member.name || 'Unnamed'}</span>
+                      {isCurrentUser && (
+                        <span className="text-[10px] text-rivvra-400 bg-rivvra-500/10 px-1.5 py-0.5 rounded font-medium">You</span>
+                      )}
+                    </div>
+                    <p className="text-xs text-dark-400 truncate">
+                      {member.email}
+                      {member.teamName && (
+                        <span className="ml-1.5 text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded text-[10px] font-medium">{member.teamName}</span>
+                      )}
+                    </p>
+                    {member.senderTitle && (
+                      <p className="text-xs text-dark-500 truncate">{member.senderTitle}</p>
+                    )}
+                  </div>
+
+                  {/* Rate limit badge (admin clickable) */}
+                  {canChangeRoles && limits && (
                     <button
-                      onClick={() => setOpenDropdown(openDropdown === member.id ? null : member.id)}
-                      disabled={isOnlyAdmin && isCurrentUser}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                      onClick={() => {
+                        if (isEditingLimits) {
+                          setEditingRateLimits(null);
+                        } else {
+                          setEditingRateLimits(member.id);
+                          setRateLimitValues({ dailySendLimit: limits.dailySendLimit, hourlySendLimit: limits.hourlySendLimit });
+                        }
+                      }}
+                      className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-medium transition-colors flex-shrink-0 ${
+                        isEditingLimits
+                          ? 'bg-rivvra-500/20 text-rivvra-400 border border-rivvra-500/30'
+                          : 'bg-dark-700/30 text-dark-400 border border-dark-600/50 hover:bg-dark-700/60 hover:text-dark-300'
+                      }`}
+                      title="Edit send limits"
+                    >
+                      <Mail className="w-3 h-3" />
+                      {limits.hourlySendLimit}/hr · {limits.dailySendLimit}/day
+                    </button>
+                  )}
+
+                  {/* Role badge / dropdown */}
+                  <div className="relative flex-shrink-0">
+                    {updatingRole === member.id || actionLoading === member.id ? (
+                      <Loader2 className="w-4 h-4 text-rivvra-500 animate-spin" />
+                    ) : canChangeRoles ? (
+                      <button
+                        onClick={() => setOpenDropdown(openDropdown === member.id ? null : member.id)}
+                        disabled={isOnlyAdmin && isCurrentUser}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                          member.role === 'admin'
+                            ? 'bg-rivvra-500/10 text-rivvra-400 border border-rivvra-500/20'
+                            : member.role === 'team_lead'
+                            ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                            : 'bg-dark-700/50 text-dark-300 border border-dark-600'
+                        } ${isOnlyAdmin && isCurrentUser ? 'opacity-50 cursor-not-allowed' : 'hover:bg-dark-600 cursor-pointer'}`}
+                      >
+                        {member.role === 'admin' ? 'Admin' : member.role === 'team_lead' ? 'Team Lead' : 'Member'}
+                        {!(isOnlyAdmin && isCurrentUser) && <ChevronDown className="w-3 h-3" />}
+                      </button>
+                    ) : (
+                      <span className={`px-3 py-1.5 rounded-lg text-xs font-medium ${
                         member.role === 'admin'
                           ? 'bg-rivvra-500/10 text-rivvra-400 border border-rivvra-500/20'
                           : member.role === 'team_lead'
                           ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
                           : 'bg-dark-700/50 text-dark-300 border border-dark-600'
-                      } ${isOnlyAdmin && isCurrentUser ? 'opacity-50 cursor-not-allowed' : 'hover:bg-dark-600 cursor-pointer'}`}
-                    >
-                      {member.role === 'admin' ? 'Admin' : member.role === 'team_lead' ? 'Team Lead' : 'Member'}
-                      {!(isOnlyAdmin && isCurrentUser) && <ChevronDown className="w-3 h-3" />}
-                    </button>
-                  ) : (
-                    <span className={`px-3 py-1.5 rounded-lg text-xs font-medium ${
-                      member.role === 'admin'
-                        ? 'bg-rivvra-500/10 text-rivvra-400 border border-rivvra-500/20'
-                        : member.role === 'team_lead'
-                        ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-                        : 'bg-dark-700/50 text-dark-300 border border-dark-600'
-                    }`}>
-                      {member.role === 'admin' ? 'Admin' : member.role === 'team_lead' ? 'Team Lead' : 'Member'}
-                    </span>
-                  )}
+                      }`}>
+                        {member.role === 'admin' ? 'Admin' : member.role === 'team_lead' ? 'Team Lead' : 'Member'}
+                      </span>
+                    )}
 
-                  {/* Dropdown (admin only) */}
-                  {canChangeRoles && openDropdown === member.id && (
-                    <>
-                      <div className="fixed inset-0 z-40" onClick={() => setOpenDropdown(null)} />
-                      <div className="absolute right-0 bottom-full mb-1 z-50 bg-dark-800 border border-dark-600 rounded-xl shadow-2xl py-1 min-w-[160px]">
-                        {[
-                          { value: 'admin', label: 'Admin' },
-                          { value: 'team_lead', label: 'Team Lead' },
-                          { value: 'member', label: 'Member' },
-                        ].map((roleOption) => (
-                          <button
-                            key={roleOption.value}
-                            onClick={() => handleRoleChange(member.id, roleOption.value)}
-                            disabled={isOnlyAdmin && member.role === 'admin' && roleOption.value !== 'admin'}
-                            className={`w-full px-4 py-2 text-left text-xs hover:bg-dark-700 transition-colors flex items-center gap-2 ${
-                              member.role === roleOption.value ? 'text-rivvra-400' : 'text-dark-300'
-                            } ${isOnlyAdmin && member.role === 'admin' && roleOption.value !== 'admin' ? 'opacity-50 cursor-not-allowed' : ''}`}
-                          >
-                            {member.role === roleOption.value && <Check className="w-3 h-3" />}
-                            <span className={member.role === roleOption.value ? '' : 'ml-5'}>{roleOption.label}</span>
-                          </button>
-                        ))}
+                    {/* Dropdown (admin only) */}
+                    {canChangeRoles && openDropdown === member.id && (
+                      <>
+                        <div className="fixed inset-0 z-40" onClick={() => setOpenDropdown(null)} />
+                        <div className="absolute right-0 bottom-full mb-1 z-50 bg-dark-800 border border-dark-600 rounded-xl shadow-2xl py-1 min-w-[160px]">
+                          {[
+                            { value: 'admin', label: 'Admin' },
+                            { value: 'team_lead', label: 'Team Lead' },
+                            { value: 'member', label: 'Member' },
+                          ].map((roleOption) => (
+                            <button
+                              key={roleOption.value}
+                              onClick={() => handleRoleChange(member.id, roleOption.value)}
+                              disabled={isOnlyAdmin && member.role === 'admin' && roleOption.value !== 'admin'}
+                              className={`w-full px-4 py-2 text-left text-xs hover:bg-dark-700 transition-colors flex items-center gap-2 ${
+                                member.role === roleOption.value ? 'text-rivvra-400' : 'text-dark-300'
+                              } ${isOnlyAdmin && member.role === 'admin' && roleOption.value !== 'admin' ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            >
+                              {member.role === roleOption.value && <Check className="w-3 h-3" />}
+                              <span className={member.role === roleOption.value ? '' : 'ml-5'}>{roleOption.label}</span>
+                            </button>
+                          ))}
 
-                        {/* Separator + Admin actions */}
-                        {!isCurrentUser && (
-                          <>
-                            <div className="border-t border-dark-600 my-1" />
-                            <button
-                              onClick={() => { setOpenDropdown(null); handleImpersonate(member.id); }}
-                              className="w-full px-4 py-2 text-left text-xs hover:bg-dark-700 transition-colors flex items-center gap-2 text-amber-400"
-                            >
-                              <ArrowLeftRight className="w-3 h-3" />
-                              Login As
-                            </button>
-                            <button
-                              onClick={() => { setOpenDropdown(null); setConfirmAction({ type: 'delete', member }); }}
-                              className="w-full px-4 py-2 text-left text-xs hover:bg-dark-700 transition-colors flex items-center gap-2 text-red-400"
-                            >
-                              <UserX className="w-3 h-3" />
-                              Remove from Team
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </>
-                  )}
+                          {/* Separator + Admin actions */}
+                          {!isCurrentUser && (
+                            <>
+                              <div className="border-t border-dark-600 my-1" />
+                              <button
+                                onClick={() => { setOpenDropdown(null); handleImpersonate(member.id); }}
+                                className="w-full px-4 py-2 text-left text-xs hover:bg-dark-700 transition-colors flex items-center gap-2 text-amber-400"
+                              >
+                                <ArrowLeftRight className="w-3 h-3" />
+                                Login As
+                              </button>
+                              <button
+                                onClick={() => { setOpenDropdown(null); setConfirmAction({ type: 'delete', member }); }}
+                                className="w-full px-4 py-2 text-left text-xs hover:bg-dark-700 transition-colors flex items-center gap-2 text-red-400"
+                              >
+                                <UserX className="w-3 h-3" />
+                                Remove from Team
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </div>
+
+                {/* Expandable rate limit editor */}
+                {isEditingLimits && (
+                  <div className="px-4 pb-3 pt-1 border-t border-dark-700/50">
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-2">
+                        <label className="text-[11px] text-dark-400 whitespace-nowrap">Hourly:</label>
+                        <input
+                          type="number"
+                          min="1"
+                          max="50"
+                          value={rateLimitValues.hourlySendLimit}
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value);
+                            if (!isNaN(val)) setRateLimitValues(prev => ({ ...prev, hourlySendLimit: Math.min(50, Math.max(1, val)) }));
+                          }}
+                          className="w-16 px-2 py-1 bg-dark-800 border border-dark-600 rounded-lg text-xs text-white text-center focus:outline-none focus:border-rivvra-500"
+                        />
+                        <span className="text-[11px] text-dark-500">/hr</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <label className="text-[11px] text-dark-400 whitespace-nowrap">Daily:</label>
+                        <input
+                          type="number"
+                          min="1"
+                          max="200"
+                          value={rateLimitValues.dailySendLimit}
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value);
+                            if (!isNaN(val)) setRateLimitValues(prev => ({ ...prev, dailySendLimit: Math.min(200, Math.max(1, val)) }));
+                          }}
+                          className="w-16 px-2 py-1 bg-dark-800 border border-dark-600 rounded-lg text-xs text-white text-center focus:outline-none focus:border-rivvra-500"
+                        />
+                        <span className="text-[11px] text-dark-500">/day</span>
+                      </div>
+                      <div className="flex items-center gap-2 ml-auto">
+                        <button
+                          onClick={() => setEditingRateLimits(null)}
+                          className="px-3 py-1 text-[11px] text-dark-400 hover:text-white transition-colors"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={() => handleSaveRateLimits(member.id)}
+                          disabled={savingRateLimits}
+                          className="flex items-center gap-1.5 px-3 py-1 text-[11px] font-medium bg-rivvra-500 text-dark-950 rounded-lg hover:bg-rivvra-400 transition-colors disabled:opacity-50"
+                        >
+                          {savingRateLimits ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                          Save
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })}

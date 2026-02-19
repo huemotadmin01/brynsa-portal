@@ -731,6 +731,18 @@ class ApiClient {
     });
   }
 
+  // Team Member Rate Limits (admin only)
+  async getMemberRateLimits() {
+    return this.request('/api/teams/members/rate-limits');
+  }
+
+  async updateMemberRateLimits(userId, limits) {
+    return this.request(`/api/teams/member/${userId}/rate-limits`, {
+      method: 'PUT',
+      body: JSON.stringify(limits),
+    });
+  }
+
   // Team Dashboard
   async getDashboardStats({ dateFrom, dateTo } = {}) {
     const params = new URLSearchParams();

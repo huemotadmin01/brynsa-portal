@@ -534,7 +534,8 @@ function TeamManagement({ user, canChangeRoles = false }) {
 
   useEffect(() => {
     loadTeam();
-    if (canChangeRoles) { loadInvites(); loadTeams(); loadMemberRateLimits(); }
+    loadMemberRateLimits(); // All members can view rate limits
+    if (canChangeRoles) { loadInvites(); loadTeams(); }
   }, []);
 
   async function loadTeam() {
@@ -872,27 +873,34 @@ function TeamManagement({ user, canChangeRoles = false }) {
                     )}
                   </div>
 
-                  {/* Rate limit badge (admin clickable) */}
-                  {canChangeRoles && limits && (
-                    <button
-                      onClick={() => {
-                        if (isEditingLimits) {
-                          setEditingRateLimits(null);
-                        } else {
-                          setEditingRateLimits(member.id);
-                          setRateLimitValues({ dailySendLimit: limits.dailySendLimit, hourlySendLimit: limits.hourlySendLimit });
-                        }
-                      }}
-                      className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-medium transition-colors flex-shrink-0 ${
-                        isEditingLimits
-                          ? 'bg-rivvra-500/20 text-rivvra-400 border border-rivvra-500/30'
-                          : 'bg-dark-700/30 text-dark-400 border border-dark-600/50 hover:bg-dark-700/60 hover:text-dark-300'
-                      }`}
-                      title="Edit send limits"
-                    >
-                      <Mail className="w-3 h-3" />
-                      {limits.hourlySendLimit}/hr · {limits.dailySendLimit}/day
-                    </button>
+                  {/* Rate limit badge (visible to all, clickable by admin) */}
+                  {limits && (
+                    canChangeRoles ? (
+                      <button
+                        onClick={() => {
+                          if (isEditingLimits) {
+                            setEditingRateLimits(null);
+                          } else {
+                            setEditingRateLimits(member.id);
+                            setRateLimitValues({ dailySendLimit: limits.dailySendLimit, hourlySendLimit: limits.hourlySendLimit });
+                          }
+                        }}
+                        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-medium transition-colors flex-shrink-0 ${
+                          isEditingLimits
+                            ? 'bg-rivvra-500/20 text-rivvra-400 border border-rivvra-500/30'
+                            : 'bg-dark-700/30 text-dark-400 border border-dark-600/50 hover:bg-dark-700/60 hover:text-dark-300'
+                        }`}
+                        title="Edit send limits"
+                      >
+                        <Mail className="w-3 h-3" />
+                        {limits.hourlySendLimit}/hr · {limits.dailySendLimit}/day
+                      </button>
+                    ) : (
+                      <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-medium bg-dark-700/30 text-dark-400 border border-dark-600/50 flex-shrink-0">
+                        <Mail className="w-3 h-3" />
+                        {limits.hourlySendLimit}/hr · {limits.dailySendLimit}/day
+                      </span>
+                    )
                   )}
 
                   {/* Role badge / dropdown */}

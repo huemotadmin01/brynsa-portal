@@ -110,8 +110,16 @@ export const APP_REGISTRY = {
     basePath: '/settings',
     status: 'active',
     adminOnly: true,
-    defaultRoute: '/settings',
-    getSidebarItems: () => [],
+    defaultRoute: '/settings/general',
+    getSidebarItems: (user) => {
+      const isAdmin = user?.role === 'admin' || user?.role === 'team_lead';
+      return [
+        { type: 'item', path: '/settings/general', label: 'General Settings', icon: Settings },
+        ...(isAdmin ? [{ type: 'item', path: '/settings/users', label: 'Users & Teams', icon: Users }] : []),
+        { type: 'item', path: '/settings/outreach', label: 'Outreach', icon: Mail },
+        { type: 'item', path: '/settings/timesheet', label: 'Timesheet', icon: Clock },
+      ];
+    },
   },
 };
 

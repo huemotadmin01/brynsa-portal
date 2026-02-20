@@ -19,13 +19,15 @@ import EngagePage from './pages/EngagePage';
 import SequenceWizardPage from './pages/SequenceWizardPage';
 import LeadsPage from './pages/LeadsPage';
 import MyListsPage from './pages/MyListsPage';
-import SettingsPage from './pages/SettingsPage';
 import TeamDashboardPage from './pages/TeamDashboardPage';
 import TeamContactsPage from './pages/TeamContactsPage';
 import TeamListsPage from './pages/TeamListsPage';
 
 // Platform settings
-import PlatformSettingsPage from './pages/PlatformSettingsPage';
+import SettingsGeneral from './components/settings/SettingsGeneral';
+import SettingsTeam from './components/settings/SettingsTeam';
+import SettingsOutreach from './components/settings/SettingsOutreach';
+import SettingsTimesheet from './components/settings/SettingsTimesheet';
 
 // Timesheet app pages
 import TimesheetDashboard from './pages/timesheet/TimesheetDashboard';
@@ -36,6 +38,19 @@ import TimesheetUsers from './pages/timesheet/TimesheetUsers';
 import TimesheetProjects from './pages/timesheet/TimesheetProjects';
 import TimesheetExport from './pages/timesheet/TimesheetExport';
 import TimesheetPayrollSettings from './pages/timesheet/TimesheetPayrollSettings';
+
+// Simple wrapper for settings pages — adds consistent header + padding
+function SettingsPageWrapper({ children }) {
+  return (
+    <div className="p-6 max-w-4xl">
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold text-white">Settings</h1>
+        <p className="text-dark-400 mt-1">Manage your platform, apps & team</p>
+      </div>
+      {children}
+    </div>
+  );
+}
 
 function App() {
   return (
@@ -68,8 +83,12 @@ function App() {
               <Route path="/outreach/team-contacts" element={<TeamContactsPage />} />
               <Route path="/outreach/team-lists" element={<TeamListsPage />} />
 
-              {/* Platform settings */}
-              <Route path="/settings" element={<PlatformSettingsPage />} />
+              {/* Platform settings — sub-routes rendered in sidebar layout */}
+              <Route path="/settings" element={<Navigate to="/settings/general" replace />} />
+              <Route path="/settings/general" element={<SettingsPageWrapper><SettingsGeneral /></SettingsPageWrapper>} />
+              <Route path="/settings/users" element={<SettingsPageWrapper><SettingsTeam /></SettingsPageWrapper>} />
+              <Route path="/settings/outreach" element={<SettingsPageWrapper><SettingsOutreach /></SettingsPageWrapper>} />
+              <Route path="/settings/timesheet" element={<SettingsPageWrapper><SettingsTimesheet /></SettingsPageWrapper>} />
 
               {/* Timesheet app routes */}
               <Route path="/timesheet/dashboard" element={<TimesheetDashboard />} />

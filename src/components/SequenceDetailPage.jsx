@@ -1359,7 +1359,6 @@ function ContactsTab({ sequence, enrollments, enrollmentTotal, ownerCounts, user
 
   const contactFilterLabel = contactFilter === 'all' ? 'All contacts'
     : contactFilter === 'active' ? 'Active'
-    : contactFilter === 'completed' ? 'Completed'
     : contactFilter === 'replied' ? 'Interested'
     : contactFilter === 'replied_not_interested' ? 'Not Interested'
     : contactFilter === 'lost_no_response' ? 'No Response'
@@ -1449,7 +1448,6 @@ function ContactsTab({ sequence, enrollments, enrollmentTotal, ownerCounts, user
                   {[
                     { value: 'all', label: 'All contacts' },
                     { value: 'active', label: 'Active' },
-                    { value: 'completed', label: 'Completed' },
                     { value: 'replied', label: 'Interested' },
                     { value: 'replied_not_interested', label: 'Not Interested' },
                     { value: 'lost_no_response', label: 'No Response' },

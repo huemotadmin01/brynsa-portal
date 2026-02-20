@@ -442,11 +442,11 @@ function LeadsPage() {
               </div>
             ) : (
               <>
-                <div className="flex-1 overflow-x-auto overflow-y-auto relative">
-                  <table className="min-w-[1100px] border-collapse">
+                <div className="flex-1 overflow-auto">
+                  <table style={{ minWidth: '1100px', borderCollapse: 'separate', borderSpacing: 0 }}>
                     <thead className="sticky top-0 z-20">
                       <tr className="border-b border-dark-700 bg-dark-800">
-                        <th className="sticky left-0 z-30 bg-dark-800 px-4 py-3 text-left w-[48px] min-w-[48px]">
+                        <th className="sticky left-0 z-30 bg-dark-800 px-4 py-3 text-left" style={{ width: 48, minWidth: 48 }}>
                           <input
                             type="checkbox"
                             checked={selectedLeads.length === paginatedLeads.length && paginatedLeads.length > 0}
@@ -454,18 +454,18 @@ function LeadsPage() {
                             className="w-4 h-4 rounded border-dark-600 bg-dark-700 text-rivvra-500 focus:ring-rivvra-500"
                           />
                         </th>
-                        <th className="sticky left-[48px] z-30 bg-dark-800 px-4 py-3 text-left w-[220px] min-w-[220px]">
+                        <th className="sticky z-30 bg-dark-800 px-4 py-3 text-left" style={{ left: 48, width: 220, minWidth: 220 }}>
                           <button className="flex items-center gap-1 text-sm font-medium text-dark-400 hover:text-white">
                             Contact <ArrowUpDown className="w-3 h-3" />
                           </button>
                         </th>
-                        <th className="sticky left-[268px] z-30 bg-dark-800 px-4 py-3 text-left w-[110px] min-w-[110px] shadow-[2px_0_5px_-2px_rgba(0,0,0,0.3)]"></th>
-                        <th className="px-4 py-3 text-left text-sm font-medium text-dark-400 min-w-[120px]">Profile Type</th>
-                        <th className="px-4 py-3 text-left text-sm font-medium text-dark-400 min-w-[150px]">Status</th>
-                        <th className="px-4 py-3 text-left text-sm font-medium text-dark-400 min-w-[180px]">Company</th>
-                        <th className="px-4 py-3 text-left text-sm font-medium text-dark-400 min-w-[150px]">Location</th>
-                        <th className="px-4 py-3 text-left text-sm font-medium text-dark-400 min-w-[200px]">Email</th>
-                        <th className="px-4 py-3 text-left text-sm font-medium text-dark-400 min-w-[80px]">Notes</th>
+                        <th className="sticky z-30 bg-dark-800 px-4 py-3 text-left" style={{ left: 268, width: 110, minWidth: 110, boxShadow: '2px 0 5px -2px rgba(0,0,0,0.3)' }}></th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-dark-400" style={{ minWidth: 120 }}>Profile Type</th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-dark-400" style={{ minWidth: 150 }}>Status</th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-dark-400" style={{ minWidth: 180 }}>Company</th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-dark-400" style={{ minWidth: 150 }}>Location</th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-dark-400" style={{ minWidth: 200 }}>Email</th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-dark-400" style={{ minWidth: 80 }}>Notes</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -477,7 +477,7 @@ function LeadsPage() {
                             selectedLead?._id === lead._id ? 'bg-dark-800/70' : ''
                           }`}
                         >
-                          <td className="sticky left-0 z-10 bg-dark-900 px-4 py-3 w-[48px] min-w-[48px]">
+                          <td className="sticky left-0 z-10 bg-dark-900 px-4 py-3" style={{ width: 48, minWidth: 48 }}>
                             <input
                               type="checkbox"
                               checked={selectedLeads.includes(lead._id)}
@@ -486,7 +486,7 @@ function LeadsPage() {
                               className="w-4 h-4 rounded border-dark-600 bg-dark-700 text-rivvra-500 focus:ring-rivvra-500"
                             />
                           </td>
-                          <td className="sticky left-[48px] z-10 bg-dark-900 px-4 py-3 w-[220px] min-w-[220px]">
+                          <td className="sticky z-10 bg-dark-900 px-4 py-3" style={{ left: 48, width: 220, minWidth: 220 }}>
                             <div className="flex items-center gap-3">
                               {lead.profilePicture ? (
                                 <img src={lead.profilePicture} alt="" className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
@@ -513,7 +513,7 @@ function LeadsPage() {
                               </div>
                             </div>
                           </td>
-                          <td className="sticky left-[268px] z-10 bg-dark-900 px-4 py-3 w-[110px] min-w-[110px] shadow-[2px_0_5px_-2px_rgba(0,0,0,0.3)]" onClick={(e) => e.stopPropagation()}>
+                          <td className="sticky z-10 bg-dark-900 px-4 py-3" style={{ left: 268, width: 110, minWidth: 110, boxShadow: '2px 0 5px -2px rgba(0,0,0,0.3)' }} onClick={(e) => e.stopPropagation()}>
                             <ManageDropdown
                               lead={lead}
                               onExportCRM={() => {
@@ -578,18 +578,18 @@ function LeadsPage() {
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-2 text-sm">
                               <Building2 className="w-4 h-4 text-dark-500 flex-shrink-0" />
-                              <span className="text-dark-300 truncate max-w-[150px]">{lead.company || '-'}</span>
+                              <span className="text-dark-300 truncate" style={{ maxWidth: 150 }}>{lead.company || '-'}</span>
                             </div>
                           </td>
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-2 text-sm">
                               <MapPin className="w-4 h-4 text-dark-500 flex-shrink-0" />
-                              <span className="text-dark-300 truncate max-w-[200px]" title={lead.location || ''}>{lead.location || '-'}</span>
+                              <span className="text-dark-300 truncate" style={{ maxWidth: 200 }} title={lead.location || ''}>{lead.location || '-'}</span>
                             </div>
                           </td>
                           <td className="px-4 py-3 text-sm">
                             {lead.email ? (
-                              <span className="text-rivvra-400 truncate block max-w-[180px]">{lead.email}</span>
+                              <span className="text-rivvra-400 truncate block" style={{ maxWidth: 180 }}>{lead.email}</span>
                             ) : (
                               <span className="text-dark-500">Not found</span>
                             )}

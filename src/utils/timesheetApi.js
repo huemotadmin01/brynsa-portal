@@ -26,19 +26,14 @@ timesheetApi.interceptors.response.use(
 );
 
 /**
- * Pre-warm the timesheet backend (Render free tier cold start).
- * Fires a lightweight GET to wake the server before real API calls.
- * Returns a promise that resolves once the server responds.
+ * Pre-warm the timesheet backend.
+ * Now that timesheet is merged into the main backend, this is effectively
+ * a no-op (the main backend is already warm from other API calls).
+ * Kept for backward compatibility with AppCard.jsx import.
  */
-let warmPromise = null;
 export function warmTimesheetBackend() {
-  if (!warmPromise) {
-    warmPromise = fetch(`${TIMESHEET_API_URL}/health`, {
-      method: 'GET',
-      mode: 'no-cors', // fire-and-forget, just wake the server
-    }).catch(() => {}); // ignore errors — it's just a warm-up ping
-  }
-  return warmPromise;
+  // No-op: timesheet is now served by the main backend
+  return Promise.resolve();
 }
 
 // ─── Cross-platform user management (Settings → Users & Teams) ──────────────

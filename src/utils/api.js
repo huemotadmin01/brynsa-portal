@@ -164,6 +164,10 @@ class ApiClient {
     });
   }
 
+  async saveOnboarding(data) {
+    return this.updateOnboarding(data);
+  }
+
   // Company endpoints
   async searchCompanies(query) {
     return this.request(`/api/companies/search?q=${encodeURIComponent(query)}`);
@@ -709,6 +713,22 @@ class ApiClient {
 
   async inviteOrgMember(orgSlug, data) {
     return this.request(`/api/org/${orgSlug}/invite`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  // Org invite validation + acceptance (public endpoints for invite flow)
+  async validateOrgInvite(token) {
+    return this.request('/api/org/invite/validate', {
+      method: 'POST',
+      body: JSON.stringify({ token }),
+    });
+  }
+
+  // Accept org invite: { token, credential } for Google, { token } for one-click, { token, name, password } for new
+  async acceptOrgInvite(data) {
+    return this.request('/api/org/invite/accept', {
       method: 'POST',
       body: JSON.stringify(data),
     });

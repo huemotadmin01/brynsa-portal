@@ -460,16 +460,17 @@ function SignupPage() {
   const handleComplete = async () => {
     setLoading(true);
     try {
-      const response = await fetch('https://brynsa-leads-api.onrender.com/api/user/onboarding', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(formData)
-      });
-      const data = await response.json();
+      const data = await api.saveOnboarding(formData);
       console.log('Onboarding saved:', data);
+
+      // If backend returned a new token (with org context), update auth
+      if (data.token) {
+        localStorage.setItem('rivvra_token', data.token);
+        if (data.user) {
+          localStorage.setItem('rivvra_user', JSON.stringify(data.user));
+        }
+      }
+
       navigate('/home');
     } catch (err) {
       console.error('Failed to save onboarding data:', err);

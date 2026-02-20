@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { usePlatform } from '../../context/PlatformContext';
 import { useTimesheetContext } from '../../context/TimesheetContext';
+import { stripOrgPrefix } from '../../config/apps';
 import {
-  ChevronRight, ChevronDown, Crown, LogOut
+  ChevronRight, ChevronDown, Crown, LogOut, Building2
 } from 'lucide-react';
 import ComingSoonModal from '../ComingSoonModal';
 
@@ -12,7 +13,7 @@ function AppSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout, isImpersonating } = useAuth();
-  const { currentApp } = usePlatform();
+  const { currentApp, orgPath, orgSlug } = usePlatform();
   const { timesheetUser } = useTimesheetContext();
   const isPro = user?.plan === 'pro' || user?.plan === 'premium';
   const [showWipModal, setShowWipModal] = useState(false);
@@ -22,7 +23,9 @@ function AppSidebar() {
 
   const sidebarItems = currentApp.getSidebarItems(user, timesheetUser);
 
-  const isActive = (path) => location.pathname === path;
+  // Use stripOrgPrefix for active matching so /org/slug/outreach/dashboard matches /outreach/dashboard
+  const currentPath = stripOrgPrefix(location.pathname);
+  const isActive = (path) => currentPath === path;
 
   const toggleGroup = (label) => {
     setExpandedGroups(prev => ({ ...prev, [label]: !prev[label] }));
@@ -41,10 +44,33 @@ function AppSidebar() {
     navigate('/login');
   };
 
+  // Get org name from user for display (we can enhance this later with OrgContext)
+  const orgName = user?.defaultOrgSlug
+    ? user.defaultOrgSlug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+    : null;
+
   return (
     <aside className={`w-64 bg-dark-900 border-r border-dark-800 flex flex-col fixed left-0 z-30 ${
       isImpersonating ? 'top-24' : 'top-14'
     } ${isImpersonating ? 'h-[calc(100vh-6rem)]' : 'h-[calc(100vh-3.5rem)]'}`}>
+
+      {/* Org Badge — shown when in org context */}
+      {orgSlug && orgName && (
+        <div className="px-4 pt-3 pb-2 border-b border-dark-800/50">
+          <Link
+            to={orgPath('/home')}
+            className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-dark-800/50 transition-colors group"
+          >
+            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-rivvra-500/20 to-rivvra-600/20 border border-rivvra-500/30 flex items-center justify-center flex-shrink-0">
+              <Building2 className="w-3.5 h-3.5 text-rivvra-400" />
+            </div>
+            <span className="text-xs font-semibold text-dark-300 group-hover:text-white truncate uppercase tracking-wider">
+              {orgName}
+            </span>
+          </Link>
+        </div>
+      )}
+
       {/* Navigation */}
       <nav className="flex-1 p-4 space-y-1 overflow-y-auto min-h-0">
         {sidebarItems.map((item, idx) => {
@@ -74,7 +100,7 @@ function AppSidebar() {
                     {item.children.map((child) => (
                       <Link
                         key={child.path}
-                        to={child.path}
+                        to={orgPath(child.path)}
                         className={`flex items-center gap-2.5 px-3 py-2 rounded-lg transition-colors text-sm ${
                           isActive(child.path)
                             ? 'bg-rivvra-500/10 text-rivvra-400'
@@ -96,7 +122,7 @@ function AppSidebar() {
           return (
             <Link
               key={item.path}
-              to={item.path}
+              to={orgPath(item.path)}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
                 isActive(item.path)
                   ? 'bg-rivvra-500/10 text-rivvra-400'

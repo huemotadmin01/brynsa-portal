@@ -144,8 +144,23 @@ export function getActiveApps(user) {
   );
 }
 
+/**
+ * Extract the "app path" portion from a pathname.
+ * Strips /org/:slug/ prefix if present.
+ * Examples:
+ *   "/outreach/dashboard" → "/outreach/dashboard"
+ *   "/org/huemot-technology/outreach/dashboard" → "/outreach/dashboard"
+ *   "/org/acme/settings/users" → "/settings/users"
+ *   "/home" → "/home"
+ */
+export function stripOrgPrefix(pathname) {
+  const orgMatch = pathname.match(/^\/org\/[^/]+(\/.*)$/);
+  return orgMatch ? orgMatch[1] : pathname;
+}
+
 export function getAppByPath(pathname) {
+  const appPath = stripOrgPrefix(pathname);
   return Object.values(APP_REGISTRY).find(app =>
-    pathname.startsWith(app.basePath)
+    appPath.startsWith(app.basePath)
   ) || null;
 }

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { usePlatform } from '../context/PlatformContext';
 import {
   Search, Users, Mail, MessageSquare, Building2,
   Crown, Lock, Check, ChevronRight, Chrome, ExternalLink,
@@ -349,6 +350,7 @@ function AddToListModal({ isOpen, onClose, lists, onSelect, onCreateList, lead }
 // ==================== Main Dashboard Page ====================
 function DashboardPage() {
   const { user, isAuthenticated } = useAuth();
+  const { orgPath } = usePlatform();
   const [features, setFeatures] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showComingSoon, setShowComingSoon] = useState(false);
@@ -869,14 +871,14 @@ function DashboardPage() {
                 <div className="card p-6">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="font-semibold text-white">My Lists</h3>
-                    <Link to="/outreach/lists" className="text-sm text-rivvra-400 hover:text-rivvra-300 flex items-center gap-1">
+                    <Link to={orgPath('/outreach/lists')} className="text-sm text-rivvra-400 hover:text-rivvra-300 flex items-center gap-1">
                       View all <ChevronRight className="w-4 h-4" />
                     </Link>
                   </div>
                   {lists.length === 0 ? (
                     <div className="text-center py-8 bg-dark-800/30 rounded-xl">
                       <p className="text-dark-400 mb-3">No lists yet</p>
-                      <Link to="/outreach/lists" className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-rivvra-500/10 text-rivvra-400 hover:bg-rivvra-500/20 transition-colors text-sm">
+                      <Link to={orgPath('/outreach/lists')} className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-rivvra-500/10 text-rivvra-400 hover:bg-rivvra-500/20 transition-colors text-sm">
                         <Plus className="w-4 h-4" />
                         Create List
                       </Link>

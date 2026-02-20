@@ -1,5 +1,6 @@
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { usePlatform } from '../../context/PlatformContext';
 import { warmTimesheetBackend } from '../../utils/timesheetApi';
 
 const colorConfig = {
@@ -31,6 +32,7 @@ const colorConfig = {
 
 function AppCard({ app, index = 0 }) {
   const navigate = useNavigate();
+  const { orgPath } = usePlatform();
   const [hovered, setHovered] = useState(false);
   const [clicked, setClicked] = useState(false);
   const isActive = app.status === 'active';
@@ -40,7 +42,7 @@ function AppCard({ app, index = 0 }) {
     if (!isActive) return;
     setClicked(true);
     setTimeout(() => {
-      navigate(app.defaultRoute);
+      navigate(orgPath(app.defaultRoute));
     }, 200);
   };
 

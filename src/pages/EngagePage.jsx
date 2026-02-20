@@ -7,6 +7,7 @@ import EngageSetupGuide from '../components/EngageSetupGuide';
 import ToggleSwitch from '../components/ToggleSwitch';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { usePlatform } from '../context/PlatformContext';
 import ConfirmModal from '../components/ConfirmModal';
 import api from '../utils/api';
 import {
@@ -37,6 +38,7 @@ import {
 function EngagePage() {
   const { user } = useAuth();
   const { showToast } = useToast();
+  const { orgPath } = usePlatform();
   const navigate = useNavigate();
 
   // View state
@@ -284,7 +286,7 @@ function EngagePage() {
       showToast('Complete the setup guide to create sequences', 'error');
       return;
     }
-    navigate('/outreach/engage/new-sequence');
+    navigate(orgPath('/outreach/engage/new-sequence'));
   }
 
   function handleOpenDetail(seq) {

@@ -1,5 +1,6 @@
 import { ChevronLeft, Check } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { usePlatform } from '../../context/PlatformContext';
 
 const STEPS = [
   { key: 'compose', label: 'Compose', num: 1 },
@@ -9,12 +10,13 @@ const STEPS = [
 
 function WizardStepper({ currentStep, completedSteps = [], sequenceName, onStepClick }) {
   const navigate = useNavigate();
+  const { orgPath } = usePlatform();
 
   const currentIndex = STEPS.findIndex(s => s.key === currentStep);
 
   function handleExit() {
     if (confirm('Leave the wizard? Unsaved changes will be lost.')) {
-      navigate('/outreach/engage');
+      navigate(orgPath('/outreach/engage'));
     }
   }
 

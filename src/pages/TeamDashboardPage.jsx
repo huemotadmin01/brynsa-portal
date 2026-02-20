@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { usePlatform } from '../context/PlatformContext';
 import {
   BarChart3, RefreshCw, Loader2, Users, Mail, Send, Eye,
   MousePointerClick, TrendingUp, ShieldAlert,
@@ -76,6 +77,7 @@ function PieTooltip({ active, payload }) {
 
 export default function TeamDashboardPage() {
   const { user } = useAuth();
+  const { orgPath } = usePlatform();
   const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -380,7 +382,7 @@ export default function TeamDashboardPage() {
             gradient="from-blue-500/20 to-blue-600/5"
             iconColor="text-blue-400"
             subtitle="all time"
-            onClick={() => navigate('/outreach/team-contacts')}
+            onClick={() => navigate(orgPath('/outreach/team-contacts'))}
           />
           <KPICard
             label="In Sequence"
@@ -389,7 +391,7 @@ export default function TeamDashboardPage() {
             gradient="from-rivvra-500/20 to-rivvra-600/5"
             iconColor="text-rivvra-400"
             subtitle="current"
-            onClick={() => navigate('/outreach/team-contacts?status=in_sequence')}
+            onClick={() => navigate(orgPath('/outreach/team-contacts') + '?status=in_sequence')}
           />
           <KPICard
             label="Response Rate"
@@ -398,7 +400,7 @@ export default function TeamDashboardPage() {
             gradient="from-emerald-500/20 to-emerald-600/5"
             iconColor="text-emerald-400"
             subtitle={`${data?.responseRate?.replied || 0} of ${data?.responseRate?.totalContacted || 0}`}
-            onClick={() => navigate('/outreach/team-contacts?status=replied')}
+            onClick={() => navigate(orgPath('/outreach/team-contacts') + '?status=replied')}
           />
           <KPICard
             label={`Scraped`}
@@ -407,7 +409,7 @@ export default function TeamDashboardPage() {
             gradient="from-amber-500/20 to-amber-600/5"
             iconColor="text-amber-400"
             subtitle={dateLabel.toLowerCase()}
-            onClick={() => navigate('/outreach/team-contacts')}
+            onClick={() => navigate(orgPath('/outreach/team-contacts'))}
           />
           <KPICard
             label="Emails Scheduled"
@@ -416,7 +418,7 @@ export default function TeamDashboardPage() {
             gradient="from-purple-500/20 to-purple-600/5"
             iconColor="text-purple-400"
             subtitle={dateLabel.toLowerCase()}
-            onClick={() => navigate('/outreach/engage')}
+            onClick={() => navigate(orgPath('/outreach/engage'))}
           />
         </div>
 

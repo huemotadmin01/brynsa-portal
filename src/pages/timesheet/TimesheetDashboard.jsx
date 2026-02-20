@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useTimesheetContext } from '../../context/TimesheetContext';
+import { usePlatform } from '../../context/PlatformContext';
 import { useToast } from '../../context/ToastContext';
 import timesheetApi from '../../utils/timesheetApi';
 import {
@@ -28,6 +29,7 @@ function StatusBadge({ status }) {
 function ContractorDashboard() {
   const { timesheetUser } = useTimesheetContext();
   const { showToast } = useToast();
+  const { orgPath } = usePlatform();
   const [current, setCurrent] = useState(null);
   const [previous, setPrevious] = useState(null);
   const [disbursement, setDisbursement] = useState(null);
@@ -105,10 +107,10 @@ function ContractorDashboard() {
       </div>
 
       <div className="flex gap-3">
-        <Link to="/timesheet/my-timesheet" className="bg-rivvra-500 text-dark-950 px-4 py-2 rounded-lg text-sm font-medium hover:bg-rivvra-400 flex items-center gap-2 transition-colors">
+        <Link to={orgPath('/timesheet/my-timesheet')} className="bg-rivvra-500 text-dark-950 px-4 py-2 rounded-lg text-sm font-medium hover:bg-rivvra-400 flex items-center gap-2 transition-colors">
           <CalendarDays size={16} /> Fill Timesheet
         </Link>
-        <Link to="/timesheet/earnings" className="bg-dark-800 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-dark-700 flex items-center gap-2 transition-colors">
+        <Link to={orgPath('/timesheet/earnings')} className="bg-dark-800 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-dark-700 flex items-center gap-2 transition-colors">
           <IndianRupee size={16} /> View Earnings
         </Link>
       </div>
@@ -140,6 +142,7 @@ function ContractorDashboard() {
 function AdminDashboard() {
   const { timesheetUser } = useTimesheetContext();
   const { showToast } = useToast();
+  const { orgPath } = usePlatform();
   const [timesheets, setTimesheets] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -194,7 +197,7 @@ function AdminDashboard() {
         <div className="card">
           <div className="p-4 border-b border-dark-800 flex items-center justify-between">
             <h3 className="font-semibold text-white">Pending Approvals</h3>
-            <Link to="/timesheet/approvals" className="text-blue-400 text-sm hover:text-blue-300 flex items-center gap-1">
+            <Link to={orgPath('/timesheet/approvals')} className="text-blue-400 text-sm hover:text-blue-300 flex items-center gap-1">
               View All <ArrowRight size={14} />
             </Link>
           </div>
@@ -205,7 +208,7 @@ function AdminDashboard() {
                   <p className="text-sm font-medium text-white">{ts.contractor?.fullName} — {monthNames[ts.month]} {ts.year}</p>
                   <p className="text-xs text-dark-500">{ts.project?.name} • {ts.totalWorkingDays} days</p>
                 </div>
-                <Link to="/timesheet/approvals" className="text-blue-400 text-xs font-medium hover:text-blue-300">Review</Link>
+                <Link to={orgPath('/timesheet/approvals')} className="text-blue-400 text-xs font-medium hover:text-blue-300">Review</Link>
               </div>
             ))}
           </div>

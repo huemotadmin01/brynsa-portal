@@ -11,6 +11,7 @@ import {
   DEFAULT_SCHEDULE,
 } from '../components/wizard/wizardConstants';
 import { useToast } from '../context/ToastContext';
+import { usePlatform } from '../context/PlatformContext';
 import api from '../utils/api';
 import { Loader2 } from 'lucide-react';
 
@@ -22,6 +23,7 @@ function SequenceWizardPage() {
   const navigate = useNavigate();
   const { sequenceId } = useParams();
   const { showToast } = useToast();
+  const { orgPath } = usePlatform();
   const isEditMode = !!sequenceId;
 
   // Wizard navigation
@@ -59,7 +61,7 @@ function SequenceWizardPage() {
       } catch (err) {
         console.error('Failed to load sequence:', err);
         showToast('Failed to load sequence', 'error');
-        navigate('/outreach/engage');
+        navigate(orgPath('/outreach/engage'));
       } finally {
         setLoadingSequence(false);
       }
@@ -140,7 +142,7 @@ function SequenceWizardPage() {
         }
         showToast('Sequence saved as draft');
       }
-      navigate('/outreach/engage');
+      navigate(orgPath('/outreach/engage'));
     } catch (err) {
       setError(err.message || 'Failed to save sequence');
     } finally {
@@ -167,7 +169,7 @@ function SequenceWizardPage() {
         }
         showToast('Sequence created and activated');
       }
-      navigate('/outreach/engage');
+      navigate(orgPath('/outreach/engage'));
     } catch (err) {
       setError(err.message || 'Failed to save sequence');
     } finally {
@@ -216,7 +218,7 @@ function SequenceWizardPage() {
             onNameChange={setName}
             onDescChange={setDescription}
             onNext={() => completeAndNext('compose', 'schedule')}
-            onBack={() => isEditMode ? navigate('/outreach/engage') : setWizardStep('selection')}
+            onBack={() => isEditMode ? navigate(orgPath('/outreach/engage')) : setWizardStep('selection')}
             onSaveDraft={handleSaveDraft}
             saving={saving}
             sequenceId={sequenceId}

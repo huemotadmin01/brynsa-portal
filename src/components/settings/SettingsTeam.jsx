@@ -9,6 +9,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { usePlatform } from '../../context/PlatformContext';
 import {
   Users, UserPlus, UserX, Mail, Loader2, Check,
   ChevronDown, Clock, UsersRound, Plus, Pencil,
@@ -21,6 +22,7 @@ import InviteTeamMemberModal from '../InviteTeamMemberModal';
 
 export default function SettingsTeam() {
   const { user, impersonateUser } = useAuth();
+  const { orgPath } = usePlatform();
   const navigate = useNavigate();
   const isAdmin = user?.role === 'admin';
   const canChangeRoles = isAdmin;
@@ -226,7 +228,7 @@ export default function SettingsTeam() {
 
   async function handleImpersonate(memberId) {
     const result = await impersonateUser(memberId);
-    if (result.success) navigate('/outreach/dashboard');
+    if (result.success) navigate(orgPath('/outreach/dashboard'));
     else { setError(result.error); setTimeout(() => setError(''), 3000); }
   }
 

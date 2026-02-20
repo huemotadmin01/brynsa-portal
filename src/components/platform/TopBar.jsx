@@ -14,7 +14,7 @@ const appColorMap = {
 function TopBar() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
-  const { currentApp } = usePlatform();
+  const { currentApp, orgPath } = usePlatform();
   const isPro = user?.plan === 'pro' || user?.plan === 'premium';
 
   const handleLogout = () => {
@@ -27,7 +27,7 @@ function TopBar() {
       <div className="h-full px-4 flex items-center justify-between">
         {/* Left: Logo + App Badge */}
         <div className="flex items-center gap-4">
-          <Link to="/home" className="flex items-center gap-2">
+          <Link to={orgPath('/home')} className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-dark-800 flex items-center justify-center">
               <RivvraLogo className="w-5 h-5" />
             </div>
@@ -49,7 +49,7 @@ function TopBar() {
         <div className="flex items-center gap-2">
           {/* App grid button */}
           <button
-            onClick={() => navigate('/home')}
+            onClick={() => navigate(orgPath('/home'))}
             className="p-2 rounded-lg text-dark-400 hover:text-white hover:bg-dark-800/50 transition-colors"
             title="All Apps"
           >
@@ -83,7 +83,7 @@ function TopBar() {
                   </span>
                 </div>
                 <Link
-                  to="/settings"
+                  to={orgPath('/settings')}
                   className="flex items-center gap-2 px-3 py-2 text-dark-300 hover:text-white hover:bg-dark-800/50 rounded-lg transition-colors text-sm"
                 >
                   <Settings className="w-4 h-4" />

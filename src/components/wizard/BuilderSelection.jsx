@@ -1,17 +1,19 @@
 import { useState } from 'react';
 import { Mail, PenLine, ChevronLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { usePlatform } from '../../context/PlatformContext';
 import TemplatePreviewModal from './TemplatePreviewModal';
 
 function BuilderSelection({ onSelectTemplate, onSelectScratch }) {
   const [showTemplates, setShowTemplates] = useState(false);
   const navigate = useNavigate();
+  const { orgPath } = usePlatform();
 
   return (
     <div className="max-w-3xl mx-auto">
       {/* Back */}
       <button
-        onClick={() => navigate('/outreach/engage')}
+        onClick={() => navigate(orgPath('/outreach/engage'))}
         className="flex items-center gap-1.5 text-sm text-dark-400 hover:text-white transition-colors mb-8"
       >
         <ChevronLeft className="w-4 h-4" />

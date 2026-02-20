@@ -1,10 +1,12 @@
-import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
 import { PlatformProvider } from './context/PlatformContext';
+import { OrgProvider } from './context/OrgContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import PlatformLayout from './components/platform/PlatformLayout';
 import ProtectedRoute from './components/ProtectedRoute';
+import OrgRedirect from './components/OrgRedirect';
 
 import LandingPage from './pages/LandingPage';
 import SignupPage from './pages/SignupPage';
@@ -52,6 +54,27 @@ function SettingsPageWrapper({ children }) {
   );
 }
 
+// Wrapper that provides org context for /org/:slug/* routes
+function OrgPlatformLayout() {
+  return (
+    <OrgProvider>
+      <PlatformLayout />
+    </OrgProvider>
+  );
+}
+
+// Helper: redirect from /org/:slug/settings to /org/:slug/settings/general
+function OrgSettingsRedirect() {
+  const { slug } = useParams();
+  return <Navigate to={`/org/${slug}/settings/general`} replace />;
+}
+
+// Helper: redirect from /org/:slug/outreach/settings to /org/:slug/settings
+function OrgOutreachSettingsRedirect() {
+  const { slug } = useParams();
+  return <Navigate to={`/org/${slug}/settings`} replace />;
+}
+
 function App() {
   return (
     <AuthProvider>
@@ -67,53 +90,67 @@ function App() {
             <Route path="/invite" element={<InviteAcceptPage />} />
             <Route path="/privacy" element={<PrivacyPage />} />
 
-            {/* Protected platform shell */}
-            <Route element={<ProtectedRoute><PlatformLayout /></ProtectedRoute>}>
-              <Route path="/home" element={<AppLauncherPage />} />
+            {/* ============================================================ */}
+            {/* ORG-SCOPED ROUTES — /org/:slug/...                           */}
+            {/* These are the primary routes for multi-tenant navigation.     */}
+            {/* ============================================================ */}
+            <Route element={<ProtectedRoute><OrgPlatformLayout /></ProtectedRoute>}>
+              <Route path="/org/:slug/home" element={<AppLauncherPage />} />
 
               {/* Outreach app routes */}
-              <Route path="/outreach/dashboard" element={<DashboardPage />} />
-              <Route path="/outreach/engage" element={<EngagePage />} />
-              <Route path="/outreach/engage/new-sequence" element={<SequenceWizardPage />} />
-              <Route path="/outreach/engage/edit-sequence/:sequenceId" element={<SequenceWizardPage />} />
-              <Route path="/outreach/leads" element={<LeadsPage />} />
-              <Route path="/outreach/lists" element={<MyListsPage />} />
-              <Route path="/outreach/settings" element={<Navigate to="/settings" replace />} />
-              <Route path="/outreach/team-dashboard" element={<TeamDashboardPage />} />
-              <Route path="/outreach/team-contacts" element={<TeamContactsPage />} />
-              <Route path="/outreach/team-lists" element={<TeamListsPage />} />
+              <Route path="/org/:slug/outreach/dashboard" element={<DashboardPage />} />
+              <Route path="/org/:slug/outreach/engage" element={<EngagePage />} />
+              <Route path="/org/:slug/outreach/engage/new-sequence" element={<SequenceWizardPage />} />
+              <Route path="/org/:slug/outreach/engage/edit-sequence/:sequenceId" element={<SequenceWizardPage />} />
+              <Route path="/org/:slug/outreach/leads" element={<LeadsPage />} />
+              <Route path="/org/:slug/outreach/lists" element={<MyListsPage />} />
+              <Route path="/org/:slug/outreach/settings" element={<OrgOutreachSettingsRedirect />} />
+              <Route path="/org/:slug/outreach/team-dashboard" element={<TeamDashboardPage />} />
+              <Route path="/org/:slug/outreach/team-contacts" element={<TeamContactsPage />} />
+              <Route path="/org/:slug/outreach/team-lists" element={<TeamListsPage />} />
 
-              {/* Platform settings — sub-routes rendered in sidebar layout */}
-              <Route path="/settings" element={<Navigate to="/settings/general" replace />} />
-              <Route path="/settings/general" element={<SettingsPageWrapper><SettingsGeneral /></SettingsPageWrapper>} />
-              <Route path="/settings/users" element={<SettingsPageWrapper><SettingsTeam /></SettingsPageWrapper>} />
-              <Route path="/settings/outreach" element={<SettingsPageWrapper><SettingsOutreach /></SettingsPageWrapper>} />
-              <Route path="/settings/timesheet" element={<SettingsPageWrapper><SettingsTimesheet /></SettingsPageWrapper>} />
+              {/* Platform settings */}
+              <Route path="/org/:slug/settings" element={<OrgSettingsRedirect />} />
+              <Route path="/org/:slug/settings/general" element={<SettingsPageWrapper><SettingsGeneral /></SettingsPageWrapper>} />
+              <Route path="/org/:slug/settings/users" element={<SettingsPageWrapper><SettingsTeam /></SettingsPageWrapper>} />
+              <Route path="/org/:slug/settings/outreach" element={<SettingsPageWrapper><SettingsOutreach /></SettingsPageWrapper>} />
+              <Route path="/org/:slug/settings/timesheet" element={<SettingsPageWrapper><SettingsTimesheet /></SettingsPageWrapper>} />
 
               {/* Timesheet app routes */}
-              <Route path="/timesheet/dashboard" element={<TimesheetDashboard />} />
-              <Route path="/timesheet/my-timesheet" element={<TimesheetEntry />} />
-              <Route path="/timesheet/earnings" element={<TimesheetEarnings />} />
-              <Route path="/timesheet/approvals" element={<TimesheetApprovals />} />
-              <Route path="/timesheet/users" element={<TimesheetUsers />} />
-              <Route path="/timesheet/projects" element={<TimesheetProjects />} />
-              <Route path="/timesheet/export" element={<TimesheetExport />} />
-              <Route path="/timesheet/payroll-settings" element={<TimesheetPayrollSettings />} />
+              <Route path="/org/:slug/timesheet/dashboard" element={<TimesheetDashboard />} />
+              <Route path="/org/:slug/timesheet/my-timesheet" element={<TimesheetEntry />} />
+              <Route path="/org/:slug/timesheet/earnings" element={<TimesheetEarnings />} />
+              <Route path="/org/:slug/timesheet/approvals" element={<TimesheetApprovals />} />
+              <Route path="/org/:slug/timesheet/users" element={<TimesheetUsers />} />
+              <Route path="/org/:slug/timesheet/projects" element={<TimesheetProjects />} />
+              <Route path="/org/:slug/timesheet/export" element={<TimesheetExport />} />
+              <Route path="/org/:slug/timesheet/payroll-settings" element={<TimesheetPayrollSettings />} />
             </Route>
 
-            {/* Legacy redirects — keeps extension & bookmarks working */}
-            <Route path="/dashboard" element={<Navigate to="/home" replace />} />
-            <Route path="/engage" element={<Navigate to="/outreach/engage" replace />} />
-            <Route path="/engage/new-sequence" element={<Navigate to="/outreach/engage/new-sequence" replace />} />
-            <Route path="/engage/edit-sequence/:sequenceId" element={<Navigate to="/outreach/engage/edit-sequence/:sequenceId" replace />} />
-            <Route path="/leads" element={<Navigate to="/outreach/leads" replace />} />
-            <Route path="/lists" element={<Navigate to="/outreach/lists" replace />} />
-            <Route path="/team-dashboard" element={<Navigate to="/outreach/team-dashboard" replace />} />
-            <Route path="/team-contacts" element={<Navigate to="/outreach/team-contacts" replace />} />
-            <Route path="/team-lists" element={<Navigate to="/outreach/team-lists" replace />} />
-            <Route path="/onboarding" element={<Navigate to="/home" replace />} />
-            <Route path="/search" element={<Navigate to="/home" replace />} />
-            <Route path="/app/*" element={<Navigate to="/home" replace />} />
+            {/* ============================================================ */}
+            {/* LEGACY ROUTES — /home, /outreach/*, /timesheet/*, /settings/* */}
+            {/* These redirect to org-scoped routes using OrgRedirect.        */}
+            {/* Extension & bookmarks keep working through these redirects.   */}
+            {/* ============================================================ */}
+            <Route path="/home" element={<OrgRedirect to="/home" />} />
+            <Route path="/outreach/*" element={<OrgRedirect />} />
+            <Route path="/timesheet/*" element={<OrgRedirect />} />
+            <Route path="/settings" element={<OrgRedirect to="/settings" />} />
+            <Route path="/settings/*" element={<OrgRedirect />} />
+
+            {/* Oldest legacy redirects — extension uses these */}
+            <Route path="/dashboard" element={<OrgRedirect to="/home" />} />
+            <Route path="/engage" element={<OrgRedirect to="/outreach/engage" />} />
+            <Route path="/engage/new-sequence" element={<OrgRedirect to="/outreach/engage/new-sequence" />} />
+            <Route path="/engage/edit-sequence/:sequenceId" element={<OrgRedirect to="/outreach/engage/edit-sequence/:sequenceId" />} />
+            <Route path="/leads" element={<OrgRedirect to="/outreach/leads" />} />
+            <Route path="/lists" element={<OrgRedirect to="/outreach/lists" />} />
+            <Route path="/team-dashboard" element={<OrgRedirect to="/outreach/team-dashboard" />} />
+            <Route path="/team-contacts" element={<OrgRedirect to="/outreach/team-contacts" />} />
+            <Route path="/team-lists" element={<OrgRedirect to="/outreach/team-lists" />} />
+            <Route path="/onboarding" element={<OrgRedirect to="/home" />} />
+            <Route path="/search" element={<OrgRedirect to="/home" />} />
+            <Route path="/app/*" element={<OrgRedirect to="/home" />} />
 
             {/* Fallback */}
             <Route path="*" element={<Navigate to="/" replace />} />

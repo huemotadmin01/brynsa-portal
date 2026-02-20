@@ -7,6 +7,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import PlatformLayout from './components/platform/PlatformLayout';
 import ProtectedRoute from './components/ProtectedRoute';
 import OrgRedirect from './components/OrgRedirect';
+import AppAccessGate from './components/AppAccessGate';
 
 import LandingPage from './pages/LandingPage';
 import SignupPage from './pages/SignupPage';
@@ -97,17 +98,19 @@ function App() {
             <Route element={<ProtectedRoute><OrgPlatformLayout /></ProtectedRoute>}>
               <Route path="/org/:slug/home" element={<AppLauncherPage />} />
 
-              {/* Outreach app routes */}
-              <Route path="/org/:slug/outreach/dashboard" element={<DashboardPage />} />
-              <Route path="/org/:slug/outreach/engage" element={<EngagePage />} />
-              <Route path="/org/:slug/outreach/engage/new-sequence" element={<SequenceWizardPage />} />
-              <Route path="/org/:slug/outreach/engage/edit-sequence/:sequenceId" element={<SequenceWizardPage />} />
-              <Route path="/org/:slug/outreach/leads" element={<LeadsPage />} />
-              <Route path="/org/:slug/outreach/lists" element={<MyListsPage />} />
-              <Route path="/org/:slug/outreach/settings" element={<OrgOutreachSettingsRedirect />} />
-              <Route path="/org/:slug/outreach/team-dashboard" element={<TeamDashboardPage />} />
-              <Route path="/org/:slug/outreach/team-contacts" element={<TeamContactsPage />} />
-              <Route path="/org/:slug/outreach/team-lists" element={<TeamListsPage />} />
+              {/* Outreach app routes — gated by outreach access */}
+              <Route element={<AppAccessGate appId="outreach" />}>
+                <Route path="/org/:slug/outreach/dashboard" element={<DashboardPage />} />
+                <Route path="/org/:slug/outreach/engage" element={<EngagePage />} />
+                <Route path="/org/:slug/outreach/engage/new-sequence" element={<SequenceWizardPage />} />
+                <Route path="/org/:slug/outreach/engage/edit-sequence/:sequenceId" element={<SequenceWizardPage />} />
+                <Route path="/org/:slug/outreach/leads" element={<LeadsPage />} />
+                <Route path="/org/:slug/outreach/lists" element={<MyListsPage />} />
+                <Route path="/org/:slug/outreach/settings" element={<OrgOutreachSettingsRedirect />} />
+                <Route path="/org/:slug/outreach/team-dashboard" element={<TeamDashboardPage />} />
+                <Route path="/org/:slug/outreach/team-contacts" element={<TeamContactsPage />} />
+                <Route path="/org/:slug/outreach/team-lists" element={<TeamListsPage />} />
+              </Route>
 
               {/* Platform settings */}
               <Route path="/org/:slug/settings" element={<OrgSettingsRedirect />} />
@@ -116,15 +119,17 @@ function App() {
               <Route path="/org/:slug/settings/outreach" element={<SettingsPageWrapper><SettingsOutreach /></SettingsPageWrapper>} />
               <Route path="/org/:slug/settings/timesheet" element={<SettingsPageWrapper><SettingsTimesheet /></SettingsPageWrapper>} />
 
-              {/* Timesheet app routes */}
-              <Route path="/org/:slug/timesheet/dashboard" element={<TimesheetDashboard />} />
-              <Route path="/org/:slug/timesheet/my-timesheet" element={<TimesheetEntry />} />
-              <Route path="/org/:slug/timesheet/earnings" element={<TimesheetEarnings />} />
-              <Route path="/org/:slug/timesheet/approvals" element={<TimesheetApprovals />} />
-              <Route path="/org/:slug/timesheet/users" element={<TimesheetUsers />} />
-              <Route path="/org/:slug/timesheet/projects" element={<TimesheetProjects />} />
-              <Route path="/org/:slug/timesheet/export" element={<TimesheetExport />} />
-              <Route path="/org/:slug/timesheet/payroll-settings" element={<TimesheetPayrollSettings />} />
+              {/* Timesheet app routes — gated by timesheet access */}
+              <Route element={<AppAccessGate appId="timesheet" />}>
+                <Route path="/org/:slug/timesheet/dashboard" element={<TimesheetDashboard />} />
+                <Route path="/org/:slug/timesheet/my-timesheet" element={<TimesheetEntry />} />
+                <Route path="/org/:slug/timesheet/earnings" element={<TimesheetEarnings />} />
+                <Route path="/org/:slug/timesheet/approvals" element={<TimesheetApprovals />} />
+                <Route path="/org/:slug/timesheet/users" element={<TimesheetUsers />} />
+                <Route path="/org/:slug/timesheet/projects" element={<TimesheetProjects />} />
+                <Route path="/org/:slug/timesheet/export" element={<TimesheetExport />} />
+                <Route path="/org/:slug/timesheet/payroll-settings" element={<TimesheetPayrollSettings />} />
+              </Route>
             </Route>
 
             {/* ============================================================ */}

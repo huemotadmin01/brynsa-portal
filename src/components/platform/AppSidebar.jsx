@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { usePlatform } from '../../context/PlatformContext';
 import { useTimesheetContext } from '../../context/TimesheetContext';
+import { useOrg } from '../../context/OrgContext';
 import { stripOrgPrefix } from '../../config/apps';
 import {
   ChevronRight, ChevronDown, Crown, LogOut, Building2
@@ -15,11 +16,18 @@ function AppSidebar() {
   const { user, logout, isImpersonating } = useAuth();
   const { currentApp, orgPath, orgSlug } = usePlatform();
   const { timesheetUser } = useTimesheetContext();
+  const { hasAppAccess, currentOrg } = useOrg();
   const isPro = user?.plan === 'pro' || user?.plan === 'premium';
   const [showWipModal, setShowWipModal] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState({});
 
   if (!currentApp) return null;
+
+  // If user doesn't have access to this app, don't render sidebar
+  // (AppAccessGate will show NoAccessPage instead of the app content)
+  if (currentOrg && currentApp.id !== 'settings' && !hasAppAccess(currentApp.id)) {
+    return null;
+  }
 
   const sidebarItems = currentApp.getSidebarItems(user, timesheetUser);
 

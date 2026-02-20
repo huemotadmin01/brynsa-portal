@@ -688,6 +688,32 @@ class ApiClient {
     });
   }
 
+  // ─── Org Membership Management ─────────────────────────────────────────────
+
+  async getOrgMembers(orgSlug) {
+    return this.request(`/api/org/${orgSlug}/members`);
+  }
+
+  async updateOrgMember(orgSlug, userId, data) {
+    return this.request(`/api/org/${orgSlug}/members/${userId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async removeOrgMember(orgSlug, userId) {
+    return this.request(`/api/org/${orgSlug}/members/${userId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async inviteOrgMember(orgSlug, data) {
+    return this.request(`/api/org/${orgSlug}/invite`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
   // Admin impersonation
   async impersonateUser(targetUserId) {
     return this.request('/api/admin/impersonate', {

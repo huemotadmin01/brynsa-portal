@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usePlatform } from '../../context/PlatformContext';
 import { warmTimesheetBackend } from '../../utils/timesheetApi';
+import { Lock } from 'lucide-react';
 
 const colorConfig = {
   rivvra: {
@@ -30,12 +31,12 @@ const colorConfig = {
   },
 };
 
-function AppCard({ app, index = 0 }) {
+function AppCard({ app, index = 0, locked = false }) {
   const navigate = useNavigate();
   const { orgPath } = usePlatform();
   const [hovered, setHovered] = useState(false);
   const [clicked, setClicked] = useState(false);
-  const isActive = app.status === 'active';
+  const isActive = app.status === 'active' && !locked;
   const colors = colorConfig[app.color] || colorConfig.rivvra;
 
   const handleClick = () => {
@@ -74,9 +75,17 @@ function AppCard({ app, index = 0 }) {
       }}
     >
       {/* Coming Soon Badge */}
-      {!isActive && (
+      {app.status !== 'active' && (
         <span className="absolute top-3 right-3 px-2 py-0.5 bg-dark-700 text-dark-400 text-xs rounded-full font-medium">
           Coming Soon
+        </span>
+      )}
+
+      {/* No Access Badge */}
+      {locked && app.status === 'active' && (
+        <span className="absolute top-3 right-3 flex items-center gap-1 px-2 py-0.5 bg-amber-500/10 text-amber-400 border border-amber-500/20 text-xs rounded-full font-medium">
+          <Lock className="w-3 h-3" />
+          No Access
         </span>
       )}
 

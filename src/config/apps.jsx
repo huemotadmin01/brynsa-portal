@@ -14,6 +14,11 @@ export const APP_REGISTRY = {
     basePath: '/outreach',
     status: 'active',
     defaultRoute: '/outreach/dashboard',
+    roles: [
+      { value: 'admin', label: 'Admin', color: 'rivvra' },
+      { value: 'team_lead', label: 'Team Lead', color: 'amber' },
+      { value: 'member', label: 'Member', color: 'dark' },
+    ],
     getSidebarItems: (user) => {
       const isAdmin = user?.role === 'admin' || user?.role === 'team_lead';
       return [

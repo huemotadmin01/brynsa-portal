@@ -10,7 +10,7 @@ export function TimesheetProvider({ children }) {
   const [error, setError] = useState(null);
   const fetchedRef = useRef(false);
   const location = useLocation();
-  const isInTimesheet = location.pathname.startsWith('/timesheet');
+  const isInTimesheet = location.pathname.includes('/timesheet');
 
   const fetchProfile = useCallback(async () => {
     if (fetchedRef.current) return; // prevent duplicate fetches

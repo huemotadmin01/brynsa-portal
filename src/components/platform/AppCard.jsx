@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { warmTimesheetBackend } from '../../utils/timesheetApi';
 
 const colorConfig = {
   rivvra: {
@@ -46,7 +47,7 @@ function AppCard({ app, index = 0 }) {
   return (
     <button
       onClick={handleClick}
-      onMouseEnter={() => setHovered(true)}
+      onMouseEnter={() => { setHovered(true); if (app.id === 'timesheet' && isActive) warmTimesheetBackend(); }}
       onMouseLeave={() => { setHovered(false); setClicked(false); }}
       disabled={!isActive}
       className={`group relative flex flex-col items-center justify-center p-6 rounded-2xl border text-center

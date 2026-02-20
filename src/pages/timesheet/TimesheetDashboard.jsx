@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useTimesheetContext } from '../../context/TimesheetContext';
 import { useToast } from '../../context/ToastContext';
@@ -152,11 +152,11 @@ function AdminDashboard() {
 
   if (loading) return <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-dark-400" /></div>;
 
-  const pending = timesheets.filter(t => t.status === 'submitted');
-  const approvedThisMonth = timesheets.filter(t => {
+  const pending = useMemo(() => timesheets.filter(t => t.status === 'submitted'), [timesheets]);
+  const approvedThisMonth = useMemo(() => {
     const now = new Date();
-    return t.status === 'approved' && t.month === now.getMonth() + 1 && t.year === now.getFullYear();
-  });
+    return timesheets.filter(t => t.status === 'approved' && t.month === now.getMonth() + 1 && t.year === now.getFullYear());
+  }, [timesheets]);
 
   return (
     <div className="p-6 space-y-6">

@@ -83,7 +83,7 @@ function TopBar() {
                   </span>
                 </div>
                 <Link
-                  to={currentApp ? `${currentApp.basePath}/settings` : '/outreach/settings'}
+                  to="/settings"
                   className="flex items-center gap-2 px-3 py-2 text-dark-300 hover:text-white hover:bg-dark-800/50 rounded-lg transition-colors text-sm"
                 >
                   <Settings className="w-4 h-4" />

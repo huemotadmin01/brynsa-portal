@@ -24,6 +24,9 @@ import TeamDashboardPage from './pages/TeamDashboardPage';
 import TeamContactsPage from './pages/TeamContactsPage';
 import TeamListsPage from './pages/TeamListsPage';
 
+// Platform settings
+import PlatformSettingsPage from './pages/PlatformSettingsPage';
+
 // Timesheet app pages
 import TimesheetDashboard from './pages/timesheet/TimesheetDashboard';
 import TimesheetEntry from './pages/timesheet/TimesheetEntry';
@@ -60,10 +63,13 @@ function App() {
               <Route path="/outreach/engage/edit-sequence/:sequenceId" element={<SequenceWizardPage />} />
               <Route path="/outreach/leads" element={<LeadsPage />} />
               <Route path="/outreach/lists" element={<MyListsPage />} />
-              <Route path="/outreach/settings" element={<SettingsPage />} />
+              <Route path="/outreach/settings" element={<Navigate to="/settings" replace />} />
               <Route path="/outreach/team-dashboard" element={<TeamDashboardPage />} />
               <Route path="/outreach/team-contacts" element={<TeamContactsPage />} />
               <Route path="/outreach/team-lists" element={<TeamListsPage />} />
+
+              {/* Platform settings */}
+              <Route path="/settings" element={<PlatformSettingsPage />} />
 
               {/* Timesheet app routes */}
               <Route path="/timesheet/dashboard" element={<TimesheetDashboard />} />
@@ -83,7 +89,6 @@ function App() {
             <Route path="/engage/edit-sequence/:sequenceId" element={<Navigate to="/outreach/engage/edit-sequence/:sequenceId" replace />} />
             <Route path="/leads" element={<Navigate to="/outreach/leads" replace />} />
             <Route path="/lists" element={<Navigate to="/outreach/lists" replace />} />
-            <Route path="/settings" element={<Navigate to="/outreach/settings" replace />} />
             <Route path="/team-dashboard" element={<Navigate to="/outreach/team-dashboard" replace />} />
             <Route path="/team-contacts" element={<Navigate to="/outreach/team-contacts" replace />} />
             <Route path="/team-lists" element={<Navigate to="/outreach/team-lists" replace />} />

@@ -42,7 +42,7 @@ function PlatformLayout() {
         <TopBar />
         <div className="flex">
           <AppSidebar />
-          <main className={`flex-1 min-h-[calc(100vh-3.5rem)] ${currentApp ? 'ml-64' : ''}`}>
+          <main className={`flex-1 min-w-0 min-h-[calc(100vh-3.5rem)] ${currentApp ? 'ml-64' : ''}`}>
             <Outlet />
           </main>
         </div>

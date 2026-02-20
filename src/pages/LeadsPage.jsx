@@ -442,11 +442,11 @@ function LeadsPage() {
               </div>
             ) : (
               <>
-                <div className="flex-1 overflow-auto relative">
-                  <table className="w-full min-w-[1100px]">
+                <div className="flex-1 overflow-x-auto overflow-y-auto relative">
+                  <table className="min-w-[1100px] border-collapse">
                     <thead className="sticky top-0 z-20">
                       <tr className="border-b border-dark-700 bg-dark-800">
-                        <th className="sticky left-0 z-30 bg-dark-800 px-4 py-3 text-left w-12">
+                        <th className="sticky left-0 z-30 bg-dark-800 px-4 py-3 text-left w-[48px] min-w-[48px]">
                           <input
                             type="checkbox"
                             checked={selectedLeads.length === paginatedLeads.length && paginatedLeads.length > 0}
@@ -454,12 +454,12 @@ function LeadsPage() {
                             className="w-4 h-4 rounded border-dark-600 bg-dark-700 text-rivvra-500 focus:ring-rivvra-500"
                           />
                         </th>
-                        <th className="sticky left-12 z-30 bg-dark-800 px-4 py-3 text-left w-[200px] min-w-[200px]">
+                        <th className="sticky left-[48px] z-30 bg-dark-800 px-4 py-3 text-left w-[220px] min-w-[220px]">
                           <button className="flex items-center gap-1 text-sm font-medium text-dark-400 hover:text-white">
                             Contact <ArrowUpDown className="w-3 h-3" />
                           </button>
                         </th>
-                        <th className="sticky left-[260px] z-30 bg-dark-800 px-4 py-3 text-left w-[110px] min-w-[110px] shadow-[2px_0_5px_-2px_rgba(0,0,0,0.3)]"></th>
+                        <th className="sticky left-[268px] z-30 bg-dark-800 px-4 py-3 text-left w-[110px] min-w-[110px] shadow-[2px_0_5px_-2px_rgba(0,0,0,0.3)]"></th>
                         <th className="px-4 py-3 text-left text-sm font-medium text-dark-400 min-w-[120px]">Profile Type</th>
                         <th className="px-4 py-3 text-left text-sm font-medium text-dark-400 min-w-[150px]">Status</th>
                         <th className="px-4 py-3 text-left text-sm font-medium text-dark-400 min-w-[180px]">Company</th>
@@ -477,7 +477,7 @@ function LeadsPage() {
                             selectedLead?._id === lead._id ? 'bg-dark-800/70' : ''
                           }`}
                         >
-                          <td className="sticky left-0 z-10 bg-dark-900 px-4 py-3">
+                          <td className="sticky left-0 z-10 bg-dark-900 px-4 py-3 w-[48px] min-w-[48px]">
                             <input
                               type="checkbox"
                               checked={selectedLeads.includes(lead._id)}
@@ -486,7 +486,7 @@ function LeadsPage() {
                               className="w-4 h-4 rounded border-dark-600 bg-dark-700 text-rivvra-500 focus:ring-rivvra-500"
                             />
                           </td>
-                          <td className="sticky left-12 z-10 bg-dark-900 px-4 py-3 w-[200px] min-w-[200px]">
+                          <td className="sticky left-[48px] z-10 bg-dark-900 px-4 py-3 w-[220px] min-w-[220px]">
                             <div className="flex items-center gap-3">
                               {lead.profilePicture ? (
                                 <img src={lead.profilePicture} alt="" className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
@@ -513,7 +513,7 @@ function LeadsPage() {
                               </div>
                             </div>
                           </td>
-                          <td className="sticky left-[260px] z-10 bg-dark-900 px-4 py-3 w-[110px] min-w-[110px] shadow-[2px_0_5px_-2px_rgba(0,0,0,0.3)]" onClick={(e) => e.stopPropagation()}>
+                          <td className="sticky left-[268px] z-10 bg-dark-900 px-4 py-3 w-[110px] min-w-[110px] shadow-[2px_0_5px_-2px_rgba(0,0,0,0.3)]" onClick={(e) => e.stopPropagation()}>
                             <ManageDropdown
                               lead={lead}
                               onExportCRM={() => {

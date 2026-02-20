@@ -100,18 +100,35 @@ export const APP_REGISTRY = {
     defaultRoute: '/ats/dashboard',
     getSidebarItems: () => [],
   },
+
+  settings: {
+    id: 'settings',
+    name: 'Settings',
+    description: 'Platform & app configuration',
+    icon: Settings,
+    color: 'rivvra',
+    basePath: '/settings',
+    status: 'active',
+    adminOnly: true,
+    defaultRoute: '/settings',
+    getSidebarItems: () => [],
+  },
 };
 
 export function getAppById(id) {
   return APP_REGISTRY[id] || null;
 }
 
-export function getAllApps() {
-  return Object.values(APP_REGISTRY);
+export function getAllApps(user) {
+  return Object.values(APP_REGISTRY).filter(app =>
+    !app.adminOnly || (user?.role === 'admin' || user?.role === 'team_lead')
+  );
 }
 
-export function getActiveApps() {
-  return Object.values(APP_REGISTRY).filter(app => app.status === 'active');
+export function getActiveApps(user) {
+  return Object.values(APP_REGISTRY).filter(app =>
+    app.status === 'active' && (!app.adminOnly || (user?.role === 'admin' || user?.role === 'team_lead'))
+  );
 }
 
 export function getAppByPath(pathname) {

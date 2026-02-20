@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { usePlatform } from '../../context/PlatformContext';
 import { useTimesheetContext } from '../../context/TimesheetContext';
 import {
-  ChevronRight, ChevronDown, Crown, Settings, LogOut
+  ChevronRight, ChevronDown, Crown, LogOut
 } from 'lucide-react';
 import ComingSoonModal from '../ComingSoonModal';
 
@@ -134,7 +134,7 @@ function AppSidebar() {
 
       {/* User Menu */}
       <div className="p-4 border-t border-dark-800 shrink-0">
-        <div className="flex items-center gap-3 mb-3">
+        <div className="flex items-center gap-3">
           {user?.picture ? (
             <img src={user.picture} alt="" className="w-10 h-10 rounded-full object-cover" referrerPolicy="no-referrer" />
           ) : (
@@ -148,18 +148,10 @@ function AppSidebar() {
             <p className="text-sm font-medium text-white truncate">{user?.name || 'User'}</p>
             <p className="text-xs text-dark-400 truncate">{user?.email}</p>
           </div>
-        </div>
-        <div className="flex gap-2">
-          <Link
-            to="/settings"
-            className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-dark-400 hover:text-white hover:bg-dark-800/50 transition-colors text-sm"
-          >
-            <Settings className="w-4 h-4" />
-            Settings
-          </Link>
           <button
             onClick={handleLogout}
-            className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors text-sm"
+            className="flex items-center justify-center p-2 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors flex-shrink-0"
+            title="Log out"
           >
             <LogOut className="w-4 h-4" />
           </button>

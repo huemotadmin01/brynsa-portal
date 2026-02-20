@@ -1,8 +1,10 @@
 import { getAllApps } from '../../config/apps';
+import { useAuth } from '../../context/AuthContext';
 import AppCard from './AppCard';
 
 function AppGrid() {
-  const apps = getAllApps();
+  const { user } = useAuth();
+  const apps = getAllApps(user);
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

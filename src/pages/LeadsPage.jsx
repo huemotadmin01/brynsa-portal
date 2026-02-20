@@ -411,7 +411,7 @@ function LeadsPage() {
           </div>
 
           {/* Table Container */}
-          <div className="card flex-1 overflow-hidden flex flex-col">
+          <div className="bg-dark-900 rounded-2xl border border-dark-800/50 shadow-2xl flex-1 overflow-hidden flex flex-col">
             {loading ? (
               <div className="p-12 text-center flex-1 flex items-center justify-center">
                 <div>

@@ -41,4 +41,31 @@ export function warmTimesheetBackend() {
   return warmPromise;
 }
 
+// ─── Cross-platform user management (Settings → Users & Teams) ──────────────
+
+/**
+ * Batch-fetch timesheet users by email addresses.
+ * Returns { success, users: { email: tsUser | null } }
+ */
+export async function getTimesheetUsersByEmails(emails) {
+  const res = await timesheetApi.post('/auth/users/by-emails', { emails });
+  return res.data;
+}
+
+/**
+ * Update a timesheet user's role by email.
+ */
+export async function updateTimesheetRoleByEmail(email, role) {
+  const res = await timesheetApi.put(`/auth/users/by-email/${encodeURIComponent(email)}/role`, { role });
+  return res.data;
+}
+
+/**
+ * Provision a new timesheet account for a Rivvra team member.
+ */
+export async function provisionTimesheetUser(email, fullName, role = 'contractor') {
+  const res = await timesheetApi.post('/auth/users/provision', { email, fullName, role });
+  return res.data;
+}
+
 export default timesheetApi;

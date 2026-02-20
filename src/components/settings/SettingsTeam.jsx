@@ -15,6 +15,8 @@ import {
   Trash2, X, ArrowLeftRight
 } from 'lucide-react';
 import api from '../../utils/api';
+import { getTimesheetUsersByEmails, updateTimesheetRoleByEmail, provisionTimesheetUser, warmTimesheetBackend } from '../../utils/timesheetApi';
+import { APP_REGISTRY } from '../../config/apps';
 import InviteTeamMemberModal from '../InviteTeamMemberModal';
 
 export default function SettingsTeam() {
@@ -53,6 +55,13 @@ export default function SettingsTeam() {
   const [confirmDeleteTeam, setConfirmDeleteTeam] = useState(null);
   const [teamActionLoading, setTeamActionLoading] = useState(false);
 
+  // Timesheet roles (cross-platform)
+  const [timesheetUsers, setTimesheetUsers] = useState({}); // email → tsUser|null
+  const [loadingTimesheetRoles, setLoadingTimesheetRoles] = useState(false);
+  const [updatingTimesheetRole, setUpdatingTimesheetRole] = useState(null); // email being updated
+  const [tsRoleDropdown, setTsRoleDropdown] = useState(null); // email of open dropdown
+  const tsRoles = APP_REGISTRY.timesheet?.roles || [];
+
   useEffect(() => {
     loadTeam();
     loadMemberRateLimits();
@@ -66,8 +75,59 @@ export default function SettingsTeam() {
         setMembers(res.members);
         setCompanyName(res.companyName || '');
         setLicenses(res.licenses || null);
+        // Batch-fetch timesheet roles for all members
+        loadTimesheetRoles(res.members.map(m => m.email));
       }
     } catch (err) { setError(err.message || 'Failed to load team'); } finally { setLoading(false); }
+  }
+
+  async function loadTimesheetRoles(emails) {
+    if (!emails || emails.length === 0) return;
+    setLoadingTimesheetRoles(true);
+    try {
+      warmTimesheetBackend(); // pre-warm free tier
+      const res = await getTimesheetUsersByEmails(emails);
+      if (res.success) setTimesheetUsers(res.users);
+    } catch (err) {
+      console.error('Failed to load timesheet roles:', err);
+      // Non-blocking — timesheet backend might be cold or down
+    } finally {
+      setLoadingTimesheetRoles(false);
+    }
+  }
+
+  async function handleTimesheetRoleChange(email, newRole) {
+    setUpdatingTimesheetRole(email);
+    setTsRoleDropdown(null);
+    try {
+      const res = await updateTimesheetRoleByEmail(email, newRole);
+      if (res.success) {
+        setTimesheetUsers(prev => ({
+          ...prev,
+          [email]: { ...prev[email], role: newRole }
+        }));
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to update timesheet role');
+      setTimeout(() => setError(''), 3000);
+    } finally {
+      setUpdatingTimesheetRole(null);
+    }
+  }
+
+  async function handleProvisionTimesheet(email, name) {
+    setUpdatingTimesheetRole(email);
+    try {
+      const res = await provisionTimesheetUser(email, name, 'contractor');
+      if (res.success) {
+        setTimesheetUsers(prev => ({ ...prev, [email]: res.user }));
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to provision timesheet user');
+      setTimeout(() => setError(''), 3000);
+    } finally {
+      setUpdatingTimesheetRole(null);
+    }
   }
 
   async function loadMemberRateLimits() {
@@ -280,7 +340,97 @@ export default function SettingsTeam() {
                       )
                     )}
 
-                    {/* Role badge */}
+                    {/* Timesheet role badge */}
+                    {(() => {
+                      const tsUser = timesheetUsers[member.email];
+                      const isUpdatingTs = updatingTimesheetRole === member.email;
+
+                      if (loadingTimesheetRoles) {
+                        return (
+                          <span className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium bg-dark-700/30 text-dark-500 border border-dark-600/50 flex-shrink-0">
+                            <Clock className="w-3 h-3" />
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                          </span>
+                        );
+                      }
+
+                      if (isUpdatingTs) {
+                        return (
+                          <span className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20 flex-shrink-0">
+                            <Clock className="w-3 h-3" />
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                          </span>
+                        );
+                      }
+
+                      if (!tsUser) {
+                        // Not provisioned — show "No account" button for admins
+                        return canChangeRoles ? (
+                          <button
+                            onClick={() => handleProvisionTimesheet(member.email, member.name)}
+                            className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium bg-dark-700/30 text-dark-500 border border-dark-600/50 hover:border-blue-500/30 hover:text-blue-400 transition-colors flex-shrink-0"
+                            title="Create timesheet account"
+                          >
+                            <Clock className="w-3 h-3" />
+                            No account
+                          </button>
+                        ) : (
+                          <span className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium bg-dark-700/30 text-dark-500 border border-dark-600/50 flex-shrink-0">
+                            <Clock className="w-3 h-3" />—
+                          </span>
+                        );
+                      }
+
+                      // Has timesheet account — show role badge with dropdown
+                      const currentTsRole = tsRoles.find(r => r.value === tsUser.role) || tsRoles[2];
+                      const colorClass = tsUser.role === 'admin'
+                        ? 'bg-purple-500/10 text-purple-400 border-purple-500/20'
+                        : tsUser.role === 'manager'
+                        ? 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                        : 'bg-dark-700/50 text-dark-300 border-dark-600';
+
+                      return (
+                        <div className="relative flex-shrink-0">
+                          {canChangeRoles ? (
+                            <button
+                              onClick={() => setTsRoleDropdown(tsRoleDropdown === member.email ? null : member.email)}
+                              className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-medium transition-colors border ${colorClass} hover:bg-dark-600 cursor-pointer`}
+                            >
+                              <Clock className="w-3 h-3" />
+                              {currentTsRole?.label || tsUser.role}
+                              <ChevronDown className="w-2.5 h-2.5" />
+                            </button>
+                          ) : (
+                            <span className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-medium border ${colorClass}`}>
+                              <Clock className="w-3 h-3" />{currentTsRole?.label || tsUser.role}
+                            </span>
+                          )}
+
+                          {canChangeRoles && tsRoleDropdown === member.email && (
+                            <>
+                              <div className="fixed inset-0 z-40" onClick={() => setTsRoleDropdown(null)} />
+                              <div className="absolute right-0 bottom-full mb-1 z-50 bg-dark-800 border border-dark-600 rounded-xl shadow-2xl py-1 min-w-[140px]">
+                                <div className="px-3 py-1.5 text-[9px] uppercase text-dark-500 font-semibold tracking-wider">Timesheet Role</div>
+                                {tsRoles.map((roleOption) => (
+                                  <button
+                                    key={roleOption.value}
+                                    onClick={() => handleTimesheetRoleChange(member.email, roleOption.value)}
+                                    className={`w-full px-3 py-1.5 text-left text-xs hover:bg-dark-700 transition-colors flex items-center gap-2 ${
+                                      tsUser.role === roleOption.value ? 'text-blue-400' : 'text-dark-300'
+                                    }`}
+                                  >
+                                    {tsUser.role === roleOption.value && <Check className="w-3 h-3" />}
+                                    <span className={tsUser.role === roleOption.value ? '' : 'ml-5'}>{roleOption.label}</span>
+                                  </button>
+                                ))}
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      );
+                    })()}
+
+                    {/* Platform role badge */}
                     <div className="relative flex-shrink-0">
                       {updatingRole === member.id || actionLoading === member.id ? (
                         <Loader2 className="w-4 h-4 text-rivvra-500 animate-spin" />

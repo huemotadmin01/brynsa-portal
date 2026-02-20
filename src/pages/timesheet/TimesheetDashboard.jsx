@@ -150,13 +150,14 @@ function AdminDashboard() {
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-dark-400" /></div>;
-
+  // Hooks must be called before any early return (Rules of Hooks)
   const pending = useMemo(() => timesheets.filter(t => t.status === 'submitted'), [timesheets]);
   const approvedThisMonth = useMemo(() => {
     const now = new Date();
     return timesheets.filter(t => t.status === 'approved' && t.month === now.getMonth() + 1 && t.year === now.getFullYear());
   }, [timesheets]);
+
+  if (loading) return <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-dark-400" /></div>;
 
   return (
     <div className="p-6 space-y-6">

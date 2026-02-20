@@ -215,10 +215,25 @@ function AdminDashboard() {
 }
 
 export default function TimesheetDashboard() {
-  const { timesheetUser, loading } = useTimesheetContext();
+  const { timesheetUser, loading, error, refetch } = useTimesheetContext();
 
   if (loading) return <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-dark-400" /></div>;
 
-  if (timesheetUser?.role === 'contractor') return <ContractorDashboard />;
+  if (!timesheetUser) {
+    return (
+      <div className="p-6">
+        <div className="card p-8 text-center">
+          <AlertCircle className="w-10 h-10 text-dark-500 mx-auto mb-3" />
+          <h2 className="text-lg font-semibold text-white mb-2">Unable to load timesheet profile</h2>
+          <p className="text-dark-400 text-sm mb-4">{typeof error === 'string' ? error : 'The timesheet server may be starting up. Please try again.'}</p>
+          <button onClick={refetch} className="px-4 py-2 bg-rivvra-500 text-dark-950 rounded-lg text-sm font-medium hover:bg-rivvra-400 transition-colors">
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (timesheetUser.role === 'contractor') return <ContractorDashboard />;
   return <AdminDashboard />;
 }

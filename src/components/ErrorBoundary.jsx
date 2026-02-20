@@ -29,7 +29,9 @@ class ErrorBoundary extends Component {
             </div>
             <h2 className="text-xl font-semibold text-white mb-2">Something went wrong</h2>
             <p className="text-dark-400 mb-6 text-sm">
-              {this.state.error?.message || 'An unexpected error occurred. Please try again.'}
+              {typeof this.state.error?.message === 'string'
+                ? this.state.error.message
+                : 'An unexpected error occurred. Please try again.'}
             </p>
             <button
               onClick={this.handleRetry}

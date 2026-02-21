@@ -210,7 +210,7 @@ export default function SettingsTeam() {
 
   async function handleImpersonate(memberId) {
     const result = await impersonateUser(memberId);
-    if (result.success) navigate(orgPath('/outreach/dashboard'));
+    if (result.success) navigate(orgPath('/home'));
     else { setError(result.error); setTimeout(() => setError(''), 3000); }
   }
 

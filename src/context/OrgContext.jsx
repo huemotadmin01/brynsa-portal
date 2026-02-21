@@ -76,12 +76,13 @@ export function OrgProvider({ children }) {
   }, [user]);
 
   // Fetch on mount and re-fetch when user changes (e.g., impersonation / Login As)
-  useEffect(() => {
-    const currentUserId = user?._id || user?.userId || null;
+  // Use email as the identity key — it's always present and unique per user
+  const userIdentity = user?.email || user?.id || null;
 
-    if (user && (!fetchedRef.current || lastUserIdRef.current !== currentUserId)) {
+  useEffect(() => {
+    if (user && (!fetchedRef.current || lastUserIdRef.current !== userIdentity)) {
       fetchedRef.current = true;
-      lastUserIdRef.current = currentUserId;
+      lastUserIdRef.current = userIdentity;
       fetchOrg();
     }
 
@@ -93,7 +94,7 @@ export function OrgProvider({ children }) {
       setMembership(null);
       setLoading(false);
     }
-  }, [user, fetchOrg]);
+  }, [user, userIdentity, fetchOrg]);
 
   // Helper: check if user has access to a specific app
   const hasAppAccess = useCallback((appId) => {

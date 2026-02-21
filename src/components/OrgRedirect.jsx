@@ -48,11 +48,15 @@ function OrgRedirect({ to }) {
     return <Navigate to="/" replace />;
   }
 
-  // Build the org-scoped target path
+  // Build the org-scoped target path, preserving query params
   const targetPath = to || location.pathname;
   const orgPath = `/org/${orgSlug}${targetPath}`;
 
-  return <Navigate to={orgPath} replace />;
+  // Preserve search/query params (e.g. ?gmail_code=xxx from OAuth callbacks)
+  // In HashRouter, query params after the hash path are in location.search
+  const search = location.search || '';
+
+  return <Navigate to={`${orgPath}${search}`} replace />;
 }
 
 export default OrgRedirect;

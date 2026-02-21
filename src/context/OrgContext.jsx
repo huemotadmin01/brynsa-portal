@@ -38,6 +38,7 @@ export function OrgProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const fetchedRef = useRef(false);
+  const lastUserIdRef = useRef(null);
 
   // Determine effective slug: URL takes precedence, then user's default
   const effectiveSlug = urlSlug || userSlug || null;
@@ -74,16 +75,20 @@ export function OrgProvider({ children }) {
     }
   }, [user]);
 
-  // Fetch on mount (once per user)
+  // Fetch on mount and re-fetch when user changes (e.g., impersonation / Login As)
   useEffect(() => {
-    if (user && !fetchedRef.current) {
+    const currentUserId = user?._id || user?.userId || null;
+
+    if (user && (!fetchedRef.current || lastUserIdRef.current !== currentUserId)) {
       fetchedRef.current = true;
+      lastUserIdRef.current = currentUserId;
       fetchOrg();
     }
 
-    // Reset if user changes (e.g., impersonation)
+    // Reset if user logs out
     if (!user) {
       fetchedRef.current = false;
+      lastUserIdRef.current = null;
       setCurrentOrg(null);
       setMembership(null);
       setLoading(false);

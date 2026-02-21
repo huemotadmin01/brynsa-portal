@@ -8,6 +8,7 @@ import PlatformLayout from './components/platform/PlatformLayout';
 import ProtectedRoute from './components/ProtectedRoute';
 import OrgRedirect from './components/OrgRedirect';
 import AppAccessGate from './components/AppAccessGate';
+import OrgAdminGate from './components/OrgAdminGate';
 
 import LandingPage from './pages/LandingPage';
 import SignupPage from './pages/SignupPage';
@@ -116,12 +117,14 @@ function App() {
                 <Route path="/org/:slug/outreach/team-lists" element={<TeamListsPage />} />
               </Route>
 
-              {/* Platform settings */}
-              <Route path="/org/:slug/settings" element={<OrgSettingsRedirect />} />
-              <Route path="/org/:slug/settings/general" element={<SettingsPageWrapper><SettingsGeneral /></SettingsPageWrapper>} />
-              <Route path="/org/:slug/settings/users" element={<SettingsPageWrapper><SettingsTeam /></SettingsPageWrapper>} />
-              <Route path="/org/:slug/settings/outreach" element={<SettingsPageWrapper><SettingsOutreach /></SettingsPageWrapper>} />
-              <Route path="/org/:slug/settings/timesheet" element={<SettingsPageWrapper><SettingsTimesheet /></SettingsPageWrapper>} />
+              {/* Platform settings — gated by org admin/owner role */}
+              <Route element={<OrgAdminGate />}>
+                <Route path="/org/:slug/settings" element={<OrgSettingsRedirect />} />
+                <Route path="/org/:slug/settings/general" element={<SettingsPageWrapper><SettingsGeneral /></SettingsPageWrapper>} />
+                <Route path="/org/:slug/settings/users" element={<SettingsPageWrapper><SettingsTeam /></SettingsPageWrapper>} />
+                <Route path="/org/:slug/settings/outreach" element={<SettingsPageWrapper><SettingsOutreach /></SettingsPageWrapper>} />
+                <Route path="/org/:slug/settings/timesheet" element={<SettingsPageWrapper><SettingsTimesheet /></SettingsPageWrapper>} />
+              </Route>
 
               {/* Timesheet app routes — gated by timesheet access */}
               <Route element={<AppAccessGate appId="timesheet" />}>

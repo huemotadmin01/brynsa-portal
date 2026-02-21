@@ -25,13 +25,9 @@ function OrgRedirect({ to }) {
   const { user, isAuthenticated, loading } = useAuth();
   const location = useLocation();
 
-  // Wait for auth to resolve
+  // Wait for auth to resolve — render blank bg (no spinner) to avoid flash
   if (loading) {
-    return (
-      <div className="min-h-screen bg-dark-950 flex items-center justify-center">
-        <div className="w-12 h-12 border-4 border-rivvra-500/30 border-t-rivvra-500 rounded-full animate-spin" />
-      </div>
-    );
+    return <div className="min-h-screen bg-dark-950" />;
   }
 
   // Not authenticated → login

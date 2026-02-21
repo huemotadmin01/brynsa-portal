@@ -14,6 +14,8 @@ import SignupPage from './pages/SignupPage';
 import LoginPage from './pages/LoginPage';
 import InviteAcceptPage from './pages/InviteAcceptPage';
 import PrivacyPage from './pages/PrivacyPage';
+import FeaturesPage from './pages/FeaturesPage';
+import PricingPage from './pages/PricingPage';
 import AppLauncherPage from './pages/AppLauncherPage';
 
 // Outreach app pages
@@ -89,6 +91,8 @@ function App() {
             <Route path="/signup" element={<SignupPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/invite" element={<InviteAcceptPage />} />
+            <Route path="/features" element={<FeaturesPage />} />
+            <Route path="/pricing" element={<PricingPage />} />
             <Route path="/privacy" element={<PrivacyPage />} />
 
             {/* ============================================================ */}

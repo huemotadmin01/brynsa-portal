@@ -1,23 +1,31 @@
 import { Link } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, ArrowRight } from 'lucide-react';
 import RivvraLogo from '../components/BrynsaLogo';
 
 function PrivacyPage() {
   return (
     <div className="min-h-screen bg-dark-950 relative">
-      {/* Navigation */}
-      <nav className="relative z-10 border-b border-dark-800/50">
+      {/* Nav */}
+      <nav className="relative z-10 border-b border-dark-800/50 bg-dark-950/80 backdrop-blur-md sticky top-0">
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            <Link to="/" className="flex items-center gap-2 group">
-              <div className="w-8 h-8 rounded-lg bg-dark-800 flex items-center justify-center group-hover:bg-dark-700 transition-colors">
-                <RivvraLogo className="w-5 h-5" />
+            <Link to="/" className="flex items-center gap-2.5 group">
+              <div className="w-9 h-9 rounded-xl bg-dark-800 flex items-center justify-center shadow-lg shadow-rivvra-500/20 group-hover:shadow-rivvra-500/30 transition-shadow">
+                <RivvraLogo className="w-6 h-6" />
               </div>
-              <span className="font-semibold text-white">Rivvra</span>
+              <span className="text-lg font-bold text-white">Rivvra</span>
             </Link>
-            <Link to="/" className="flex items-center gap-2 text-sm text-dark-400 hover:text-white transition-colors">
-              <ArrowLeft className="w-4 h-4" />
-              Back to Home
+            <div className="hidden md:flex items-center gap-8">
+              <Link to="/features" className="text-sm text-dark-300 hover:text-white transition-colors">Features</Link>
+              <Link to="/pricing" className="text-sm text-dark-300 hover:text-white transition-colors">Pricing</Link>
+              <Link to="/login" className="text-sm text-dark-300 hover:text-white transition-colors">Log in</Link>
+              <Link to="/signup" className="px-5 py-2 bg-rivvra-500 text-dark-950 rounded-lg text-sm font-semibold hover:bg-rivvra-400 transition-colors flex items-center gap-1.5">
+                Start free trial
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
+            <Link to="/signup" className="md:hidden px-4 py-2 bg-rivvra-500 text-dark-950 rounded-lg text-sm font-semibold">
+              Get started
             </Link>
           </div>
         </div>
@@ -25,6 +33,11 @@ function PrivacyPage() {
 
       {/* Content */}
       <main className="relative z-10 max-w-4xl mx-auto px-6 py-16">
+        <Link to="/" className="inline-flex items-center gap-2 text-sm text-dark-400 hover:text-white transition-colors mb-8">
+          <ArrowLeft className="w-3.5 h-3.5" />
+          Back to home
+        </Link>
+
         <h1 className="text-4xl font-bold text-white mb-2">Privacy Policy</h1>
         <p className="text-dark-400 mb-12">Last updated: February 8, 2025</p>
 
@@ -43,8 +56,9 @@ function PrivacyPage() {
             <h3 className="text-lg font-medium text-dark-200 mb-3">2.1 Information You Provide</h3>
             <ul className="list-disc list-inside space-y-2 ml-2">
               <li>Account information (name, email address) when you sign up</li>
-              <li>Profile type preferences (client or candidate) you select</li>
+              <li>Organization and team settings you configure</li>
               <li>Notes and tags you add to contacts</li>
+              <li>Timesheet entries and project data you submit</li>
             </ul>
 
             <h3 className="text-lg font-medium text-dark-200 mb-3 mt-6">2.2 Information Collected Automatically</h3>
@@ -121,8 +135,10 @@ function PrivacyPage() {
             <ul className="list-disc list-inside space-y-2 ml-2">
               <li><strong className="text-dark-200">Google OAuth:</strong> For user authentication</li>
               <li><strong className="text-dark-200">Google Sheets API:</strong> For data export functionality</li>
+              <li><strong className="text-dark-200">Gmail API:</strong> For sending email sequences from your account</li>
               <li><strong className="text-dark-200">OpenAI API:</strong> For AI-generated email and message content</li>
               <li><strong className="text-dark-200">LinkedIn:</strong> For extracting publicly available profile data</li>
+              <li><strong className="text-dark-200">Resend:</strong> For transactional emails (OTP, invites)</li>
             </ul>
             <p className="mt-4">Each of these services has its own privacy policy governing data handling.</p>
           </section>
@@ -172,7 +188,7 @@ function PrivacyPage() {
             <div className="flex items-center gap-6 text-sm text-dark-400">
               <Link to="/privacy" className="hover:text-white transition-colors text-white">Privacy Policy</Link>
               <a href="#" className="hover:text-white transition-colors">Terms of Service</a>
-              <a href="#" className="hover:text-white transition-colors">Contact</a>
+              <a href="mailto:support@rivvra.com" className="hover:text-white transition-colors">Contact</a>
             </div>
             <p className="text-dark-500 text-sm">&copy; {new Date().getFullYear()} Rivvra. All rights reserved.</p>
           </div>

@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import {
   ArrowRight, ArrowLeft, Mail, Check,
   Building2, Briefcase, Users, Target, Loader2,
-  Chrome, Eye, EyeOff, AlertCircle
+  Eye, EyeOff, AlertCircle
 } from 'lucide-react';
 import RivvraLogo from '../components/BrynsaLogo';
 import api from '../utils/api';
@@ -532,7 +532,7 @@ function SignupPage() {
                 <p className="text-dark-400">
                   {inviteToken
                     ? 'Verify your email to complete signup.'
-                    : 'Start extracting contacts from LinkedIn in minutes.'}
+                    : 'Set up your staffing agency workspace in minutes.'}
                 </p>
               </div>
 
@@ -841,7 +841,7 @@ function SignupPage() {
                   Tell us about your work
                 </h1>
                 <p className="text-dark-400">
-                  This is required to personalize your outreach emails.
+                  This helps us set up your workspace.
                 </p>
               </div>
 
@@ -1106,37 +1106,35 @@ function SignupPage() {
 
         {/* Content */}
         <div className="relative max-w-lg text-center space-y-8">
-          {/* Feature Card */}
-          <div className="card p-8 text-left space-y-4 animate-float">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-xl bg-rivvra-500/20 flex items-center justify-center">
-                <Chrome className="w-6 h-6 text-rivvra-400" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-white">Chrome Extension</h3>
-                <p className="text-sm text-dark-400">Extract contacts directly from LinkedIn</p>
-              </div>
-            </div>
-            <div className="space-y-2">
-              {['Unlimited profile scraping', 'Email enrichment', 'One-click export'].map((feature, i) => (
-                <div key={i} className="flex items-center gap-2 text-sm">
-                  <Check className="w-4 h-4 text-rivvra-400" />
-                  <span className="text-dark-300">{feature}</span>
-                </div>
-              ))}
-            </div>
+          <div>
+            <h2 className="text-2xl font-bold text-white mb-3">One platform, every app you need</h2>
+            <p className="text-dark-400">Outreach, timesheets, CRM, and recruiting — built for staffing agencies.</p>
           </div>
 
-          {/* Stats */}
-          <div className="grid grid-cols-3 gap-6">
+          {/* App Preview Cards */}
+          <div className="grid grid-cols-2 gap-3">
             {[
-              { value: '2.5K+', label: 'Active Users' },
-              { value: '100K+', label: 'Contacts Extracted' },
-              { value: '4.9/5', label: 'User Rating' },
-            ].map((stat, i) => (
-              <div key={i} className="text-center">
-                <div className="text-2xl font-bold text-gradient">{stat.value}</div>
-                <div className="text-sm text-dark-400">{stat.label}</div>
+              { name: 'Outreach', desc: 'Email sequences & leads', color: 'rivvra', live: true },
+              { name: 'Timesheet', desc: 'Hours, payroll & approvals', color: 'blue', live: true },
+              { name: 'CRM', desc: 'Deals & pipeline', color: 'purple', live: false },
+              { name: 'ATS', desc: 'Recruiting & placements', color: 'orange', live: false },
+            ].map((app, i) => (
+              <div key={i} className={`card p-4 text-left ${!app.live ? 'opacity-50' : ''}`}>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-semibold text-white">{app.name}</span>
+                  {!app.live && <span className="text-[10px] text-dark-500">Soon</span>}
+                </div>
+                <p className="text-xs text-dark-400">{app.desc}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Value Props */}
+          <div className="space-y-2">
+            {['14-day free trial, all apps included', 'Per-seat pricing — pay for what you use', 'Invite your whole team in seconds'].map((feature, i) => (
+              <div key={i} className="flex items-center gap-2 text-sm">
+                <Check className="w-4 h-4 text-rivvra-400 flex-shrink-0" />
+                <span className="text-dark-300">{feature}</span>
               </div>
             ))}
           </div>

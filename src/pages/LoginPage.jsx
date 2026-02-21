@@ -159,7 +159,7 @@ function LoginPage() {
                   Welcome back
                 </h1>
                 <p className="text-dark-400">
-                  Log in to access your leads and continue prospecting.
+                  Log in to your staffing agency command center.
                 </p>
               </div>
 
@@ -273,8 +273,8 @@ function LoginPage() {
               </div>
 
               <p className="text-center text-xs text-dark-500 pt-4">
-                2024 All Rights Reserved.{' '}
-                <a href="#" className="hover:text-dark-300">Privacy</a> and{' '}
+                &copy; {new Date().getFullYear()} Rivvra. All rights reserved.{' '}
+                <Link to="/privacy" className="hover:text-dark-300">Privacy</Link> and{' '}
                 <a href="#" className="hover:text-dark-300">Terms</a>.
               </p>
             </div>
@@ -292,43 +292,34 @@ function LoginPage() {
         <div className="relative max-w-lg space-y-8">
           <div className="text-center">
             <h2 className="text-2xl font-bold text-white mb-4">
-              Close more deals, faster.
+              Your staffing agency, one platform.
             </h2>
             <p className="text-dark-400">
-              Reach the right people with the right message—at the right time.
+              Outreach, timesheets, CRM, and recruiting — all in one place.
             </p>
           </div>
 
-          {/* Workflow Card */}
+          {/* Platform Preview */}
           <div className="card p-6 space-y-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-rivvra-400">Target high intent prospects</span>
-              <button className="text-xs text-dark-400 hover:text-white px-3 py-1 rounded bg-dark-700">
-                Learn more
-              </button>
-            </div>
-            
-            <div className="space-y-3">
-              <div className="text-sm text-dark-300 font-medium">Sequence steps • 5</div>
-              
+            <div className="text-sm font-medium text-rivvra-400 mb-1">Your apps</div>
+            <div className="space-y-2.5">
               {[
-                { day: 'Day 1', action: 'Manual email', time: 'after 10 minutes' },
-                { day: 'Day 2', action: 'Phone call', time: 'after 20 minutes' },
-                { day: 'Day 3', action: 'Automatic email', time: 'Deliver if no reply in 3 days' },
-                { day: 'Day 4', action: 'Phone call', time: 'Schedule if no reply in 10 min' },
-              ].map((step, i) => (
+                { name: 'Outreach', desc: 'Sequences, leads & email automation', status: 'Live' },
+                { name: 'Timesheet', desc: 'Hours, approvals & payroll', status: 'Live' },
+                { name: 'CRM', desc: 'Deals, pipeline & clients', status: 'Soon' },
+                { name: 'ATS', desc: 'Candidates, interviews & placements', status: 'Soon' },
+              ].map((app, i) => (
                 <div key={i} className="flex items-center gap-3 p-3 rounded-lg bg-dark-800/50">
-                  <div className="w-2 h-2 rounded-full bg-rivvra-400" />
+                  <div className={`w-2 h-2 rounded-full ${app.status === 'Live' ? 'bg-rivvra-400' : 'bg-dark-600'}`} />
                   <div className="flex-1">
-                    <div className="text-sm text-white">{step.day}: {step.action}</div>
-                    <div className="text-xs text-dark-500">{step.time}</div>
+                    <div className="text-sm text-white">{app.name}</div>
+                    <div className="text-xs text-dark-500">{app.desc}</div>
                   </div>
+                  <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${
+                    app.status === 'Live' ? 'bg-rivvra-500/10 text-rivvra-400' : 'bg-dark-700 text-dark-500'
+                  }`}>{app.status}</span>
                 </div>
               ))}
-              
-              <button className="w-full py-2 text-sm text-dark-400 hover:text-white border border-dashed border-dark-700 rounded-lg hover:border-dark-600 transition-colors">
-                + Add a step
-              </button>
             </div>
           </div>
         </div>

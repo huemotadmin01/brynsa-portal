@@ -82,35 +82,43 @@ function EngagePage() {
     loadSequences();
     loadSetupStatus();
 
-    // Handle redirect-back from Gmail OAuth
-    // After Google callback, OrgRedirect brings us to /org/:slug/outreach/engage?gmail_code=xxx
-    // React Router (HashRouter) puts hash query params in location.search
-    const searchParams = new URLSearchParams(location.search);
-    const gmailCode = searchParams.get('gmail_code');
-    if (gmailCode) {
-      // Clean up URL (remove query params)
-      navigate(location.pathname, { replace: true });
-      // Exchange the code for tokens
-      (async () => {
-        try {
-          const connectRes = await api.connectGmail(gmailCode);
-          if (cancelled) return;
-          if (connectRes.success) {
-            setGmailStatus({ connected: true, email: connectRes.gmailEmail });
-            setGmailLoading(false);
-            loadSetupStatus();
-            showToast('Gmail connected successfully!', 'success');
-          }
-        } catch (err) {
-          if (cancelled) return;
-          console.error('Gmail connect from redirect error:', err);
-          showToast('Failed to connect Gmail. Please try again.', 'error');
-        }
-      })();
-    }
-
     return () => { cancelled = true; };
   }, []);
+
+  // Handle redirect-back from Gmail OAuth (separate effect to avoid race conditions)
+  // After Google callback → backend → /#/engage?gmail_code=xxx → OrgRedirect → here
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const gmailCode = searchParams.get('gmail_code');
+    if (!gmailCode) return;
+
+    // Clean up URL first (remove query params) — use window.history to avoid re-render
+    const cleanHash = window.location.hash.split('?')[0];
+    window.history.replaceState(null, '', window.location.pathname + cleanHash);
+
+    // Exchange the auth code for tokens
+    let active = true;
+    (async () => {
+      try {
+        const connectRes = await api.connectGmail(gmailCode);
+        if (!active) return;
+        if (connectRes.success) {
+          setGmailStatus({ connected: true, email: connectRes.gmailEmail });
+          setGmailLoading(false);
+          loadSetupStatus();
+          showToast('Gmail connected successfully!', 'success');
+        } else {
+          showToast(connectRes.error || 'Failed to connect Gmail.', 'error');
+        }
+      } catch (err) {
+        if (!active) return;
+        console.error('Gmail connect from redirect error:', err);
+        showToast('Failed to connect Gmail. Please try again.', 'error');
+      }
+    })();
+
+    return () => { active = false; };
+  }, [location.search]);
 
   async function loadGmailStatus() {
     try {

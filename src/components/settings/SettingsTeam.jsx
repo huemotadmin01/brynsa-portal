@@ -52,6 +52,7 @@ export default function SettingsTeam() {
   const [expandedMember, setExpandedMember] = useState(null); // userId
   const [editData, setEditData] = useState(null); // { orgRole, appAccess }
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
 
   // Confirm action modals
   const [confirmAction, setConfirmAction] = useState(null);
@@ -135,6 +136,7 @@ export default function SettingsTeam() {
       return;
     }
     setExpandedMember(member.userId?.toString());
+    setSaveError('');
     setEditData({
       orgRole: member.orgRole,
       appAccess: { ...member.appAccess },
@@ -163,6 +165,7 @@ export default function SettingsTeam() {
   async function handleSaveMember(member) {
     if (!editData) return;
     setSaving(true);
+    setSaveError('');
     try {
       const res = await api.updateOrgMember(orgSlug, member.userId, {
         orgRole: editData.orgRole,
@@ -177,14 +180,13 @@ export default function SettingsTeam() {
         ));
         setExpandedMember(null);
         setEditData(null);
+        setSaveError('');
         refetchOrg(); // Refresh org context in case current user's access changed
       } else {
-        setError(res.error || 'Failed to update member');
-        setTimeout(() => setError(''), 3000);
+        setSaveError(res.error || 'Failed to update member');
       }
     } catch (err) {
-      setError(err.message || 'Failed to update member');
-      setTimeout(() => setError(''), 3000);
+      setSaveError(err.message || 'Failed to update member');
     } finally {
       setSaving(false);
     }
@@ -549,8 +551,11 @@ export default function SettingsTeam() {
                           )}
                         </div>
                         <div className="flex items-center gap-2">
+                          {saveError && (
+                            <span className="text-xs text-red-400 mr-2">{saveError}</span>
+                          )}
                           <button
-                            onClick={() => { setExpandedMember(null); setEditData(null); }}
+                            onClick={() => { setExpandedMember(null); setEditData(null); setSaveError(''); }}
                             className="px-4 py-2 text-xs text-dark-400 hover:text-white transition-colors"
                           >
                             Cancel

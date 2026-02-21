@@ -486,12 +486,12 @@ export default function SettingsTeam() {
                                 {/* Toggle */}
                                 <button
                                   onClick={() => updateAppAccess(app.id, 'enabled', !access.enabled)}
-                                  className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${
+                                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0 ${
                                     access.enabled ? 'bg-rivvra-500' : 'bg-dark-600'
                                   }`}
                                 >
-                                  <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${
-                                    access.enabled ? 'translate-x-5' : 'translate-x-0.5'
+                                  <span className={`inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${
+                                    access.enabled ? 'translate-x-6' : 'translate-x-1'
                                   }`} />
                                 </button>
 

@@ -58,8 +58,7 @@ export const APP_REGISTRY = {
     defaultRoute: '/timesheet/dashboard',
     roles: [
       { value: 'admin', label: 'Admin', color: 'purple' },
-      { value: 'manager', label: 'Manager', color: 'blue' },
-      { value: 'contractor', label: 'Contractor', color: 'dark' },
+      { value: 'member', label: 'Member', color: 'dark' },
     ],
     getSidebarItems: (user, timesheetUser) => {
       const tsRole = timesheetUser?.role || 'contractor';

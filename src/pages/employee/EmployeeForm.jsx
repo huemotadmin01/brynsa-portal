@@ -21,6 +21,11 @@ const INITIAL_FORM = {
     hourly: '',
     monthly: '',
   },
+  clientBillingRate: {
+    daily: '',
+    hourly: '',
+    monthly: '',
+  },
   joiningDate: '',
   dateOfBirth: '',
   address: {
@@ -92,6 +97,11 @@ export default function EmployeeForm() {
               daily: emp.billingRate?.daily ?? '',
               hourly: emp.billingRate?.hourly ?? '',
               monthly: emp.billingRate?.monthly ?? '',
+            },
+            clientBillingRate: {
+              daily: emp.clientBillingRate?.daily ?? '',
+              hourly: emp.clientBillingRate?.hourly ?? '',
+              monthly: emp.clientBillingRate?.monthly ?? '',
             },
             joiningDate: emp.joiningDate ? emp.joiningDate.slice(0, 10) : '',
             dateOfBirth: emp.dateOfBirth ? emp.dateOfBirth.slice(0, 10) : '',
@@ -256,8 +266,11 @@ export default function EmployeeForm() {
                 value={form.employeeId}
                 onChange={(e) => setField('employeeId', e.target.value)}
                 className="input-field w-full"
-                placeholder="EMP-001"
+                placeholder={isEdit ? 'EMP-001' : 'Auto-generated if left blank'}
               />
+              {!isEdit && (
+                <p className="text-xs text-dark-500 mt-1">Leave blank to auto-generate from the next available ID</p>
+              )}
             </div>
 
             {/* Employment Type */}
@@ -405,6 +418,67 @@ export default function EmployeeForm() {
                 placeholder="0"
                 min="0"
               />
+            </div>
+          </div>
+        </div>
+
+        {/* ── Client Payment Configuration ────────────────────────── */}
+        <div className="card p-5 space-y-4">
+          <h2 className="text-white font-semibold text-lg">Client Payment Configuration</h2>
+          <p className="text-sm text-dark-400">Rates charged to the client for this employee. Syncs to Timesheet automatically.</p>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            {/* Client Billing Rate — Daily */}
+            <div>
+              <label className="block text-sm font-medium text-dark-300 mb-1">
+                Client Billing Rate (₹/day)
+              </label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-dark-400 text-sm">₹</span>
+                <input
+                  type="number"
+                  value={form.clientBillingRate.daily}
+                  onChange={(e) => setNested('clientBillingRate', 'daily', e.target.value)}
+                  className="input-field w-full pl-7"
+                  placeholder="0"
+                  min="0"
+                />
+              </div>
+            </div>
+
+            {/* Client Billing Rate — Hourly */}
+            <div>
+              <label className="block text-sm font-medium text-dark-300 mb-1">
+                Client Billing Rate ($/hour)
+              </label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-dark-400 text-sm">$</span>
+                <input
+                  type="number"
+                  value={form.clientBillingRate.hourly}
+                  onChange={(e) => setNested('clientBillingRate', 'hourly', e.target.value)}
+                  className="input-field w-full pl-7"
+                  placeholder="0"
+                  min="0"
+                />
+              </div>
+            </div>
+
+            {/* Client Billing Rate — Monthly */}
+            <div>
+              <label className="block text-sm font-medium text-dark-300 mb-1">
+                Client Billing Rate (₹/month)
+              </label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-dark-400 text-sm">₹</span>
+                <input
+                  type="number"
+                  value={form.clientBillingRate.monthly}
+                  onChange={(e) => setNested('clientBillingRate', 'monthly', e.target.value)}
+                  className="input-field w-full pl-7"
+                  placeholder="0"
+                  min="0"
+                />
+              </div>
             </div>
           </div>
         </div>

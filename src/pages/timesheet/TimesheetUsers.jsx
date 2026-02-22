@@ -81,7 +81,7 @@ export default function TimesheetUsers() {
       dailyRate: dailyRate || prev.dailyRate,
       monthlyRate: monthlyRate || prev.monthlyRate,
       payType,
-      clientBillingRate: emp.billingRate?.daily || prev.clientBillingRate,
+      clientBillingRate: emp.clientBillingRate?.daily || prev.clientBillingRate,
     }));
   };
 

@@ -27,6 +27,7 @@ const INITIAL_FORM = {
     monthly: '',
   },
   joiningDate: '',
+  lastWorkingDate: '',
   dateOfBirth: '',
   address: {
     street: '',
@@ -104,6 +105,7 @@ export default function EmployeeForm() {
               monthly: emp.clientBillingRate?.monthly ?? '',
             },
             joiningDate: emp.joiningDate ? emp.joiningDate.slice(0, 10) : '',
+            lastWorkingDate: emp.lastWorkingDate ? emp.lastWorkingDate.slice(0, 10) : '',
             dateOfBirth: emp.dateOfBirth ? emp.dateOfBirth.slice(0, 10) : '',
             address: {
               street: emp.address?.street || '',
@@ -299,6 +301,7 @@ export default function EmployeeForm() {
                 >
                   <option value="active">Active</option>
                   <option value="inactive">Inactive</option>
+                  <option value="resigned">Resigned</option>
                   <option value="terminated">Terminated</option>
                 </select>
               </div>
@@ -497,6 +500,21 @@ export default function EmployeeForm() {
                 className="input-field w-full"
               />
             </div>
+
+            {/* Last Working Date */}
+            {(form.status === 'resigned' || form.status === 'terminated') && (
+              <div>
+                <label className="block text-sm font-medium text-dark-300 mb-1">
+                  Last Working Date <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="date"
+                  value={form.lastWorkingDate}
+                  onChange={(e) => setField('lastWorkingDate', e.target.value)}
+                  className="input-field w-full"
+                />
+              </div>
+            )}
 
             {/* Date of Birth */}
             <div>

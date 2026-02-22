@@ -3,7 +3,13 @@ import { useToast } from '../../context/ToastContext';
 import { useOrg } from '../../context/OrgContext';
 import timesheetApi from '../../utils/timesheetApi';
 import employeeApi from '../../utils/employeeApi';
-import { UserPlus, Edit2, X, Loader2, UserCheck, Search, ChevronDown, Hash } from 'lucide-react';
+import { UserPlus, Edit2, X, Loader2, UserCheck, Search, ChevronDown, Hash, Filter } from 'lucide-react';
+
+const RATE_TYPE_LABELS = {
+  daily: '₹/day',
+  hourly: '$/hour',
+  monthly: '₹/month',
+};
 
 export default function TimesheetUsers() {
   const { showToast } = useToast();
@@ -20,10 +26,16 @@ export default function TimesheetUsers() {
   const [empSearch, setEmpSearch] = useState('');
   const [showEmpDropdown, setShowEmpDropdown] = useState(false);
   const empDropdownRef = useRef(null);
+
+  // Filters
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterRole, setFilterRole] = useState('');
+  const [filterStatus, setFilterStatus] = useState('active');
+
   const [form, setForm] = useState({
     fullName: '', email: '', password: '', role: 'contractor',
     employeeId: '', phone: '', payType: 'daily', dailyRate: '', monthlyRate: '',
-    paidLeavePerMonth: 0, clientBillingRate: '', assignedClient: '', assignedProjects: []
+    paidLeavePerMonth: 0, clientBillingRate: '', clientBillingRateType: 'daily', assignedClient: '', assignedProjects: []
   });
 
   const load = () => {
@@ -58,7 +70,7 @@ export default function TimesheetUsers() {
   useEffect(() => { load(); }, []);
 
   const resetForm = () => {
-    setForm({ fullName: '', email: '', password: '', role: 'contractor', employeeId: '', phone: '', payType: 'daily', dailyRate: '', monthlyRate: '', paidLeavePerMonth: 0, clientBillingRate: '', assignedClient: '', assignedProjects: [] });
+    setForm({ fullName: '', email: '', password: '', role: 'contractor', employeeId: '', phone: '', payType: 'daily', dailyRate: '', monthlyRate: '', paidLeavePerMonth: 0, clientBillingRate: '', clientBillingRateType: 'daily', assignedClient: '', assignedProjects: [] });
     setEditing(null); setShowForm(false); setLinkedEmployee(null); setEmpSearch(''); setShowEmpDropdown(false);
   };
 
@@ -72,6 +84,12 @@ export default function TimesheetUsers() {
     const monthlyRate = emp.billingRate?.monthly || '';
     const payType = dailyRate ? 'daily' : monthlyRate ? 'monthly' : 'daily';
 
+    // Determine clientBillingRate and its type from employee record
+    let cbr = '', cbrType = 'daily';
+    if (emp.clientBillingRate?.daily) { cbr = emp.clientBillingRate.daily; cbrType = 'daily'; }
+    else if (emp.clientBillingRate?.hourly) { cbr = emp.clientBillingRate.hourly; cbrType = 'hourly'; }
+    else if (emp.clientBillingRate?.monthly) { cbr = emp.clientBillingRate.monthly; cbrType = 'monthly'; }
+
     setForm(prev => ({
       ...prev,
       fullName: emp.fullName || prev.fullName,
@@ -81,7 +99,8 @@ export default function TimesheetUsers() {
       dailyRate: dailyRate || prev.dailyRate,
       monthlyRate: monthlyRate || prev.monthlyRate,
       payType,
-      clientBillingRate: emp.clientBillingRate?.daily || prev.clientBillingRate,
+      clientBillingRate: cbr || prev.clientBillingRate,
+      clientBillingRateType: cbr ? cbrType : prev.clientBillingRateType,
     }));
   };
 
@@ -91,6 +110,7 @@ export default function TimesheetUsers() {
       employeeId: user.employeeId || '', phone: user.phone || '',
       payType: user.payType || 'daily', dailyRate: user.dailyRate || '', monthlyRate: user.monthlyRate || '',
       paidLeavePerMonth: user.paidLeavePerMonth || 0, clientBillingRate: user.clientBillingRate || '',
+      clientBillingRateType: user.clientBillingRateType || 'daily',
       assignedClient: user.assignedClient?._id || user.assignedClient || '',
       assignedProjects: user.assignedProjects?.map(p => p._id || p) || []
     });
@@ -140,6 +160,23 @@ export default function TimesheetUsers() {
            (emp.employeeId || '').toLowerCase().includes(q);
   });
 
+  // Filter users for table
+  const filteredUsers = users.filter(u => {
+    // Status filter
+    if (filterStatus === 'active' && !u.isActive) return false;
+    if (filterStatus === 'inactive' && u.isActive) return false;
+    // Role filter
+    if (filterRole && u.role !== filterRole) return false;
+    // Search filter
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      return (u.fullName || '').toLowerCase().includes(q) ||
+             (u.email || '').toLowerCase().includes(q) ||
+             (u.employeeId || '').toLowerCase().includes(q);
+    }
+    return true;
+  });
+
   if (loading) return <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-dark-400" /></div>;
 
   return (
@@ -147,12 +184,53 @@ export default function TimesheetUsers() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-white">User Management</h1>
-          <p className="text-dark-400 text-sm">{users.length} total users</p>
+          <p className="text-dark-400 text-sm">{filteredUsers.length} of {users.length} users</p>
         </div>
         <button onClick={() => { resetForm(); setShowForm(true); }}
           className="bg-rivvra-500 text-dark-950 px-4 py-2 rounded-lg text-sm font-medium hover:bg-rivvra-400 flex items-center gap-2 transition-colors">
           <UserPlus size={16} /> Add User
         </button>
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative flex-1 min-w-[200px] max-w-sm">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-dark-500" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            placeholder="Search by name, email, or ID..."
+            className="input-field pl-9 w-full"
+          />
+        </div>
+        <select
+          value={filterRole}
+          onChange={e => setFilterRole(e.target.value)}
+          className="input-field w-auto min-w-[120px]"
+        >
+          <option value="">All Roles</option>
+          <option value="admin">Admin</option>
+          <option value="manager">Manager</option>
+          <option value="contractor">Contractor</option>
+        </select>
+        <select
+          value={filterStatus}
+          onChange={e => setFilterStatus(e.target.value)}
+          className="input-field w-auto min-w-[120px]"
+        >
+          <option value="">All Status</option>
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+        </select>
+        {(searchQuery || filterRole || filterStatus) && (
+          <button
+            onClick={() => { setSearchQuery(''); setFilterRole(''); setFilterStatus(''); }}
+            className="text-xs text-dark-400 hover:text-white transition-colors"
+          >
+            Clear filters
+          </button>
+        )}
       </div>
 
       <div className="card overflow-hidden">
@@ -166,13 +244,12 @@ export default function TimesheetUsers() {
                 <th className="text-left px-4 py-3 font-medium text-dark-400">Employee ID</th>
                 <th className="text-left px-4 py-3 font-medium text-dark-400">Pay Type</th>
                 <th className="text-right px-4 py-3 font-medium text-dark-400">Rate</th>
-                <th className="text-right px-4 py-3 font-medium text-dark-400">Billing Rate</th>
                 <th className="text-center px-4 py-3 font-medium text-dark-400">Status</th>
                 <th className="text-center px-4 py-3 font-medium text-dark-400">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-dark-800">
-              {users.map(u => (
+              {filteredUsers.map(u => (
                 <tr key={u._id} className={`hover:bg-dark-800/50 transition-colors ${!u.isActive ? 'opacity-50' : ''}`}>
                   <td className="px-4 py-3 font-medium text-white">{u.fullName}</td>
                   <td className="px-4 py-3 text-dark-300">{u.email}</td>
@@ -195,7 +272,6 @@ export default function TimesheetUsers() {
                   <td className="px-4 py-3 text-right text-dark-300">
                     {u.payType === 'monthly' ? (u.monthlyRate ? `₹${u.monthlyRate.toLocaleString()}/mo` : '—') : (u.dailyRate ? `₹${u.dailyRate.toLocaleString()}/day` : '—')}
                   </td>
-                  <td className="px-4 py-3 text-right text-dark-300">{u.clientBillingRate ? `₹${u.clientBillingRate.toLocaleString()}` : '—'}</td>
                   <td className="px-4 py-3 text-center">
                     <button onClick={() => toggleActive(u)} className={`px-2 py-0.5 rounded-full text-xs font-medium ${u.isActive ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
                       {u.isActive ? 'Active' : 'Inactive'}
@@ -206,6 +282,9 @@ export default function TimesheetUsers() {
                   </td>
                 </tr>
               ))}
+              {filteredUsers.length === 0 && (
+                <tr><td colSpan={8} className="px-4 py-8 text-center text-dark-500">No users match the current filters</td></tr>
+              )}
             </tbody>
           </table>
         </div>
@@ -333,7 +412,7 @@ export default function TimesheetUsers() {
                   <div>
                     <label className="block text-xs text-dark-400 mb-1">Monthly Rate (₹)</label>
                     <input type="number" value={form.monthlyRate} onChange={e => setForm({...form, monthlyRate: e.target.value})} placeholder="e.g. 60000" className="input-field" />
-                    <p className="text-[11px] text-dark-500 mt-1">Payable = (Actual days worked / Working days in month) × Monthly rate</p>
+                    <p className="text-[11px] text-dark-500 mt-1">Payable = (Actual days worked / Working days in month) x Monthly rate</p>
                   </div>
                 )}
                 <div className="flex items-center justify-between pt-1">
@@ -349,7 +428,9 @@ export default function TimesheetUsers() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-dark-300 mb-1">Client Billing Rate (₹/day)</label>
+                <label className="block text-sm font-medium text-dark-300 mb-1">
+                  Client Billing Rate ({RATE_TYPE_LABELS[form.clientBillingRateType] || '₹/day'})
+                </label>
                 <input type="number" value={form.clientBillingRate} onChange={e => setForm({...form, clientBillingRate: e.target.value})} className="input-field" />
               </div>
               <div className="grid grid-cols-2 gap-4">

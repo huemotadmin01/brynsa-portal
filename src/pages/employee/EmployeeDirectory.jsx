@@ -198,9 +198,9 @@ export default function EmployeeDirectory() {
   ];
 
   const billableOptions = [
-    { value: '', label: 'All' },
+    { value: '', label: 'Billable / Non-Billable' },
     { value: 'true', label: 'Billable' },
-    { value: 'false', label: 'Not Billable' },
+    { value: 'false', label: 'Non-Billable' },
   ];
 
   return (
@@ -263,7 +263,7 @@ export default function EmployeeDirectory() {
           onSelect={handleFilterSelect(setStatusFilter)}
         />
         <FilterChip
-          label="Billable"
+          label="Billable / Non-Billable"
           value={billableFilter}
           options={billableOptions}
           isOpen={openFilter === 'billable'}

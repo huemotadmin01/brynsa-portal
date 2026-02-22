@@ -60,14 +60,26 @@ export const APP_REGISTRY = {
       { value: 'admin', label: 'Admin', color: 'purple' },
       { value: 'member', label: 'Member', color: 'dark' },
     ],
-    getSidebarItems: (user, timesheetUser) => {
-      const tsRole = timesheetUser?.role || 'contractor';
-      const isAdmin = tsRole === 'admin';
-      const isManager = tsRole === 'manager';
+    getSidebarItems: (user, timesheetUser, orgAppRole) => {
+      // Use org membership role as source of truth when available,
+      // fall back to ts_users role for backward compat (standalone users)
+      let effectiveRole;
+      if (orgAppRole) {
+        // Map org roles → timesheet behavior: 'admin' stays admin, 'member' → member view
+        effectiveRole = orgAppRole === 'admin' ? 'admin' : 'member';
+      } else {
+        // Legacy: use ts_users role directly
+        effectiveRole = timesheetUser?.role || 'contractor';
+      }
+
+      const isAdmin = effectiveRole === 'admin';
+      const isManager = effectiveRole === 'manager';
+      const isMember = effectiveRole === 'member' || effectiveRole === 'contractor';
+
       return [
         { type: 'item', path: '/timesheet/dashboard', label: 'Dashboard', icon: Home },
-        // Contractor-only pages
-        ...(tsRole === 'contractor' ? [
+        // Member pages (fill timesheet, view earnings)
+        ...(isMember ? [
           { type: 'item', path: '/timesheet/my-timesheet', label: 'My Timesheet', icon: CalendarDays },
           { type: 'item', path: '/timesheet/earnings', label: 'My Earnings', icon: IndianRupee },
         ] : []),

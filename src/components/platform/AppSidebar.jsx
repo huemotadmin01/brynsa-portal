@@ -16,7 +16,7 @@ function AppSidebar() {
   const { user, logout, isImpersonating } = useAuth();
   const { currentApp, orgPath, orgSlug } = usePlatform();
   const { timesheetUser } = useTimesheetContext();
-  const { hasAppAccess, currentOrg } = useOrg();
+  const { hasAppAccess, getAppRole, currentOrg } = useOrg();
   const isPro = user?.plan === 'pro' || user?.plan === 'premium';
   const [showWipModal, setShowWipModal] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState({});
@@ -29,7 +29,9 @@ function AppSidebar() {
     return null;
   }
 
-  const sidebarItems = currentApp.getSidebarItems(user, timesheetUser);
+  // Pass org membership role so apps can use it as source of truth
+  const orgAppRole = currentApp?.id && currentOrg ? getAppRole(currentApp.id) : null;
+  const sidebarItems = currentApp.getSidebarItems(user, timesheetUser, orgAppRole);
 
   // Use stripOrgPrefix for active matching so /org/slug/outreach/dashboard matches /outreach/dashboard
   const currentPath = stripOrgPrefix(location.pathname);

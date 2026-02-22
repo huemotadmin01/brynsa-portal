@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useTimesheetContext } from '../../context/TimesheetContext';
 import { usePlatform } from '../../context/PlatformContext';
+import { useOrg } from '../../context/OrgContext';
 import { useToast } from '../../context/ToastContext';
 import timesheetApi from '../../utils/timesheetApi';
 import {
@@ -220,6 +221,7 @@ function AdminDashboard() {
 
 export default function TimesheetDashboard() {
   const { timesheetUser, loading, error, refetch } = useTimesheetContext();
+  const { getAppRole, currentOrg } = useOrg();
 
   if (loading) return <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-dark-400" /></div>;
 
@@ -238,6 +240,13 @@ export default function TimesheetDashboard() {
     );
   }
 
-  if (timesheetUser.role === 'contractor') return <ContractorDashboard />;
+  // Use org membership role as source of truth when available,
+  // fall back to ts_users role for backward compat (standalone users)
+  const orgRole = currentOrg ? getAppRole('timesheet') : null;
+  const isMember = orgRole
+    ? orgRole === 'member'               // org membership: 'member' → member dashboard
+    : timesheetUser.role === 'contractor'; // legacy ts_users: 'contractor' → member dashboard
+
+  if (isMember) return <ContractorDashboard />;
   return <AdminDashboard />;
 }

@@ -167,11 +167,13 @@ export default function EmployeeDirectory() {
         <select
           value={employmentTypeFilter}
           onChange={(e) => handleEmploymentTypeChange(e.target.value)}
-          className="input-field min-w-[160px]"
+          className="input-field min-w-[180px]"
         >
           <option value="">All Types</option>
-          <option value="contractor">Contractor</option>
-          <option value="employee">Employee</option>
+          <option value="confirmed">Confirmed</option>
+          <option value="internal_consultant">Internal Consultant</option>
+          <option value="external_consultant">External Consultant</option>
+          <option value="intern">Intern</option>
         </select>
 
         {/* Status */}
@@ -252,12 +254,22 @@ export default function EmployeeDirectory() {
                   {emp.employmentType && (
                     <span
                       className={`text-xs px-2 py-0.5 rounded font-medium ${
-                        emp.employmentType === 'contractor'
-                          ? 'bg-blue-500/10 text-blue-400'
-                          : 'bg-emerald-500/10 text-emerald-400'
+                        {
+                          confirmed: 'bg-emerald-500/10 text-emerald-400',
+                          internal_consultant: 'bg-purple-500/10 text-purple-400',
+                          external_consultant: 'bg-blue-500/10 text-blue-400',
+                          intern: 'bg-amber-500/10 text-amber-400',
+                        }[emp.employmentType] || 'bg-dark-700 text-dark-300'
                       }`}
                     >
-                      {emp.employmentType === 'contractor' ? 'Contractor' : 'Employee'}
+                      {
+                        {
+                          confirmed: 'Confirmed',
+                          internal_consultant: 'Internal Consultant',
+                          external_consultant: 'External Consultant',
+                          intern: 'Intern',
+                        }[emp.employmentType] || emp.employmentType
+                      }
                     </span>
                   )}
                   {emp.billable && (

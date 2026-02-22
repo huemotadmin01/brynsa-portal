@@ -85,21 +85,17 @@ function SectionCard({ title, icon: Icon, children }) {
 // Employment type / status badge helpers
 // ---------------------------------------------------------------------------
 
+const EMPLOYMENT_TYPE_CONFIG = {
+  confirmed: { label: 'Confirmed', className: 'bg-emerald-500/10 text-emerald-400' },
+  internal_consultant: { label: 'Internal Consultant', className: 'bg-purple-500/10 text-purple-400' },
+  external_consultant: { label: 'External Consultant', className: 'bg-blue-500/10 text-blue-400' },
+  intern: { label: 'Intern', className: 'bg-amber-500/10 text-amber-400' },
+};
+
 function employmentTypeBadge(type) {
   if (!type) return null;
-  const lower = type.toLowerCase();
-  if (lower === 'contractor') {
-    return (
-      <Badge className="bg-blue-500/10 text-blue-400">
-        {type}
-      </Badge>
-    );
-  }
-  return (
-    <Badge className="bg-green-500/10 text-green-400">
-      {type}
-    </Badge>
-  );
+  const cfg = EMPLOYMENT_TYPE_CONFIG[type] || { label: type, className: 'bg-dark-700 text-dark-300' };
+  return <Badge className={cfg.className}>{cfg.label}</Badge>;
 }
 
 function statusBadge(status) {
@@ -301,6 +297,14 @@ export default function EmployeeDetail() {
             }
           />
           <InfoRow label="Joining Date" value={formatDate(emp.joiningDate)} />
+          <InfoRow
+            label="Salary Disbursement"
+            value={
+              emp.employmentType === 'confirmed' || emp.employmentType === 'intern'
+                ? 'Last day of the month'
+                : null
+            }
+          />
         </SectionCard>
 
         {/* Personal Information */}

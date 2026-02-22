@@ -10,7 +10,7 @@ const INITIAL_FORM = {
   email: '',
   phone: '',
   employeeId: '',
-  employmentType: 'employee',
+  employmentType: 'confirmed',
   status: 'active',
   department: '',
   designation: '',
@@ -82,7 +82,7 @@ export default function EmployeeForm() {
             email: emp.email || '',
             phone: emp.phone || '',
             employeeId: emp.employeeId || '',
-            employmentType: emp.employmentType || 'employee',
+            employmentType: emp.employmentType || 'confirmed',
             status: emp.status || 'active',
             department: emp.department || '',
             designation: emp.designation || '',
@@ -268,8 +268,10 @@ export default function EmployeeForm() {
                 onChange={(e) => setField('employmentType', e.target.value)}
                 className="input-field w-full"
               >
-                <option value="employee">Employee</option>
-                <option value="contractor">Contractor</option>
+                <option value="confirmed">Confirmed</option>
+                <option value="internal_consultant">Internal Consultant</option>
+                <option value="external_consultant">External Consultant</option>
+                <option value="intern">Intern</option>
               </select>
             </div>
 

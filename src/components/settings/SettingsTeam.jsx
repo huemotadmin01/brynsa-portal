@@ -29,8 +29,9 @@ const appBadgeColors = {
   enabled: {
     outreach: 'bg-rivvra-500/10 text-rivvra-400 border-rivvra-500/20',
     timesheet: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
+    employee: 'bg-orange-500/10 text-orange-400 border-orange-500/20',
     crm: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
-    ats: 'bg-orange-500/10 text-orange-400 border-orange-500/20',
+    ats: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
   },
   disabled: 'bg-dark-700/30 text-dark-500 border-dark-600/50',
 };

@@ -44,6 +44,12 @@ import TimesheetUsers from './pages/timesheet/TimesheetUsers';
 import TimesheetProjects from './pages/timesheet/TimesheetProjects';
 import TimesheetExport from './pages/timesheet/TimesheetExport';
 
+// Employee app pages
+import EmployeeDirectory from './pages/employee/EmployeeDirectory';
+import EmployeeDepartments from './pages/employee/EmployeeDepartments';
+import EmployeeDetail from './pages/employee/EmployeeDetail';
+import EmployeeForm from './pages/employee/EmployeeForm';
+
 // Simple wrapper for settings pages — adds consistent header + padding
 function SettingsPageWrapper({ children }) {
   return (
@@ -135,6 +141,15 @@ function App() {
                 <Route path="/org/:slug/timesheet/projects" element={<TimesheetProjects />} />
                 <Route path="/org/:slug/timesheet/export" element={<TimesheetExport />} />
               </Route>
+
+              {/* Employee app routes — gated by employee access */}
+              <Route element={<AppAccessGate appId="employee" />}>
+                <Route path="/org/:slug/employee/directory" element={<EmployeeDirectory />} />
+                <Route path="/org/:slug/employee/departments" element={<EmployeeDepartments />} />
+                <Route path="/org/:slug/employee/add" element={<EmployeeForm />} />
+                <Route path="/org/:slug/employee/edit/:employeeId" element={<EmployeeForm />} />
+                <Route path="/org/:slug/employee/:employeeId" element={<EmployeeDetail />} />
+              </Route>
             </Route>
 
             {/* ============================================================ */}
@@ -145,6 +160,7 @@ function App() {
             <Route path="/home" element={<OrgRedirect to="/home" />} />
             <Route path="/outreach/*" element={<OrgRedirect />} />
             <Route path="/timesheet/*" element={<OrgRedirect />} />
+            <Route path="/employee/*" element={<OrgRedirect />} />
             <Route path="/settings" element={<OrgRedirect to="/settings" />} />
             <Route path="/settings/*" element={<OrgRedirect />} />
 

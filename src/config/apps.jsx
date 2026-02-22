@@ -1,7 +1,7 @@
 import {
   Send, Users, List, Home, BarChart3, UsersRound, Layers,
   Clock, Briefcase, UserSearch, Mail, CalendarDays, IndianRupee,
-  CheckCircle2, Download, Settings
+  CheckCircle2, Download, Settings, Building2, UserPlus
 } from 'lucide-react';
 
 export const APP_REGISTRY = {
@@ -92,6 +92,31 @@ export const APP_REGISTRY = {
           { type: 'item', path: '/timesheet/users', label: 'Users', icon: Users },
           { type: 'item', path: '/timesheet/projects', label: 'Projects & Clients', icon: Briefcase },
           { type: 'item', path: '/timesheet/export', label: 'Export Data', icon: Download },
+        ] : []),
+      ];
+    },
+  },
+
+  employee: {
+    id: 'employee',
+    name: 'Employee',
+    description: 'Employee directory & HR management',
+    icon: UsersRound,
+    color: 'orange',
+    basePath: '/employee',
+    status: 'active',
+    defaultRoute: '/employee/directory',
+    roles: [
+      { value: 'admin', label: 'Admin', color: 'orange' },
+      { value: 'member', label: 'Member', color: 'dark' },
+    ],
+    getSidebarItems: (user, timesheetUser, orgAppRole) => {
+      const isAdmin = orgAppRole === 'admin';
+      return [
+        { type: 'item', path: '/employee/directory', label: 'Directory', icon: Users },
+        { type: 'item', path: '/employee/departments', label: 'Departments', icon: Building2 },
+        ...(isAdmin ? [
+          { type: 'item', path: '/employee/add', label: 'Add Employee', icon: UserPlus },
         ] : []),
       ];
     },

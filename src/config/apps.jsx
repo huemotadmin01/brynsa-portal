@@ -92,7 +92,6 @@ export const APP_REGISTRY = {
           { type: 'item', path: '/timesheet/users', label: 'Users', icon: Users },
           { type: 'item', path: '/timesheet/projects', label: 'Projects & Clients', icon: Briefcase },
           { type: 'item', path: '/timesheet/export', label: 'Export Data', icon: Download },
-          { type: 'item', path: '/timesheet/payroll-settings', label: 'Payroll Settings', icon: Settings },
         ] : []),
       ];
     },

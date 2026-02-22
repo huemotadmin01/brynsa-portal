@@ -43,7 +43,6 @@ import TimesheetApprovals from './pages/timesheet/TimesheetApprovals';
 import TimesheetUsers from './pages/timesheet/TimesheetUsers';
 import TimesheetProjects from './pages/timesheet/TimesheetProjects';
 import TimesheetExport from './pages/timesheet/TimesheetExport';
-import TimesheetPayrollSettings from './pages/timesheet/TimesheetPayrollSettings';
 
 // Simple wrapper for settings pages — adds consistent header + padding
 function SettingsPageWrapper({ children }) {
@@ -135,7 +134,6 @@ function App() {
                 <Route path="/org/:slug/timesheet/users" element={<TimesheetUsers />} />
                 <Route path="/org/:slug/timesheet/projects" element={<TimesheetProjects />} />
                 <Route path="/org/:slug/timesheet/export" element={<TimesheetExport />} />
-                <Route path="/org/:slug/timesheet/payroll-settings" element={<TimesheetPayrollSettings />} />
               </Route>
             </Route>
 

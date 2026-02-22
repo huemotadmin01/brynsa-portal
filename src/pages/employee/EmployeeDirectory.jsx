@@ -5,9 +5,58 @@ import { usePlatform } from '../../context/PlatformContext';
 import employeeApi from '../../utils/employeeApi';
 import {
   Search, Plus, Loader2, Users, Mail, Phone,
-  ChevronLeft, ChevronRight,
+  ChevronLeft, ChevronRight, ChevronDown, X,
 } from 'lucide-react';
 
+/* ── Inline FilterChip component ─────────────────────────────────────── */
+function FilterChip({ label, value, options, isOpen, onToggle, onSelect }) {
+  const selectedOption = options.find((o) => o.value === value);
+  const displayLabel = selectedOption && value ? selectedOption.label : label;
+
+  return (
+    <div className="relative">
+      <button
+        onClick={onToggle}
+        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm font-medium transition-all whitespace-nowrap ${
+          value
+            ? 'bg-rivvra-500/10 border-rivvra-500/30 text-rivvra-400'
+            : 'bg-dark-800 border-dark-700 text-dark-300 hover:border-dark-600 hover:text-dark-200'
+        }`}
+      >
+        {displayLabel}
+        <ChevronDown
+          className={`w-3.5 h-3.5 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+        />
+      </button>
+
+      {isOpen && (
+        <>
+          {/* Backdrop */}
+          <div className="fixed inset-0 z-10" onClick={onToggle} />
+
+          {/* Dropdown */}
+          <div className="absolute left-0 top-full mt-1.5 min-w-[180px] bg-dark-800 border border-dark-700 rounded-xl shadow-2xl py-1 z-20 max-h-60 overflow-y-auto">
+            {options.map((opt) => (
+              <button
+                key={opt.value}
+                onClick={() => onSelect(opt.value)}
+                className={`w-full text-left px-3 py-2 text-sm transition-colors ${
+                  opt.value === value
+                    ? 'bg-rivvra-500/10 text-rivvra-400'
+                    : 'text-dark-300 hover:bg-dark-700 hover:text-white'
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+/* ── Main component ──────────────────────────────────────────────────── */
 export default function EmployeeDirectory() {
   const { currentOrg, getAppRole } = useOrg();
   const { orgPath } = usePlatform();
@@ -24,6 +73,10 @@ export default function EmployeeDirectory() {
   const [departmentFilter, setDepartmentFilter] = useState('');
   const [employmentTypeFilter, setEmploymentTypeFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [billableFilter, setBillableFilter] = useState('');
+
+  // Which filter dropdown is open
+  const [openFilter, setOpenFilter] = useState(null);
 
   // Departments for dropdown
   const [departments, setDepartments] = useState([]);
@@ -31,6 +84,10 @@ export default function EmployeeDirectory() {
   const debounceRef = useRef(null);
   const isAdmin = getAppRole('employee') === 'admin';
   const orgSlug = currentOrg?.slug;
+
+  // Count active filters
+  const activeFilterCount = [departmentFilter, employmentTypeFilter, statusFilter, billableFilter]
+    .filter(Boolean).length;
 
   // Fetch departments once
   useEffect(() => {
@@ -55,6 +112,7 @@ export default function EmployeeDirectory() {
         department: params.department !== undefined ? params.department : departmentFilter,
         employmentType: params.employmentType !== undefined ? params.employmentType : employmentTypeFilter,
         status: params.status !== undefined ? params.status : statusFilter,
+        billable: params.billable !== undefined ? params.billable : billableFilter,
       });
       if (res.success) {
         setEmployees(res.employees || []);
@@ -67,12 +125,12 @@ export default function EmployeeDirectory() {
     } finally {
       setLoading(false);
     }
-  }, [orgSlug, page, search, departmentFilter, employmentTypeFilter, statusFilter]);
+  }, [orgSlug, page, search, departmentFilter, employmentTypeFilter, statusFilter, billableFilter]);
 
   // Initial load + re-fetch on filter / page change (not search — that's debounced)
   useEffect(() => {
     fetchEmployees();
-  }, [page, departmentFilter, employmentTypeFilter, statusFilter, orgSlug]);
+  }, [page, departmentFilter, employmentTypeFilter, statusFilter, billableFilter, orgSlug]);
 
   // Debounced search
   const handleSearchChange = (value) => {
@@ -92,17 +150,22 @@ export default function EmployeeDirectory() {
   }, []);
 
   // Handle filter changes — reset to page 1
-  const handleDepartmentChange = (val) => {
-    setDepartmentFilter(val);
+  const handleFilterSelect = (setter) => (val) => {
+    setter(val);
+    setPage(1);
+    setOpenFilter(null);
+  };
+
+  const clearAllFilters = () => {
+    setDepartmentFilter('');
+    setEmploymentTypeFilter('');
+    setStatusFilter('');
+    setBillableFilter('');
     setPage(1);
   };
-  const handleEmploymentTypeChange = (val) => {
-    setEmploymentTypeFilter(val);
-    setPage(1);
-  };
-  const handleStatusChange = (val) => {
-    setStatusFilter(val);
-    setPage(1);
+
+  const toggleFilter = (name) => {
+    setOpenFilter((prev) => (prev === name ? null : name));
   };
 
   // Get initials from full name
@@ -113,6 +176,32 @@ export default function EmployeeDirectory() {
     const last = parts.length > 1 ? parts[parts.length - 1][0] : '';
     return (first + last).toUpperCase() || '?';
   };
+
+  // Filter options
+  const departmentOptions = [
+    { value: '', label: 'All Departments' },
+    ...departments.map((d) => ({ value: d._id, label: d.name })),
+  ];
+
+  const typeOptions = [
+    { value: '', label: 'All Types' },
+    { value: 'confirmed', label: 'Confirmed' },
+    { value: 'internal_consultant', label: 'Internal Consultant' },
+    { value: 'external_consultant', label: 'External Consultant' },
+    { value: 'intern', label: 'Intern' },
+  ];
+
+  const statusOptions = [
+    { value: '', label: 'All Statuses' },
+    { value: 'active', label: 'Active' },
+    { value: 'inactive', label: 'Inactive' },
+  ];
+
+  const billableOptions = [
+    { value: '', label: 'All' },
+    { value: 'true', label: 'Billable' },
+    { value: 'false', label: 'Not Billable' },
+  ];
 
   return (
     <div className="p-6 md:p-8 space-y-6">
@@ -147,45 +236,50 @@ export default function EmployeeDirectory() {
         />
       </div>
 
-      {/* Filters row */}
-      <div className="flex flex-wrap items-center gap-3">
-        {/* Department */}
-        <select
+      {/* Filter chips row */}
+      <div className="flex flex-wrap items-center gap-2">
+        <FilterChip
+          label="Department"
           value={departmentFilter}
-          onChange={(e) => handleDepartmentChange(e.target.value)}
-          className="input-field min-w-[160px]"
-        >
-          <option value="">All Departments</option>
-          {departments.map((dept) => (
-            <option key={dept._id} value={dept.name}>
-              {dept.name}
-            </option>
-          ))}
-        </select>
-
-        {/* Employment Type */}
-        <select
+          options={departmentOptions}
+          isOpen={openFilter === 'department'}
+          onToggle={() => toggleFilter('department')}
+          onSelect={handleFilterSelect(setDepartmentFilter)}
+        />
+        <FilterChip
+          label="Type"
           value={employmentTypeFilter}
-          onChange={(e) => handleEmploymentTypeChange(e.target.value)}
-          className="input-field min-w-[180px]"
-        >
-          <option value="">All Types</option>
-          <option value="confirmed">Confirmed</option>
-          <option value="internal_consultant">Internal Consultant</option>
-          <option value="external_consultant">External Consultant</option>
-          <option value="intern">Intern</option>
-        </select>
-
-        {/* Status */}
-        <select
+          options={typeOptions}
+          isOpen={openFilter === 'type'}
+          onToggle={() => toggleFilter('type')}
+          onSelect={handleFilterSelect(setEmploymentTypeFilter)}
+        />
+        <FilterChip
+          label="Status"
           value={statusFilter}
-          onChange={(e) => handleStatusChange(e.target.value)}
-          className="input-field min-w-[140px]"
-        >
-          <option value="">All Statuses</option>
-          <option value="active">Active</option>
-          <option value="inactive">Inactive</option>
-        </select>
+          options={statusOptions}
+          isOpen={openFilter === 'status'}
+          onToggle={() => toggleFilter('status')}
+          onSelect={handleFilterSelect(setStatusFilter)}
+        />
+        <FilterChip
+          label="Billable"
+          value={billableFilter}
+          options={billableOptions}
+          isOpen={openFilter === 'billable'}
+          onToggle={() => toggleFilter('billable')}
+          onSelect={handleFilterSelect(setBillableFilter)}
+        />
+
+        {activeFilterCount > 0 && (
+          <button
+            onClick={clearAllFilters}
+            className="flex items-center gap-1 px-2.5 py-1.5 text-sm text-dark-400 hover:text-white transition-colors rounded-lg hover:bg-dark-800"
+          >
+            <X className="w-3.5 h-3.5" />
+            Clear{activeFilterCount > 1 ? ` (${activeFilterCount})` : ''}
+          </button>
+        )}
       </div>
 
       {/* Content */}
@@ -200,7 +294,7 @@ export default function EmployeeDirectory() {
           </div>
           <h3 className="text-lg font-semibold text-white mb-2">No employees found</h3>
           <p className="text-dark-400 text-sm text-center max-w-sm">
-            {search || departmentFilter || employmentTypeFilter || statusFilter
+            {search || departmentFilter || employmentTypeFilter || statusFilter || billableFilter
               ? 'Try adjusting your search or filters.'
               : 'Add your first employee to get started.'}
           </p>

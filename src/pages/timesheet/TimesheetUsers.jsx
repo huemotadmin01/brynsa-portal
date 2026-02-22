@@ -1,16 +1,21 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useToast } from '../../context/ToastContext';
+import { useOrg } from '../../context/OrgContext';
 import timesheetApi from '../../utils/timesheetApi';
-import { UserPlus, Edit2, X, Loader2 } from 'lucide-react';
+import employeeApi from '../../utils/employeeApi';
+import { UserPlus, Edit2, X, Loader2, UserCheck } from 'lucide-react';
 
 export default function TimesheetUsers() {
   const { showToast } = useToast();
+  const { currentOrg } = useOrg();
+  const orgSlug = currentOrg?.slug;
   const [users, setUsers] = useState([]);
   const [projects, setProjects] = useState([]);
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
+  const [linkedEmployee, setLinkedEmployee] = useState(null);
   const [form, setForm] = useState({
     fullName: '', email: '', password: '', role: 'contractor',
     employeeId: '', phone: '', payType: 'daily', dailyRate: '', monthlyRate: '',
@@ -31,8 +36,30 @@ export default function TimesheetUsers() {
 
   const resetForm = () => {
     setForm({ fullName: '', email: '', password: '', role: 'contractor', employeeId: '', phone: '', payType: 'daily', dailyRate: '', monthlyRate: '', paidLeavePerMonth: 0, clientBillingRate: '', assignedClient: '', assignedProjects: [] });
-    setEditing(null); setShowForm(false);
+    setEditing(null); setShowForm(false); setLinkedEmployee(null);
   };
+
+  // Auto-fill from Employee app when email is entered (only for new users)
+  const lookupEmployee = useCallback(async (email) => {
+    if (!email || !orgSlug || editing) return;
+    try {
+      const data = await employeeApi.getByEmail(orgSlug, email.trim());
+      if (data?.employee) {
+        const emp = data.employee;
+        setLinkedEmployee(emp);
+        setForm(prev => ({
+          ...prev,
+          fullName: prev.fullName || emp.fullName || '',
+          phone: prev.phone || emp.phone || '',
+          employeeId: prev.employeeId || emp.employeeId || '',
+        }));
+      } else {
+        setLinkedEmployee(null);
+      }
+    } catch {
+      setLinkedEmployee(null);
+    }
+  }, [orgSlug, editing]);
 
   const startEdit = (user) => {
     setForm({
@@ -163,10 +190,21 @@ export default function TimesheetUsers() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-dark-300 mb-1">Email *</label>
-                  <input type="email" required value={form.email} onChange={e => setForm({...form, email: e.target.value})}
+                  <input type="email" required value={form.email}
+                    onChange={e => { setForm({...form, email: e.target.value}); setLinkedEmployee(null); }}
+                    onBlur={e => !editing && lookupEmployee(e.target.value)}
                     className="input-field" />
                 </div>
               </div>
+              {linkedEmployee && !editing && (
+                <div className="flex items-center gap-2 px-3 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
+                  <UserCheck size={16} className="text-emerald-400 shrink-0" />
+                  <span className="text-sm text-emerald-300">
+                    Linked to employee: <strong>{linkedEmployee.fullName}</strong>
+                    {linkedEmployee.designation && <span className="text-emerald-400/70"> — {linkedEmployee.designation}</span>}
+                  </span>
+                </div>
+              )}
               {!editing && (
                 <div>
                   <label className="block text-sm font-medium text-dark-300 mb-1">Password *</label>

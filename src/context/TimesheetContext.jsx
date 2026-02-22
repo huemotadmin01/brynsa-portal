@@ -1,14 +1,17 @@
 import { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
+import { useAuth } from './AuthContext';
 import timesheetApi, { warmTimesheetBackend } from '../utils/timesheetApi';
 
 const TimesheetContext = createContext(null);
 
 export function TimesheetProvider({ children }) {
+  const { user } = useAuth();
   const [timesheetUser, setTimesheetUser] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const fetchedRef = useRef(false);
+  const lastUserEmailRef = useRef(null);
   const location = useLocation();
   const isInTimesheet = location.pathname.includes('/timesheet');
 
@@ -28,6 +31,17 @@ export function TimesheetProvider({ children }) {
       setLoading(false);
     }
   }, []);
+
+  // Re-fetch when user identity changes (e.g., impersonation / Login As)
+  const userEmail = user?.email || null;
+  useEffect(() => {
+    if (userEmail && lastUserEmailRef.current && userEmail !== lastUserEmailRef.current) {
+      // User changed (impersonation) — reset and re-fetch
+      fetchedRef.current = false;
+      setTimesheetUser(null);
+    }
+    lastUserEmailRef.current = userEmail;
+  }, [userEmail]);
 
   // Pre-warm backend + fetch profile when entering timesheet app
   useEffect(() => {

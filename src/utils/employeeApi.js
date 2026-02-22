@@ -76,6 +76,12 @@ const employeeApi = {
       method: 'POST',
     });
   },
+
+  importOdooManagers(orgSlug) {
+    return api.request(`/api/org/${orgSlug}/employee/admin/import-odoo-managers`, {
+      method: 'POST',
+    });
+  },
 };
 
 export default employeeApi;

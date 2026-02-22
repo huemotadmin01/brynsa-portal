@@ -58,18 +58,21 @@ export const APP_REGISTRY = {
     defaultRoute: '/timesheet/dashboard',
     roles: [
       { value: 'admin', label: 'Admin', color: 'purple' },
+      { value: 'manager', label: 'Manager', color: 'blue' },
       { value: 'member', label: 'Member', color: 'dark' },
     ],
     getSidebarItems: (user, timesheetUser, orgAppRole) => {
-      // Use org membership role as source of truth when available,
-      // fall back to ts_users role for backward compat (standalone users)
+      // Determine effective role from both org membership and ts_user role.
+      // ts_users.role is the authoritative source ('admin', 'manager', 'contractor').
+      // Org app role provides an override for org-based access.
+      const tsRole = timesheetUser?.role || 'contractor';
       let effectiveRole;
-      if (orgAppRole) {
-        // Map org roles → timesheet behavior: 'admin' stays admin, 'member' → member view
-        effectiveRole = orgAppRole === 'admin' ? 'admin' : 'member';
+      if (orgAppRole === 'admin' || tsRole === 'admin') {
+        effectiveRole = 'admin';
+      } else if (orgAppRole === 'manager' || tsRole === 'manager') {
+        effectiveRole = 'manager';
       } else {
-        // Legacy: use ts_users role directly
-        effectiveRole = timesheetUser?.role || 'contractor';
+        effectiveRole = 'contractor';
       }
 
       const isAdmin = effectiveRole === 'admin';
@@ -78,15 +81,13 @@ export const APP_REGISTRY = {
 
       return [
         { type: 'item', path: '/timesheet/dashboard', label: 'Dashboard', icon: Home },
-        // Member pages (fill timesheet, view earnings)
-        ...(isMember ? [
-          { type: 'item', path: '/timesheet/my-timesheet', label: 'My Timesheet', icon: CalendarDays },
-          { type: 'item', path: '/timesheet/earnings', label: 'My Earnings', icon: IndianRupee },
-        ] : []),
-        // Admin + Manager
+        // Admin + Manager: approval page
         ...((isAdmin || isManager) ? [
           { type: 'item', path: '/timesheet/approvals', label: 'Approvals', icon: CheckCircle2 },
         ] : []),
+        // Everyone gets their own timesheet and earnings (members, managers, admins)
+        { type: 'item', path: '/timesheet/my-timesheet', label: 'My Timesheet', icon: CalendarDays },
+        { type: 'item', path: '/timesheet/earnings', label: 'My Earnings', icon: IndianRupee },
         // Admin only
         ...(isAdmin ? [
           { type: 'item', path: '/timesheet/users', label: 'Users', icon: Users },

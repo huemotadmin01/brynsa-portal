@@ -39,7 +39,7 @@ export default function TimesheetUsers() {
   // Fetch all employees for the dropdown
   useEffect(() => {
     if (!orgSlug) return;
-    employeeApi.list(orgSlug, { status: 'active' }).then(data => {
+    employeeApi.list(orgSlug, { status: 'active', limit: 100 }).then(data => {
       setAllEmployees(data?.employees || []);
     }).catch(() => {});
   }, [orgSlug]);

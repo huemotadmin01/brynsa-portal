@@ -63,9 +63,13 @@ function ContractorDashboard() {
             </span>
             <StatusBadge status={current?.timesheetStatus} />
           </div>
-          <p className="text-2xl font-bold text-white">
-            {current?.earnings?.grossAmount != null ? `₹${current.earnings.grossAmount.toLocaleString()}` : '—'}
-          </p>
+          {current?.earnings?.grossAmount != null ? (
+            <>
+              <p className="text-sm text-dark-400">Gross: ₹{current.earnings.grossAmount.toLocaleString()}</p>
+              {current.earnings.tdsAmount > 0 && <p className="text-xs text-red-400">TDS (2%): -₹{current.earnings.tdsAmount.toLocaleString()}</p>}
+              <p className="text-2xl font-bold text-emerald-400 mt-1">₹{(current.earnings.netAmount || current.earnings.grossAmount).toLocaleString()}</p>
+            </>
+          ) : <p className="text-2xl font-bold text-white">—</p>}
           <p className="text-xs text-dark-500 mt-1">{current?.earnings?.calculation || ''}</p>
           {current?.statusLabel && <p className="text-xs text-blue-400 mt-2 font-medium">{current.statusLabel}</p>}
         </div>
@@ -77,9 +81,13 @@ function ContractorDashboard() {
             </span>
             <StatusBadge status={previous?.timesheetStatus} />
           </div>
-          <p className="text-2xl font-bold text-white">
-            {previous?.earnings?.grossAmount != null ? `₹${previous.earnings.grossAmount.toLocaleString()}` : '—'}
-          </p>
+          {previous?.earnings?.grossAmount != null ? (
+            <>
+              <p className="text-sm text-dark-400">Gross: ₹{previous.earnings.grossAmount.toLocaleString()}</p>
+              {previous.earnings.tdsAmount > 0 && <p className="text-xs text-red-400">TDS (2%): -₹{previous.earnings.tdsAmount.toLocaleString()}</p>}
+              <p className="text-2xl font-bold text-emerald-400 mt-1">₹{(previous.earnings.netAmount || previous.earnings.grossAmount).toLocaleString()}</p>
+            </>
+          ) : <p className="text-2xl font-bold text-white">—</p>}
           <p className="text-xs text-dark-500 mt-1">{previous?.breakdown?.totalWorkingDays || 0} working days</p>
           {previous?.disbursement?.status && (
             <span className={`text-xs font-medium mt-2 inline-block ${previous.disbursement.status === 'paid' ? 'text-emerald-400' : 'text-amber-400'}`}>

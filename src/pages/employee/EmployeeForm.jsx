@@ -162,6 +162,10 @@ export default function EmployeeForm() {
       setError('Email is required.');
       return;
     }
+    if ((form.status === 'resigned' || form.status === 'terminated') && !form.lastWorkingDate) {
+      setError('Last Working Date is required when status is Resigned or Terminated.');
+      return;
+    }
 
     setSaving(true);
     try {
@@ -512,7 +516,11 @@ export default function EmployeeForm() {
                   value={form.lastWorkingDate}
                   onChange={(e) => setField('lastWorkingDate', e.target.value)}
                   className="input-field w-full"
+                  required
                 />
+                {!form.lastWorkingDate && (
+                  <p className="text-xs text-red-400 mt-1">Required for resigned/terminated employees</p>
+                )}
               </div>
             )}
 

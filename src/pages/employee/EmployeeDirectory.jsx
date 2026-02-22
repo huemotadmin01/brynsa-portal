@@ -4,7 +4,7 @@ import { useOrg } from '../../context/OrgContext';
 import { usePlatform } from '../../context/PlatformContext';
 import employeeApi from '../../utils/employeeApi';
 import {
-  Search, Plus, Loader2, Users, Mail, Phone,
+  Search, Plus, Loader2, Users, Mail, Phone, Hash,
   ChevronLeft, ChevronRight, ChevronDown, X,
 } from 'lucide-react';
 
@@ -335,6 +335,12 @@ export default function EmployeeDirectory() {
                     <p className="text-dark-400 text-sm truncate">
                       {emp.designation || 'No designation'}
                     </p>
+                    {emp.employeeId && (
+                      <p className="text-dark-500 text-xs flex items-center gap-1 mt-0.5">
+                        <Hash size={10} className="flex-shrink-0" />
+                        {emp.employeeId}
+                      </p>
+                    )}
                   </div>
                 </div>
 

@@ -63,6 +63,19 @@ const employeeApi = {
       method: 'DELETE',
     });
   },
+
+  // ── Admin ───────────────────────────────────────────────────────────
+  importOdooRates(orgSlug) {
+    return api.request(`/api/org/${orgSlug}/employee/admin/import-odoo-rates`, {
+      method: 'POST',
+    });
+  },
+
+  syncAllToTimesheet(orgSlug) {
+    return api.request(`/api/org/${orgSlug}/employee/admin/sync-all-to-timesheet`, {
+      method: 'POST',
+    });
+  },
 };
 
 export default employeeApi;

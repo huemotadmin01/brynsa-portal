@@ -1,9 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useToast } from '../../context/ToastContext';
 import { useOrg } from '../../context/OrgContext';
 import timesheetApi from '../../utils/timesheetApi';
 import employeeApi from '../../utils/employeeApi';
-import { UserPlus, Edit2, X, Loader2, UserCheck } from 'lucide-react';
+import { UserPlus, Edit2, X, Loader2, UserCheck, Search, ChevronDown, Hash } from 'lucide-react';
 
 export default function TimesheetUsers() {
   const { showToast } = useToast();
@@ -12,10 +12,14 @@ export default function TimesheetUsers() {
   const [users, setUsers] = useState([]);
   const [projects, setProjects] = useState([]);
   const [clients, setClients] = useState([]);
+  const [allEmployees, setAllEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
   const [linkedEmployee, setLinkedEmployee] = useState(null);
+  const [empSearch, setEmpSearch] = useState('');
+  const [showEmpDropdown, setShowEmpDropdown] = useState(false);
+  const empDropdownRef = useRef(null);
   const [form, setForm] = useState({
     fullName: '', email: '', password: '', role: 'contractor',
     employeeId: '', phone: '', payType: 'daily', dailyRate: '', monthlyRate: '',
@@ -32,34 +36,54 @@ export default function TimesheetUsers() {
       .finally(() => setLoading(false));
   };
 
+  // Fetch all employees for the dropdown
+  useEffect(() => {
+    if (!orgSlug) return;
+    employeeApi.list(orgSlug, { status: 'active' }).then(data => {
+      setAllEmployees(data?.employees || []);
+    }).catch(() => {});
+  }, [orgSlug]);
+
+  // Close employee dropdown on outside click
+  useEffect(() => {
+    const handler = (e) => {
+      if (empDropdownRef.current && !empDropdownRef.current.contains(e.target)) {
+        setShowEmpDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
   useEffect(() => { load(); }, []);
 
   const resetForm = () => {
     setForm({ fullName: '', email: '', password: '', role: 'contractor', employeeId: '', phone: '', payType: 'daily', dailyRate: '', monthlyRate: '', paidLeavePerMonth: 0, clientBillingRate: '', assignedClient: '', assignedProjects: [] });
-    setEditing(null); setShowForm(false); setLinkedEmployee(null);
+    setEditing(null); setShowForm(false); setLinkedEmployee(null); setEmpSearch(''); setShowEmpDropdown(false);
   };
 
-  // Auto-fill from Employee app when email is entered (only for new users)
-  const lookupEmployee = useCallback(async (email) => {
-    if (!email || !orgSlug || editing) return;
-    try {
-      const data = await employeeApi.getByEmail(orgSlug, email.trim());
-      if (data?.employee) {
-        const emp = data.employee;
-        setLinkedEmployee(emp);
-        setForm(prev => ({
-          ...prev,
-          fullName: prev.fullName || emp.fullName || '',
-          phone: prev.phone || emp.phone || '',
-          employeeId: prev.employeeId || emp.employeeId || '',
-        }));
-      } else {
-        setLinkedEmployee(null);
-      }
-    } catch {
-      setLinkedEmployee(null);
-    }
-  }, [orgSlug, editing]);
+  // When an employee is selected from the dropdown, auto-fill form fields
+  const selectEmployee = (emp) => {
+    setLinkedEmployee(emp);
+    setEmpSearch(emp.fullName);
+    setShowEmpDropdown(false);
+
+    const dailyRate = emp.billingRate?.daily || '';
+    const monthlyRate = emp.billingRate?.monthly || '';
+    const payType = dailyRate ? 'daily' : monthlyRate ? 'monthly' : 'daily';
+
+    setForm(prev => ({
+      ...prev,
+      fullName: emp.fullName || prev.fullName,
+      email: emp.email || prev.email,
+      phone: emp.phone || prev.phone,
+      employeeId: emp.employeeId || prev.employeeId,
+      dailyRate: dailyRate || prev.dailyRate,
+      monthlyRate: monthlyRate || prev.monthlyRate,
+      payType,
+      clientBillingRate: emp.billingRate?.daily || prev.clientBillingRate,
+    }));
+  };
 
   const startEdit = (user) => {
     setForm({
@@ -70,6 +94,10 @@ export default function TimesheetUsers() {
       assignedClient: user.assignedClient?._id || user.assignedClient || '',
       assignedProjects: user.assignedProjects?.map(p => p._id || p) || []
     });
+    // Try to find linked employee
+    const emp = allEmployees.find(e => e.email === user.email);
+    setLinkedEmployee(emp || null);
+    setEmpSearch(emp?.fullName || '');
     setEditing(user._id); setShowForm(true);
   };
 
@@ -102,6 +130,15 @@ export default function TimesheetUsers() {
       load();
     } catch (err) { showToast('Failed to update', 'error'); }
   };
+
+  // Filter employees for dropdown
+  const filteredEmployees = allEmployees.filter(emp => {
+    if (!empSearch) return true;
+    const q = empSearch.toLowerCase();
+    return (emp.fullName || '').toLowerCase().includes(q) ||
+           (emp.email || '').toLowerCase().includes(q) ||
+           (emp.employeeId || '').toLowerCase().includes(q);
+  });
 
   if (loading) return <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-dark-400" /></div>;
 
@@ -182,6 +219,62 @@ export default function TimesheetUsers() {
               <button onClick={resetForm} className="text-dark-400 hover:text-white"><X size={20} /></button>
             </div>
             <form onSubmit={handleSubmit} className="p-5 space-y-4">
+
+              {/* Employee Lookup */}
+              <div ref={empDropdownRef} className="relative">
+                <label className="block text-sm font-medium text-dark-300 mb-1">
+                  <span className="flex items-center gap-1.5">
+                    <Search size={14} className="text-rivvra-400" />
+                    Employee Lookup
+                  </span>
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={empSearch}
+                    onChange={e => { setEmpSearch(e.target.value); setShowEmpDropdown(true); if (!e.target.value) setLinkedEmployee(null); }}
+                    onFocus={() => setShowEmpDropdown(true)}
+                    placeholder="Search by name, email, or ID..."
+                    className="input-field pr-8"
+                  />
+                  <ChevronDown size={14} className={`absolute right-3 top-1/2 -translate-y-1/2 text-dark-500 transition-transform ${showEmpDropdown ? 'rotate-180' : ''}`} />
+                </div>
+                {showEmpDropdown && (
+                  <div className="absolute left-0 right-0 top-full mt-1 bg-dark-800 border border-dark-700 rounded-xl shadow-2xl max-h-48 overflow-y-auto z-30">
+                    {filteredEmployees.length === 0 ? (
+                      <p className="text-sm text-dark-500 px-3 py-2">No employees found</p>
+                    ) : filteredEmployees.map(emp => (
+                      <button
+                        key={emp._id}
+                        type="button"
+                        onClick={() => selectEmployee(emp)}
+                        className={`w-full text-left px-3 py-2 text-sm transition-colors hover:bg-dark-700 ${
+                          linkedEmployee?._id === emp._id ? 'bg-rivvra-500/10 text-rivvra-400' : 'text-dark-300'
+                        }`}
+                      >
+                        <div className="font-medium text-white">{emp.fullName}</div>
+                        <div className="flex items-center gap-2 text-xs text-dark-400">
+                          <span>{emp.email}</span>
+                          {emp.employeeId && <span className="flex items-center gap-0.5"><Hash size={9} />{emp.employeeId}</span>}
+                          {emp.billable && <span className="text-amber-400">Billable</span>}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {linkedEmployee && (
+                <div className="flex items-center gap-2 px-3 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
+                  <UserCheck size={16} className="text-emerald-400 shrink-0" />
+                  <span className="text-sm text-emerald-300">
+                    Linked: <strong>{linkedEmployee.fullName}</strong>
+                    {linkedEmployee.employeeId && <span className="text-emerald-400/70"> ({linkedEmployee.employeeId})</span>}
+                    {linkedEmployee.designation && <span className="text-emerald-400/70"> — {linkedEmployee.designation}</span>}
+                  </span>
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-dark-300 mb-1">Full Name *</label>
@@ -191,20 +284,10 @@ export default function TimesheetUsers() {
                 <div>
                   <label className="block text-sm font-medium text-dark-300 mb-1">Email *</label>
                   <input type="email" required value={form.email}
-                    onChange={e => { setForm({...form, email: e.target.value}); setLinkedEmployee(null); }}
-                    onBlur={e => !editing && lookupEmployee(e.target.value)}
+                    onChange={e => setForm({...form, email: e.target.value})}
                     className="input-field" />
                 </div>
               </div>
-              {linkedEmployee && !editing && (
-                <div className="flex items-center gap-2 px-3 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
-                  <UserCheck size={16} className="text-emerald-400 shrink-0" />
-                  <span className="text-sm text-emerald-300">
-                    Linked to employee: <strong>{linkedEmployee.fullName}</strong>
-                    {linkedEmployee.designation && <span className="text-emerald-400/70"> — {linkedEmployee.designation}</span>}
-                  </span>
-                </div>
-              )}
               {!editing && (
                 <div>
                   <label className="block text-sm font-medium text-dark-300 mb-1">Password *</label>

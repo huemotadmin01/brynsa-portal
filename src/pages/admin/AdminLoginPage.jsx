@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { GOOGLE_CLIENT_ID } from '../../utils/config';
 import {
   ShieldCheck, Loader2, Eye, EyeOff, AlertCircle, Mail, Lock
 } from 'lucide-react';
@@ -8,13 +9,15 @@ import RivvraLogo from '../../components/BrynsaLogo';
 
 function AdminLoginPage() {
   const navigate = useNavigate();
-  const { loginWithPassword, isAuthenticated, user } = useAuth();
+  const { loginWithPassword, loginWithGoogle, isAuthenticated, user } = useAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState('');
+  const googleInitialized = useRef(false);
 
   // If already authenticated as super admin, redirect
   useEffect(() => {
@@ -22,6 +25,66 @@ function AdminLoginPage() {
       navigate('/admin', { replace: true });
     }
   }, [isAuthenticated, user, navigate]);
+
+  // Handle Google credential
+  const handleGoogleCredential = useCallback(async (credential) => {
+    setGoogleLoading(true);
+    setError('');
+    try {
+      const result = await loginWithGoogle({ credential });
+      if (result.success) {
+        if (result.user?.superAdmin) {
+          navigate('/admin', { replace: true });
+        } else {
+          setError('Access denied. Super admin privileges required.');
+        }
+      } else {
+        setError(result.error || 'Google login failed');
+      }
+    } catch (err) {
+      setError(err.message || 'Google login failed. Please try again.');
+    } finally {
+      setGoogleLoading(false);
+    }
+  }, [loginWithGoogle, navigate]);
+
+  // Initialize Google Sign-In
+  useEffect(() => {
+    if (googleInitialized.current) return;
+
+    const loadGoogleScript = () => {
+      if (window.google?.accounts) {
+        initializeGoogle();
+        return;
+      }
+      const script = document.createElement('script');
+      script.src = 'https://accounts.google.com/gsi/client';
+      script.async = true;
+      script.defer = true;
+      script.onload = initializeGoogle;
+      document.head.appendChild(script);
+    };
+
+    const initializeGoogle = () => {
+      if (window.google?.accounts && !googleInitialized.current) {
+        googleInitialized.current = true;
+        window.google.accounts.id.initialize({
+          client_id: GOOGLE_CLIENT_ID,
+          callback: (response) => {
+            if (response.credential) {
+              handleGoogleCredential(response.credential);
+            }
+          },
+        });
+        window.google.accounts.id.renderButton(
+          document.getElementById('admin-google-signin-button'),
+          { theme: 'filled_black', size: 'large', width: 400, text: 'signin_with' }
+        );
+      }
+    };
+
+    loadGoogleScript();
+  }, [handleGoogleCredential]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -82,6 +145,27 @@ function AdminLoginPage() {
               {error}
             </div>
           )}
+
+          {/* Google Sign-In */}
+          <div className="mb-6">
+            {googleLoading && (
+              <div className="flex items-center justify-center py-3">
+                <Loader2 className="w-5 h-5 animate-spin text-amber-400" />
+                <span className="ml-2 text-dark-400 text-sm">Verifying with Google...</span>
+              </div>
+            )}
+            <div id="admin-google-signin-button" className="w-full flex justify-center" />
+          </div>
+
+          {/* Divider */}
+          <div className="relative mb-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-dark-700" />
+            </div>
+            <div className="relative flex justify-center text-xs">
+              <span className="bg-dark-900 px-3 text-dark-500">or sign in with email</span>
+            </div>
+          </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Email */}

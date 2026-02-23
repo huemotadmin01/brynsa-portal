@@ -6,7 +6,7 @@ import { useTimesheetContext } from '../../context/TimesheetContext';
 import { useOrg } from '../../context/OrgContext';
 import { stripOrgPrefix } from '../../config/apps';
 import {
-  ChevronRight, ChevronDown, Crown, LogOut, Building2
+  ChevronRight, ChevronDown, LogOut, Building2
 } from 'lucide-react';
 import ComingSoonModal from '../ComingSoonModal';
 
@@ -17,7 +17,6 @@ function AppSidebar() {
   const { currentApp, orgPath, orgSlug } = usePlatform();
   const { timesheetUser } = useTimesheetContext();
   const { hasAppAccess, getAppRole, currentOrg } = useOrg();
-  const isPro = user?.plan === 'pro' || user?.plan === 'premium';
   const [showWipModal, setShowWipModal] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState({});
 
@@ -146,27 +145,6 @@ function AppSidebar() {
           );
         })}
       </nav>
-
-      {/* Upgrade Banner (for free users) */}
-      {!isPro && (
-        <div className="p-4 border-t border-dark-800 shrink-0">
-          <div className="p-4 rounded-xl bg-gradient-to-br from-amber-500/10 to-orange-500/10 border border-amber-500/20">
-            <div className="flex items-center gap-2 mb-2">
-              <Crown className="w-5 h-5 text-amber-400" />
-              <span className="font-semibold text-white">Upgrade to Pro</span>
-            </div>
-            <p className="text-sm text-dark-400 mb-3">
-              Unlock AI emails, CRM exports & more
-            </p>
-            <button
-              onClick={() => setShowWipModal(true)}
-              className="w-full py-2 px-4 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 text-dark-950 font-semibold text-sm hover:from-amber-400 hover:to-orange-400 transition-all"
-            >
-              Upgrade Now
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* User Menu */}
       <div className="p-4 border-t border-dark-800 shrink-0">

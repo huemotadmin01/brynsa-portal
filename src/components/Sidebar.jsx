@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
   Home, Send, Users, List, Settings, LogOut,
-  ChevronRight, ChevronDown, Crown, BarChart3, UsersRound, Layers
+  ChevronRight, ChevronDown, BarChart3, UsersRound, Layers
 } from 'lucide-react';
 import RivvraLogo from './BrynsaLogo';
 import ComingSoonModal from './ComingSoonModal';
@@ -12,7 +12,6 @@ function Sidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout, isImpersonating } = useAuth();
-  const isPro = user?.plan === 'pro' || user?.plan === 'premium';
   const [showWipModal, setShowWipModal] = useState(false);
 
   const isAdmin = user?.role === 'admin' || user?.role === 'team_lead';
@@ -193,27 +192,6 @@ function Sidebar() {
           </Link>
         ))}
       </nav>
-
-      {/* Upgrade Banner (for free users) */}
-      {!isPro && (
-        <div className="p-4 border-t border-dark-800 shrink-0">
-          <div className="p-4 rounded-xl bg-gradient-to-br from-amber-500/10 to-orange-500/10 border border-amber-500/20">
-            <div className="flex items-center gap-2 mb-2">
-              <Crown className="w-5 h-5 text-amber-400" />
-              <span className="font-semibold text-white">Upgrade to Pro</span>
-            </div>
-            <p className="text-sm text-dark-400 mb-3">
-              Unlock AI emails, CRM exports & more
-            </p>
-            <button
-              onClick={() => setShowWipModal(true)}
-              className="w-full py-2 px-4 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 text-dark-950 font-semibold text-sm hover:from-amber-400 hover:to-orange-400 transition-all"
-            >
-              Upgrade Now
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* User Menu */}
       <div className="p-4 border-t border-dark-800 shrink-0">

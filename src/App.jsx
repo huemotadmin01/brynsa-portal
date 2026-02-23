@@ -52,6 +52,15 @@ import EmployeeDepartments from './pages/employee/EmployeeDepartments';
 import EmployeeDetail from './pages/employee/EmployeeDetail';
 import EmployeeForm from './pages/employee/EmployeeForm';
 
+// Super Admin
+import SuperAdminRoute from './components/SuperAdminRoute';
+import AdminLayout from './components/admin/AdminLayout';
+import AdminLoginPage from './pages/admin/AdminLoginPage';
+import AdminOverviewPage from './pages/admin/AdminOverviewPage';
+import AdminWorkspacesPage from './pages/admin/AdminWorkspacesPage';
+import AdminWorkspaceDetailPage from './pages/admin/AdminWorkspaceDetailPage';
+import AdminEmailTemplatesPage from './pages/admin/AdminEmailTemplatesPage';
+
 // Simple wrapper for settings pages — adds consistent header + padding
 function SettingsPageWrapper({ children }) {
   return (
@@ -183,6 +192,18 @@ function App() {
             <Route path="/onboarding" element={<OrgRedirect to="/home" />} />
             <Route path="/search" element={<OrgRedirect to="/home" />} />
             <Route path="/app/*" element={<OrgRedirect to="/home" />} />
+
+            {/* ============================================================ */}
+            {/* SUPER ADMIN ROUTES — /admin/*                              */}
+            {/* Completely independent from org layout.                     */}
+            {/* ============================================================ */}
+            <Route path="/admin/login" element={<AdminLoginPage />} />
+            <Route element={<SuperAdminRoute><AdminLayout /></SuperAdminRoute>}>
+              <Route path="/admin" element={<AdminOverviewPage />} />
+              <Route path="/admin/workspaces" element={<AdminWorkspacesPage />} />
+              <Route path="/admin/workspaces/:orgId" element={<AdminWorkspaceDetailPage />} />
+              <Route path="/admin/email-templates" element={<AdminEmailTemplatesPage />} />
+            </Route>
 
             {/* Fallback */}
             <Route path="*" element={<Navigate to="/" replace />} />

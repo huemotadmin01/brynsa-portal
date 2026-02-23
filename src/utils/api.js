@@ -850,6 +850,50 @@ class ApiClient {
       body: JSON.stringify(data),
     });
   }
+
+  // ─── Super Admin ──────────────────────────────────────────────────────────
+
+  async getSuperAdminStats() {
+    return this.request('/api/superadmin/stats');
+  }
+
+  async getSuperAdminWorkspaces(params = {}) {
+    const qs = new URLSearchParams(params).toString();
+    return this.request(`/api/superadmin/workspaces${qs ? '?' + qs : ''}`);
+  }
+
+  async getSuperAdminWorkspace(orgId) {
+    return this.request(`/api/superadmin/workspaces/${orgId}`);
+  }
+
+  async updateSuperAdminWorkspace(orgId, data) {
+    return this.request(`/api/superadmin/workspaces/${orgId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getEmailTemplates() {
+    return this.request('/api/superadmin/email-templates');
+  }
+
+  async getEmailTemplate(key) {
+    return this.request(`/api/superadmin/email-templates/${key}`);
+  }
+
+  async updateEmailTemplate(key, data) {
+    return this.request(`/api/superadmin/email-templates/${key}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async previewEmailTemplate(key, sampleData) {
+    return this.request(`/api/superadmin/email-templates/${key}/preview`, {
+      method: 'POST',
+      body: JSON.stringify({ sampleData }),
+    });
+  }
 }
 
 export const api = new ApiClient();

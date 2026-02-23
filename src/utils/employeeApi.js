@@ -82,6 +82,18 @@ const employeeApi = {
       method: 'POST',
     });
   },
+
+  // ── App Settings ─────────────────────────────────────────────────────
+  getAppSettings(orgSlug) {
+    return api.request(`/api/org/${orgSlug}/employee/app-settings`);
+  },
+
+  updateAppSettings(orgSlug, data) {
+    return api.request(`/api/org/${orgSlug}/employee/app-settings`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
 };
 
 export default employeeApi;

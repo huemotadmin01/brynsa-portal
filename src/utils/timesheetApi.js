@@ -63,4 +63,31 @@ export async function provisionTimesheetUser(email, fullName, role = 'contractor
   return res.data;
 }
 
+// ─── App Settings (Odoo-inspired config) ──────────────────────────────────
+export async function getTimesheetAppSettings() {
+  const res = await timesheetApi.get('/app-settings');
+  return res.data;
+}
+
+export async function updateTimesheetAppSettings(data) {
+  const res = await timesheetApi.put('/app-settings', data);
+  return res.data;
+}
+
+// ─── Pay Configuration (Employee → Timesheet config) ──────────────────────
+export async function getPayConfig() {
+  const res = await timesheetApi.get('/pay-config');
+  return res.data;
+}
+
+export async function updatePayConfig(email, data) {
+  const res = await timesheetApi.put(`/pay-config/${encodeURIComponent(email)}`, data);
+  return res.data;
+}
+
+export async function syncAllPayConfig() {
+  const res = await timesheetApi.post('/pay-config/sync-all');
+  return res.data;
+}
+
 export default timesheetApi;

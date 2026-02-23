@@ -90,7 +90,7 @@ export const APP_REGISTRY = {
         { type: 'item', path: '/timesheet/earnings', label: 'My Earnings', icon: IndianRupee },
         // Admin only
         ...(isAdmin ? [
-          { type: 'item', path: '/timesheet/users', label: 'Users', icon: Users },
+          { type: 'item', path: '/timesheet/pay-config', label: 'Pay Config', icon: IndianRupee },
           { type: 'item', path: '/timesheet/projects', label: 'Projects & Clients', icon: Briefcase },
           { type: 'item', path: '/timesheet/export', label: 'Export Data', icon: Download },
         ] : []),
@@ -164,6 +164,7 @@ export const APP_REGISTRY = {
         ...(isAdmin ? [{ type: 'item', path: '/settings/users', label: 'Users & Teams', icon: Users }] : []),
         { type: 'item', path: '/settings/outreach', label: 'Outreach', icon: Mail },
         { type: 'item', path: '/settings/timesheet', label: 'Timesheet', icon: Clock },
+        { type: 'item', path: '/settings/employee', label: 'Employee', icon: UsersRound },
       ];
     },
   },

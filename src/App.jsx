@@ -36,6 +36,7 @@ import SettingsGeneral from './components/settings/SettingsGeneral';
 import SettingsTeam from './components/settings/SettingsTeam';
 import SettingsOutreach from './components/settings/SettingsOutreach';
 import SettingsTimesheet from './components/settings/SettingsTimesheet';
+import SettingsEmployee from './components/settings/SettingsEmployee';
 
 // Timesheet app pages
 import TimesheetDashboard from './pages/timesheet/TimesheetDashboard';
@@ -43,6 +44,7 @@ import TimesheetEntry from './pages/timesheet/TimesheetEntry';
 import TimesheetEarnings from './pages/timesheet/TimesheetEarnings';
 import TimesheetApprovals from './pages/timesheet/TimesheetApprovals';
 import TimesheetUsers from './pages/timesheet/TimesheetUsers';
+import TimesheetPayConfig from './pages/timesheet/TimesheetPayConfig';
 import TimesheetProjects from './pages/timesheet/TimesheetProjects';
 import TimesheetExport from './pages/timesheet/TimesheetExport';
 
@@ -145,6 +147,7 @@ function App() {
                 <Route path="/org/:slug/settings/users" element={<SettingsPageWrapper><SettingsTeam /></SettingsPageWrapper>} />
                 <Route path="/org/:slug/settings/outreach" element={<SettingsPageWrapper><SettingsOutreach /></SettingsPageWrapper>} />
                 <Route path="/org/:slug/settings/timesheet" element={<SettingsPageWrapper><SettingsTimesheet /></SettingsPageWrapper>} />
+                <Route path="/org/:slug/settings/employee" element={<SettingsPageWrapper><SettingsEmployee /></SettingsPageWrapper>} />
               </Route>
 
               {/* Timesheet app routes — gated by timesheet access */}
@@ -154,6 +157,7 @@ function App() {
                 <Route path="/org/:slug/timesheet/earnings" element={<TimesheetEarnings />} />
                 <Route path="/org/:slug/timesheet/approvals" element={<TimesheetApprovals />} />
                 <Route path="/org/:slug/timesheet/users" element={<TimesheetUsers />} />
+                <Route path="/org/:slug/timesheet/pay-config" element={<TimesheetPayConfig />} />
                 <Route path="/org/:slug/timesheet/projects" element={<TimesheetProjects />} />
                 <Route path="/org/:slug/timesheet/export" element={<TimesheetExport />} />
               </Route>

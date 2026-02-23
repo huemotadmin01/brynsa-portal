@@ -832,6 +832,12 @@ class ApiClient {
     });
   }
 
+  // ─── Public Org Info ────────────────────────────────────────────────────────
+
+  async getOrgPublicInfo(slug) {
+    return this.request(`/api/org/${slug}/public-info`);
+  }
+
   // ─── Trial & Billing ──────────────────────────────────────────────────────
 
   async getTrialStatus(orgSlug) {

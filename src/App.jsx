@@ -14,6 +14,7 @@ import LandingPage from './pages/LandingPage';
 import SignupPage from './pages/SignupPage';
 import LoginPage from './pages/LoginPage';
 import InviteAcceptPage from './pages/InviteAcceptPage';
+import OrgLoginPage from './pages/OrgLoginPage';
 import PrivacyPage from './pages/PrivacyPage';
 import FeaturesPage from './pages/FeaturesPage';
 import PricingPage from './pages/PricingPage';
@@ -101,6 +102,9 @@ function App() {
             <Route path="/features" element={<FeaturesPage />} />
             <Route path="/pricing" element={<PricingPage />} />
             <Route path="/privacy" element={<PrivacyPage />} />
+
+            {/* Org-specific login — public, no auth required */}
+            <Route path="/org/:slug/login" element={<OrgLoginPage />} />
 
             {/* ============================================================ */}
             {/* ORG-SCOPED ROUTES — /org/:slug/...                           */}

@@ -17,7 +17,19 @@ function ProtectedRoute({ children }) {
   }
 
   if (!isAuthenticated) {
-    // Redirect to login, saving the attempted location
+    // Extract slug from URL path: /org/:slug/*
+    const pathParts = location.pathname.split('/');
+    const orgIndex = pathParts.indexOf('org');
+    const slug = orgIndex !== -1 && pathParts.length > orgIndex + 1
+      ? pathParts[orgIndex + 1]
+      : null;
+
+    if (slug) {
+      // Redirect to org-specific login page
+      return <Navigate to={`/org/${slug}/login`} state={{ from: location }} replace />;
+    }
+
+    // Fallback: generic login
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 

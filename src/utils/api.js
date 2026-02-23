@@ -831,6 +831,19 @@ class ApiClient {
       body: JSON.stringify({ newOwnerId }),
     });
   }
+
+  // ─── Trial & Billing ──────────────────────────────────────────────────────
+
+  async getTrialStatus(orgSlug) {
+    return this.request(`/api/org/${orgSlug}/trial-status`);
+  }
+
+  async upgradeOrg(orgSlug, data) {
+    return this.request(`/api/org/${orgSlug}/upgrade`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
 }
 
 export const api = new ApiClient();

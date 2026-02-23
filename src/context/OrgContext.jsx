@@ -110,6 +110,14 @@ export function OrgProvider({ children }) {
     return access?.enabled ? access.role : null;
   }, [membership]);
 
+  // Trial state helpers
+  const trial = currentOrg?.trial || null;
+  const isTrialActive = trial?.status === 'active';
+  const isGracePeriod = trial?.status === 'grace';
+  const isTrialArchived = trial?.status === 'archived';
+  const isReadOnly = trial?.status === 'grace';
+  const trialDaysRemaining = trial?.daysRemaining ?? null;
+
   // Memoize context value
   const value = useMemo(() => ({
     currentOrg,
@@ -122,11 +130,18 @@ export function OrgProvider({ children }) {
     isOrgAdmin: membership?.orgRole === 'owner' || membership?.orgRole === 'admin',
     isOrgOwner: membership?.orgRole === 'owner',
     orgRole: membership?.orgRole || null,
+    // Trial state
+    trial,
+    isTrialActive,
+    isGracePeriod,
+    isTrialArchived,
+    isReadOnly,
+    trialDaysRemaining,
     refetchOrg: () => {
       fetchedRef.current = false;
       fetchOrg();
     },
-  }), [currentOrg, membership, effectiveSlug, loading, error, hasAppAccess, getAppRole, fetchOrg]);
+  }), [currentOrg, membership, effectiveSlug, loading, error, hasAppAccess, getAppRole, fetchOrg, trial, isTrialActive, isGracePeriod, isTrialArchived, isReadOnly, trialDaysRemaining]);
 
   return (
     <OrgContext.Provider value={value}>

@@ -18,6 +18,7 @@ import PrivacyPage from './pages/PrivacyPage';
 import FeaturesPage from './pages/FeaturesPage';
 import PricingPage from './pages/PricingPage';
 import AppLauncherPage from './pages/AppLauncherPage';
+import UpgradePage from './pages/UpgradePage';
 
 // Outreach app pages
 import DashboardPage from './pages/DashboardPage';
@@ -107,6 +108,7 @@ function App() {
             {/* ============================================================ */}
             <Route element={<ProtectedRoute><OrgPlatformLayout /></ProtectedRoute>}>
               <Route path="/org/:slug/home" element={<AppLauncherPage />} />
+              <Route path="/org/:slug/upgrade" element={<UpgradePage />} />
 
               {/* Outreach app routes — gated by outreach access */}
               <Route element={<AppAccessGate appId="outreach" />}>

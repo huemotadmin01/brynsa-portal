@@ -4,6 +4,7 @@ import { usePlatform } from '../../context/PlatformContext';
 import { TimesheetProvider } from '../../context/TimesheetContext';
 import TopBar from './TopBar';
 import AppSidebar from './AppSidebar';
+import TrialBanner from './TrialBanner';
 import { ArrowLeftRight, X } from 'lucide-react';
 
 function ImpersonationBanner() {
@@ -40,6 +41,7 @@ function PlatformLayout() {
       <div className={`min-h-screen bg-dark-950 ${isImpersonating ? 'pt-10' : ''}`}>
         <ImpersonationBanner />
         <TopBar />
+        <TrialBanner />
         <div className="flex">
           <AppSidebar />
           <main className={`flex-1 min-w-0 min-h-[calc(100vh-3.5rem)] ${currentApp ? 'ml-64' : ''}`}>

@@ -12,7 +12,6 @@ import OrgAdminGate from './components/OrgAdminGate';
 
 import LandingPage from './pages/LandingPage';
 import SignupPage from './pages/SignupPage';
-import LoginPage from './pages/LoginPage';
 import InviteAcceptPage from './pages/InviteAcceptPage';
 import OrgLoginPage from './pages/OrgLoginPage';
 import PrivacyPage from './pages/PrivacyPage';
@@ -107,7 +106,7 @@ function App() {
             {/* Public Routes */}
             <Route path="/" element={<LandingPage />} />
             <Route path="/signup" element={<SignupPage />} />
-            <Route path="/login" element={<LoginPage />} />
+            <Route path="/login" element={<Navigate to="/signup" replace />} />
             <Route path="/invite" element={<InviteAcceptPage />} />
             <Route path="/features" element={<FeaturesPage />} />
             <Route path="/pricing" element={<PricingPage />} />

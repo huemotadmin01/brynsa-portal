@@ -614,8 +614,8 @@ function SignupPage() {
 
               <p className="text-sm text-dark-500 text-center">
                 Already have an account?{' '}
-                <Link to="/login" className="text-rivvra-400 hover:text-rivvra-300">
-                  Log in
+                <Link to="/find-workspace" className="text-rivvra-400 hover:text-rivvra-300">
+                  Find your workspace
                 </Link>
               </p>
             </div>

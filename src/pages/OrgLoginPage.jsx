@@ -249,10 +249,10 @@ export default function OrgLoginPage() {
             </p>
           </div>
           <Link
-            to="/login"
+            to="/signup"
             className="inline-flex items-center gap-2 px-6 py-3 bg-dark-800 text-white rounded-xl hover:bg-dark-700 transition-colors"
           >
-            Go to Login
+            Go to Sign Up
             <ArrowRight className="w-4 h-4" />
           </Link>
         </div>

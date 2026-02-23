@@ -381,57 +381,73 @@ export default function EmployeeForm() {
               </label>
               <span className="text-sm font-medium text-dark-300">Billable</span>
             </div>
+          </div>
+        </div>
 
-            {/* Billing Rate — Daily */}
+        {/* ── Candidate Billing Rate ──────────────────────────────── */}
+        <div className="card p-5 space-y-4">
+          <h2 className="text-white font-semibold text-lg">Candidate Billing Rate</h2>
+          <p className="text-sm text-dark-400">The rate at which this candidate/employee is paid. Fill in one rate type that applies.</p>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            {/* Candidate Rate — Daily */}
             <div>
               <label className="block text-sm font-medium text-dark-300 mb-1">
-                Billing Rate - Daily
+                Candidate Rate ({'\u20B9'}/day)
               </label>
-              <input
-                type="number"
-                value={form.billingRate.daily}
-                onChange={(e) => setNested('billingRate', 'daily', e.target.value)}
-                className="input-field w-full"
-                placeholder="0"
-                min="0"
-              />
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-dark-400 text-sm">{'\u20B9'}</span>
+                <input
+                  type="number"
+                  value={form.billingRate.daily}
+                  onChange={(e) => setNested('billingRate', 'daily', e.target.value)}
+                  className="input-field w-full pl-7"
+                  placeholder="0"
+                  min="0"
+                />
+              </div>
             </div>
 
-            {/* Billing Rate — Hourly */}
+            {/* Candidate Rate — Hourly */}
             <div>
               <label className="block text-sm font-medium text-dark-300 mb-1">
-                Billing Rate - Hourly
+                Candidate Rate ($/hour)
               </label>
-              <input
-                type="number"
-                value={form.billingRate.hourly}
-                onChange={(e) => setNested('billingRate', 'hourly', e.target.value)}
-                className="input-field w-full"
-                placeholder="0"
-                min="0"
-              />
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-dark-400 text-sm">$</span>
+                <input
+                  type="number"
+                  value={form.billingRate.hourly}
+                  onChange={(e) => setNested('billingRate', 'hourly', e.target.value)}
+                  className="input-field w-full pl-7"
+                  placeholder="0"
+                  min="0"
+                />
+              </div>
             </div>
 
-            {/* Billing Rate — Monthly */}
+            {/* Candidate Rate — Monthly */}
             <div>
               <label className="block text-sm font-medium text-dark-300 mb-1">
-                Billing Rate - Monthly
+                Candidate Rate ({'\u20B9'}/month)
               </label>
-              <input
-                type="number"
-                value={form.billingRate.monthly}
-                onChange={(e) => setNested('billingRate', 'monthly', e.target.value)}
-                className="input-field w-full"
-                placeholder="0"
-                min="0"
-              />
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-dark-400 text-sm">{'\u20B9'}</span>
+                <input
+                  type="number"
+                  value={form.billingRate.monthly}
+                  onChange={(e) => setNested('billingRate', 'monthly', e.target.value)}
+                  className="input-field w-full pl-7"
+                  placeholder="0"
+                  min="0"
+                />
+              </div>
             </div>
           </div>
         </div>
 
-        {/* ── Client Payment Configuration ────────────────────────── */}
+        {/* ── Client Billing Rate ─────────────────────────────────── */}
         <div className="card p-5 space-y-4">
-          <h2 className="text-white font-semibold text-lg">Client Payment Configuration</h2>
+          <h2 className="text-white font-semibold text-lg">Client Billing Rate</h2>
           <p className="text-sm text-dark-400">Rates charged to the client for this employee. Syncs to Timesheet automatically.</p>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             {/* Client Billing Rate — Daily */}

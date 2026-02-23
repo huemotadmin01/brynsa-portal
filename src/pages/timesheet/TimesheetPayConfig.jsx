@@ -23,6 +23,24 @@ const PAY_TYPES = [
   { value: 'monthly', label: 'Monthly' },
 ];
 
+/** Pick the first non-zero billing rate from an object { daily, hourly, monthly } */
+function pickBillingRate(rateObj) {
+  if (!rateObj) return null;
+  const d = Number(rateObj.daily) || 0;
+  const h = Number(rateObj.hourly) || 0;
+  const m = Number(rateObj.monthly) || 0;
+  if (m) return { value: m, suffix: '/mo', prefix: '\u20B9' };
+  if (d) return { value: d, suffix: '/day', prefix: '\u20B9' };
+  if (h) return { value: h, suffix: '/hr', prefix: '$' };
+  return null;
+}
+
+/** Format a billing rate for display */
+function formatRate(rate) {
+  if (!rate) return '\u2014';
+  return `${rate.prefix}${rate.value.toLocaleString('en-IN')}${rate.suffix}`;
+}
+
 export default function TimesheetPayConfig() {
   const { timesheetUser } = useTimesheetContext();
   const isAdmin = timesheetUser?.role === 'admin';
@@ -193,7 +211,8 @@ export default function TimesheetPayConfig() {
                 <th className="text-left px-4 py-3 text-xs font-medium text-dark-400 uppercase tracking-wider">Status</th>
                 <th className="text-left px-4 py-3 text-xs font-medium text-dark-400 uppercase tracking-wider">Role</th>
                 <th className="text-left px-4 py-3 text-xs font-medium text-dark-400 uppercase tracking-wider">Pay Type</th>
-                <th className="text-right px-4 py-3 text-xs font-medium text-dark-400 uppercase tracking-wider">Rate</th>
+                <th className="text-right px-4 py-3 text-xs font-medium text-dark-400 uppercase tracking-wider">Client Billing Rate</th>
+                <th className="text-right px-4 py-3 text-xs font-medium text-dark-400 uppercase tracking-wider">Candidate Rate</th>
                 <th className="text-center px-4 py-3 text-xs font-medium text-dark-400 uppercase tracking-wider">Paid Leave</th>
                 <th className="text-right px-4 py-3 text-xs font-medium text-dark-400 uppercase tracking-wider">Actions</th>
               </tr>
@@ -202,6 +221,8 @@ export default function TimesheetPayConfig() {
               {filtered.map(emp => {
                 const isEditing = editingEmail === emp.email;
                 const tc = emp.tsConfig;
+                const clientRate = pickBillingRate(emp.clientBillingRate);
+                const candidateRate = pickBillingRate(emp.billingRate);
                 return (
                   <tr key={emp._id} className={`transition-colors ${isEditing ? 'bg-dark-800/50' : 'hover:bg-dark-800/30'}`}>
                     {/* Employee Info */}
@@ -267,28 +288,18 @@ export default function TimesheetPayConfig() {
                       )}
                     </td>
 
-                    {/* Rate */}
+                    {/* Client Billing Rate (read-only, from Employee Directory) */}
                     <td className="px-4 py-3 text-right">
-                      {isEditing ? (
-                        <input
-                          type="number"
-                          value={editForm.payType === 'monthly' ? editForm.monthlyRate : editForm.dailyRate}
-                          onChange={e => {
-                            const val = Number(e.target.value);
-                            if (editForm.payType === 'monthly') setEditForm({...editForm, monthlyRate: val});
-                            else setEditForm({...editForm, dailyRate: val});
-                          }}
-                          className="input-field w-28 text-xs py-1 text-right"
-                          placeholder="0"
-                        />
-                      ) : (
-                        <span className="text-sm text-white font-medium">
-                          {tc.payType === 'monthly'
-                            ? `₹${(tc.monthlyRate || 0).toLocaleString('en-IN')}/mo`
-                            : `₹${(tc.dailyRate || 0).toLocaleString('en-IN')}/day`
-                          }
-                        </span>
-                      )}
+                      <span className={`text-sm font-medium ${clientRate ? 'text-white' : 'text-dark-600'}`}>
+                        {formatRate(clientRate)}
+                      </span>
+                    </td>
+
+                    {/* Candidate Billing Rate (read-only, from Employee Directory) */}
+                    <td className="px-4 py-3 text-right">
+                      <span className={`text-sm font-medium ${candidateRate ? 'text-white' : 'text-dark-600'}`}>
+                        {formatRate(candidateRate)}
+                      </span>
                     </td>
 
                     {/* Paid Leave */}

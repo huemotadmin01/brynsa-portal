@@ -1,7 +1,7 @@
 import {
   Send, Users, List, Home, BarChart3, UsersRound, Layers,
   Clock, Briefcase, UserSearch, Mail, CalendarDays, IndianRupee,
-  CheckCircle2, Download, Settings, Building2, UserPlus
+  CheckCircle2, Download, Settings, Building2, UserPlus, Wallet
 } from 'lucide-react';
 
 export const APP_REGISTRY = {
@@ -90,7 +90,7 @@ export const APP_REGISTRY = {
         { type: 'item', path: '/timesheet/earnings', label: 'My Earnings', icon: IndianRupee },
         // Admin only
         ...(isAdmin ? [
-          { type: 'item', path: '/timesheet/pay-config', label: 'Pay Config', icon: IndianRupee },
+          { type: 'item', path: '/timesheet/pay-config', label: 'Pay Config', icon: Wallet },
           { type: 'item', path: '/timesheet/projects', label: 'Projects & Clients', icon: Briefcase },
           { type: 'item', path: '/timesheet/export', label: 'Export Data', icon: Download },
         ] : []),

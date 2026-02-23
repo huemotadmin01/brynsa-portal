@@ -1,9 +1,105 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useOrg } from '../../context/OrgContext';
 import { usePlatform } from '../../context/PlatformContext';
 import employeeApi from '../../utils/employeeApi';
-import { ArrowLeft, Save, Loader2, AlertTriangle, Plus, Trash2, Briefcase } from 'lucide-react';
+import { ArrowLeft, Save, Loader2, AlertTriangle, Plus, Trash2, Briefcase, ChevronDown } from 'lucide-react';
+
+// ---------------------------------------------------------------------------
+// ComboSelect — searchable dropdown with "Create new" option
+// ---------------------------------------------------------------------------
+function ComboSelect({ value, displayValue, options, onChange, placeholder, disabled }) {
+  const [open, setOpen] = useState(false);
+  const [inputValue, setInputValue] = useState(displayValue || '');
+  const ref = useRef(null);
+
+  // Close on outside click
+  useEffect(() => {
+    const handler = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  // Sync display value when prop changes
+  useEffect(() => { setInputValue(displayValue || ''); }, [displayValue]);
+
+  const trimmed = inputValue.trim().toLowerCase();
+  const filtered = options.filter(o =>
+    o.name.toLowerCase().includes(trimmed)
+  );
+  const exactMatch = options.some(o => o.name.toLowerCase() === trimmed);
+
+  return (
+    <div ref={ref} className="relative">
+      <div className="relative">
+        <input
+          type="text"
+          value={inputValue}
+          onChange={(e) => {
+            setInputValue(e.target.value);
+            setOpen(true);
+            // Clear selection if user is typing something different
+            if (value && e.target.value !== displayValue) {
+              onChange('', e.target.value.trim());
+            }
+          }}
+          onFocus={() => setOpen(true)}
+          placeholder={placeholder}
+          disabled={disabled}
+          className="input-field w-full text-sm pr-8"
+        />
+        <button
+          type="button"
+          onClick={() => setOpen(!open)}
+          disabled={disabled}
+          className="absolute right-2 top-1/2 -translate-y-1/2 text-dark-500 hover:text-dark-300"
+        >
+          <ChevronDown size={14} />
+        </button>
+      </div>
+      {open && (
+        <div className="absolute z-50 top-full mt-1 w-full bg-dark-800 border border-dark-600 rounded-lg shadow-xl max-h-48 overflow-y-auto">
+          {filtered.length > 0 ? (
+            filtered.map(o => (
+              <button
+                key={o._id}
+                type="button"
+                onClick={() => {
+                  onChange(o._id, o.name);
+                  setInputValue(o.name);
+                  setOpen(false);
+                }}
+                className={`w-full text-left px-3 py-2 text-sm hover:bg-dark-700 transition-colors ${
+                  o._id === value ? 'text-orange-400 bg-dark-700/50' : 'text-white'
+                }`}
+              >
+                {o.name}
+              </button>
+            ))
+          ) : (
+            !inputValue.trim() && (
+              <div className="px-3 py-2 text-sm text-dark-500">No options available</div>
+            )
+          )}
+          {inputValue.trim() && !exactMatch && (
+            <button
+              type="button"
+              onClick={() => {
+                onChange('', inputValue.trim());
+                setOpen(false);
+              }}
+              className="w-full text-left px-3 py-2 text-sm text-orange-400 hover:bg-dark-700 transition-colors border-t border-dark-700 font-medium"
+            >
+              + Create &ldquo;{inputValue.trim()}&rdquo;
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 const INITIAL_FORM = {
   fullName: '',
@@ -122,6 +218,7 @@ export default function EmployeeForm() {
               projectName: a.projectName || '',
               clientBillingRate: a.clientBillingRate ?? '',
               startDate: a.startDate ? a.startDate.slice(0, 10) : '',
+              endDate: a.endDate ? a.endDate.slice(0, 10) : '',
               status: a.status || 'active',
             })),
             joiningDate: emp.joiningDate ? emp.joiningDate.slice(0, 10) : '',
@@ -174,7 +271,7 @@ export default function EmployeeForm() {
       ...prev,
       assignments: [
         ...prev.assignments,
-        { clientId: '', clientName: '', projectId: '', projectName: '', clientBillingRate: '', startDate: new Date().toISOString().slice(0, 10), status: 'active' },
+        { clientId: '', clientName: '', projectId: '', projectName: '', clientBillingRate: '', startDate: new Date().toISOString().slice(0, 10), endDate: '', status: 'active' },
       ],
     }));
   };
@@ -190,15 +287,29 @@ export default function EmployeeForm() {
     setForm(prev => {
       const updated = [...prev.assignments];
       updated[idx] = { ...updated[idx], [field]: value };
-      // Auto-fill names when selecting from dropdown
-      if (field === 'clientId') {
-        const client = tsClients.find(c => c._id === value);
-        updated[idx].clientName = client?.name || '';
+      return { ...prev, assignments: updated };
+    });
+  };
+
+  // Combo handler for client: sets both clientId + clientName
+  const setAssignmentClient = (idx, id, name) => {
+    setForm(prev => {
+      const updated = [...prev.assignments];
+      updated[idx] = { ...updated[idx], clientId: id, clientName: name };
+      // Reset project when client changes
+      if (id !== prev.assignments[idx]?.clientId) {
+        updated[idx].projectId = '';
+        updated[idx].projectName = '';
       }
-      if (field === 'projectId') {
-        const project = tsProjects.find(p => p._id === value);
-        updated[idx].projectName = project?.name || '';
-      }
+      return { ...prev, assignments: updated };
+    });
+  };
+
+  // Combo handler for project: sets both projectId + projectName
+  const setAssignmentProject = (idx, id, name) => {
+    setForm(prev => {
+      const updated = [...prev.assignments];
+      updated[idx] = { ...updated[idx], projectId: id, projectName: name };
       return { ...prev, assignments: updated };
     });
   };
@@ -554,37 +665,35 @@ export default function EmployeeForm() {
                   </button>
                 </div>
               </div>
-              <div className="grid grid-cols-1 lg:grid-cols-4 gap-3">
-                {/* Client */}
+
+              {/* Row 1: Client + Project */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                {/* Client (ComboSelect — lookup + create) */}
                 <div>
                   <label className="block text-xs font-medium text-dark-400 mb-1">Client</label>
-                  <select
+                  <ComboSelect
                     value={assignment.clientId}
-                    onChange={(e) => updateAssignment(idx, 'clientId', e.target.value)}
-                    className="input-field w-full text-sm"
-                  >
-                    <option value="">Select Client</option>
-                    {tsClients.map(c => (
-                      <option key={c._id} value={c._id}>{c.name}</option>
-                    ))}
-                  </select>
+                    displayValue={assignment.clientName}
+                    options={tsClients}
+                    onChange={(id, name) => setAssignmentClient(idx, id, name)}
+                    placeholder="Search or create client..."
+                  />
                 </div>
-                {/* Project (filtered by selected client) */}
+                {/* Project (ComboSelect — filtered by client + create) */}
                 <div>
                   <label className="block text-xs font-medium text-dark-400 mb-1">Project</label>
-                  <select
+                  <ComboSelect
                     value={assignment.projectId}
-                    onChange={(e) => updateAssignment(idx, 'projectId', e.target.value)}
-                    className="input-field w-full text-sm"
-                  >
-                    <option value="">Select Project</option>
-                    {tsProjects
-                      .filter(p => !assignment.clientId || p.clientId === assignment.clientId)
-                      .map(p => (
-                        <option key={p._id} value={p._id}>{p.name}</option>
-                      ))}
-                  </select>
+                    displayValue={assignment.projectName}
+                    options={tsProjects.filter(p => !assignment.clientId || p.clientId === assignment.clientId)}
+                    onChange={(id, name) => setAssignmentProject(idx, id, name)}
+                    placeholder="Search or create project..."
+                  />
                 </div>
+              </div>
+
+              {/* Row 2: Billing Rate + Start Date + End Date */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
                 {/* Client Billing Rate */}
                 <div>
                   <label className="block text-xs font-medium text-dark-400 mb-1">Client Billing Rate ({'\u20B9'}/day)</label>
@@ -607,6 +716,16 @@ export default function EmployeeForm() {
                     type="date"
                     value={assignment.startDate}
                     onChange={(e) => updateAssignment(idx, 'startDate', e.target.value)}
+                    className="input-field w-full text-sm"
+                  />
+                </div>
+                {/* End Date */}
+                <div>
+                  <label className="block text-xs font-medium text-dark-400 mb-1">End Date</label>
+                  <input
+                    type="date"
+                    value={assignment.endDate || ''}
+                    onChange={(e) => updateAssignment(idx, 'endDate', e.target.value)}
                     className="input-field w-full text-sm"
                   />
                 </div>

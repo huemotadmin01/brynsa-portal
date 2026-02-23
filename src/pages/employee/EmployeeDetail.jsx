@@ -358,6 +358,7 @@ export default function EmployeeDetail() {
                   <th className="text-left px-3 py-2 text-xs font-medium text-dark-400 uppercase tracking-wider">Project</th>
                   <th className="text-right px-3 py-2 text-xs font-medium text-dark-400 uppercase tracking-wider">Billing Rate</th>
                   <th className="text-left px-3 py-2 text-xs font-medium text-dark-400 uppercase tracking-wider">Start Date</th>
+                  <th className="text-left px-3 py-2 text-xs font-medium text-dark-400 uppercase tracking-wider">End Date</th>
                   <th className="text-center px-3 py-2 text-xs font-medium text-dark-400 uppercase tracking-wider">Status</th>
                 </tr>
               </thead>
@@ -370,6 +371,7 @@ export default function EmployeeDetail() {
                       {a.clientBillingRate ? `\u20B9${Number(a.clientBillingRate).toLocaleString()}/day` : '\u2014'}
                     </td>
                     <td className="px-3 py-2.5 text-sm text-dark-300">{formatDate(a.startDate)}</td>
+                    <td className="px-3 py-2.5 text-sm text-dark-300">{formatDate(a.endDate) || '\u2014'}</td>
                     <td className="px-3 py-2.5 text-center">
                       <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
                         a.status === 'active'

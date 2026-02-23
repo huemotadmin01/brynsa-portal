@@ -8,7 +8,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useTimesheetContext } from '../../context/TimesheetContext';
 import {
   Search, Loader2, Edit3, X, Check, Save, RefreshCw,
-  IndianRupee, Users, ChevronDown, Building2,
+  IndianRupee, Users, ChevronDown, Building2, Briefcase,
 } from 'lucide-react';
 import { getPayConfig, updatePayConfig, syncAllPayConfig } from '../../utils/timesheetApi';
 
@@ -211,7 +211,7 @@ export default function TimesheetPayConfig() {
                 <th className="text-left px-4 py-3 text-xs font-medium text-dark-400 uppercase tracking-wider">Status</th>
                 <th className="text-left px-4 py-3 text-xs font-medium text-dark-400 uppercase tracking-wider">Role</th>
                 <th className="text-left px-4 py-3 text-xs font-medium text-dark-400 uppercase tracking-wider">Pay Type</th>
-                <th className="text-right px-4 py-3 text-xs font-medium text-dark-400 uppercase tracking-wider">Client Billing Rate</th>
+                <th className="text-left px-4 py-3 text-xs font-medium text-dark-400 uppercase tracking-wider">Assignments</th>
                 <th className="text-right px-4 py-3 text-xs font-medium text-dark-400 uppercase tracking-wider">Candidate Rate</th>
                 <th className="text-center px-4 py-3 text-xs font-medium text-dark-400 uppercase tracking-wider">Paid Leave</th>
                 <th className="text-right px-4 py-3 text-xs font-medium text-dark-400 uppercase tracking-wider">Actions</th>
@@ -221,7 +221,8 @@ export default function TimesheetPayConfig() {
               {filtered.map(emp => {
                 const isEditing = editingEmail === emp.email;
                 const tc = emp.tsConfig;
-                const clientRate = pickBillingRate(emp.clientBillingRate);
+                const assignments = emp.assignments || [];
+                const activeAssignments = assignments.filter(a => a.status === 'active');
                 const candidateRate = pickBillingRate(emp.billingRate);
                 return (
                   <tr key={emp._id} className={`transition-colors ${isEditing ? 'bg-dark-800/50' : 'hover:bg-dark-800/30'}`}>
@@ -288,11 +289,27 @@ export default function TimesheetPayConfig() {
                       )}
                     </td>
 
-                    {/* Client Billing Rate (read-only, from Employee Directory) */}
-                    <td className="px-4 py-3 text-right">
-                      <span className={`text-sm font-medium ${clientRate ? 'text-white' : 'text-dark-600'}`}>
-                        {formatRate(clientRate)}
-                      </span>
+                    {/* Assignments (read-only, from Employee Directory) */}
+                    <td className="px-4 py-3">
+                      {activeAssignments.length > 0 ? (
+                        <div className="space-y-1">
+                          {activeAssignments.slice(0, 2).map((a, i) => (
+                            <div key={i} className="flex items-center gap-1.5 text-xs">
+                              <span className="text-dark-400">{a.clientName || 'Client'}</span>
+                              <span className="text-dark-600">&rarr;</span>
+                              <span className="text-white">{a.projectName || 'Project'}</span>
+                              {a.clientBillingRate > 0 && (
+                                <span className="text-dark-500 ml-1">({'\u20B9'}{Number(a.clientBillingRate).toLocaleString('en-IN')}/day)</span>
+                              )}
+                            </div>
+                          ))}
+                          {activeAssignments.length > 2 && (
+                            <span className="text-[10px] text-dark-500">+{activeAssignments.length - 2} more</span>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-xs text-dark-600">{'\u2014'}</span>
+                      )}
                     </td>
 
                     {/* Candidate Billing Rate (read-only, from Employee Directory) */}

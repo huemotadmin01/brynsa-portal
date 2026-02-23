@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useOrg } from '../../context/OrgContext';
 import { usePlatform } from '../../context/PlatformContext';
 import employeeApi from '../../utils/employeeApi';
-import { ArrowLeft, Save, Loader2, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Save, Loader2, AlertTriangle, Plus, Trash2, Briefcase } from 'lucide-react';
 
 const INITIAL_FORM = {
   fullName: '',
@@ -26,6 +26,7 @@ const INITIAL_FORM = {
     hourly: '',
     monthly: '',
   },
+  assignments: [],
   joiningDate: '',
   lastWorkingDate: '',
   dateOfBirth: '',
@@ -61,16 +62,26 @@ export default function EmployeeForm() {
 
   const [form, setForm] = useState(INITIAL_FORM);
   const [departments, setDepartments] = useState([]);
+  const [tsClients, setTsClients] = useState([]);
+  const [tsProjects, setTsProjects] = useState([]);
   const [loading, setLoading] = useState(isEdit);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
-  // Fetch departments
+  // Fetch departments + timesheet options (clients/projects for assignment dropdowns)
   useEffect(() => {
     if (!orgSlug) return;
     employeeApi.listDepartments(orgSlug)
       .then((res) => {
         if (res.success) setDepartments(res.departments || []);
+      })
+      .catch(() => {});
+    employeeApi.getTimesheetOptions(orgSlug)
+      .then((res) => {
+        if (res.success) {
+          setTsClients(res.clients || []);
+          setTsProjects(res.projects || []);
+        }
       })
       .catch(() => {});
   }, [orgSlug]);
@@ -104,6 +115,15 @@ export default function EmployeeForm() {
               hourly: emp.clientBillingRate?.hourly ?? '',
               monthly: emp.clientBillingRate?.monthly ?? '',
             },
+            assignments: (emp.assignments || []).map(a => ({
+              clientId: a.clientId || '',
+              clientName: a.clientName || '',
+              projectId: a.projectId || '',
+              projectName: a.projectName || '',
+              clientBillingRate: a.clientBillingRate ?? '',
+              startDate: a.startDate ? a.startDate.slice(0, 10) : '',
+              status: a.status || 'active',
+            })),
             joiningDate: emp.joiningDate ? emp.joiningDate.slice(0, 10) : '',
             lastWorkingDate: emp.lastWorkingDate ? emp.lastWorkingDate.slice(0, 10) : '',
             dateOfBirth: emp.dateOfBirth ? emp.dateOfBirth.slice(0, 10) : '',
@@ -146,6 +166,41 @@ export default function EmployeeForm() {
       ...prev,
       [section]: { ...prev[section], [key]: value },
     }));
+  };
+
+  // ── Assignment helpers ──────────────────────────────────────────────
+  const addAssignment = () => {
+    setForm(prev => ({
+      ...prev,
+      assignments: [
+        ...prev.assignments,
+        { clientId: '', clientName: '', projectId: '', projectName: '', clientBillingRate: '', startDate: new Date().toISOString().slice(0, 10), status: 'active' },
+      ],
+    }));
+  };
+
+  const removeAssignment = (idx) => {
+    setForm(prev => ({
+      ...prev,
+      assignments: prev.assignments.filter((_, i) => i !== idx),
+    }));
+  };
+
+  const updateAssignment = (idx, field, value) => {
+    setForm(prev => {
+      const updated = [...prev.assignments];
+      updated[idx] = { ...updated[idx], [field]: value };
+      // Auto-fill names when selecting from dropdown
+      if (field === 'clientId') {
+        const client = tsClients.find(c => c._id === value);
+        updated[idx].clientName = client?.name || '';
+      }
+      if (field === 'projectId') {
+        const project = tsProjects.find(p => p._id === value);
+        updated[idx].projectName = project?.name || '';
+      }
+      return { ...prev, assignments: updated };
+    });
   };
 
   // Submit
@@ -445,65 +500,119 @@ export default function EmployeeForm() {
           </div>
         </div>
 
-        {/* ── Client Billing Rate ─────────────────────────────────── */}
+        {/* ── Project Assignments ───────────────────────────────── */}
         <div className="card p-5 space-y-4">
-          <h2 className="text-white font-semibold text-lg">Client Billing Rate</h2>
-          <p className="text-sm text-dark-400">Rates charged to the client for this employee. Syncs to Timesheet automatically.</p>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            {/* Client Billing Rate — Daily */}
+          <div className="flex items-center justify-between">
             <div>
-              <label className="block text-sm font-medium text-dark-300 mb-1">
-                Client Billing Rate (₹/day)
-              </label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-dark-400 text-sm">₹</span>
-                <input
-                  type="number"
-                  value={form.clientBillingRate.daily}
-                  onChange={(e) => setNested('clientBillingRate', 'daily', e.target.value)}
-                  className="input-field w-full pl-7"
-                  placeholder="0"
-                  min="0"
-                />
-              </div>
+              <h2 className="text-white font-semibold text-lg flex items-center gap-2">
+                <Briefcase size={18} className="text-orange-400" />
+                Project Assignments
+              </h2>
+              <p className="text-sm text-dark-400 mt-0.5">Assign this employee to client projects. Each assignment has its own billing rate. Syncs to Timesheet automatically.</p>
             </div>
-
-            {/* Client Billing Rate — Hourly */}
-            <div>
-              <label className="block text-sm font-medium text-dark-300 mb-1">
-                Client Billing Rate ($/hour)
-              </label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-dark-400 text-sm">$</span>
-                <input
-                  type="number"
-                  value={form.clientBillingRate.hourly}
-                  onChange={(e) => setNested('clientBillingRate', 'hourly', e.target.value)}
-                  className="input-field w-full pl-7"
-                  placeholder="0"
-                  min="0"
-                />
-              </div>
-            </div>
-
-            {/* Client Billing Rate — Monthly */}
-            <div>
-              <label className="block text-sm font-medium text-dark-300 mb-1">
-                Client Billing Rate (₹/month)
-              </label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-dark-400 text-sm">₹</span>
-                <input
-                  type="number"
-                  value={form.clientBillingRate.monthly}
-                  onChange={(e) => setNested('clientBillingRate', 'monthly', e.target.value)}
-                  className="input-field w-full pl-7"
-                  placeholder="0"
-                  min="0"
-                />
-              </div>
-            </div>
+            <button
+              type="button"
+              onClick={addAssignment}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-500/10 text-orange-400 border border-orange-500/20 rounded-lg text-sm font-medium hover:bg-orange-500/20 transition-colors"
+            >
+              <Plus size={14} />
+              Add Assignment
+            </button>
           </div>
+
+          {form.assignments.length === 0 && (
+            <div className="text-center py-6 border border-dashed border-dark-700 rounded-xl">
+              <Briefcase size={24} className="mx-auto mb-2 text-dark-600" />
+              <p className="text-dark-500 text-sm">No project assignments yet.</p>
+              <p className="text-dark-600 text-xs mt-1">Click "Add Assignment" to assign this employee to a client project.</p>
+            </div>
+          )}
+
+          {form.assignments.map((assignment, idx) => (
+            <div key={idx} className="border border-dark-700 rounded-xl p-4 space-y-3 bg-dark-800/30">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-dark-400">Assignment {idx + 1}</span>
+                <div className="flex items-center gap-2">
+                  <select
+                    value={assignment.status}
+                    onChange={(e) => updateAssignment(idx, 'status', e.target.value)}
+                    className={`text-xs px-2 py-0.5 rounded-full border font-medium ${
+                      assignment.status === 'active'
+                        ? 'bg-green-500/10 text-green-400 border-green-500/20'
+                        : 'bg-dark-700 text-dark-400 border-dark-600'
+                    }`}
+                  >
+                    <option value="active">Active</option>
+                    <option value="ended">Ended</option>
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => removeAssignment(idx)}
+                    className="p-1 text-dark-500 hover:text-red-400 transition-colors"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-4 gap-3">
+                {/* Client */}
+                <div>
+                  <label className="block text-xs font-medium text-dark-400 mb-1">Client</label>
+                  <select
+                    value={assignment.clientId}
+                    onChange={(e) => updateAssignment(idx, 'clientId', e.target.value)}
+                    className="input-field w-full text-sm"
+                  >
+                    <option value="">Select Client</option>
+                    {tsClients.map(c => (
+                      <option key={c._id} value={c._id}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+                {/* Project (filtered by selected client) */}
+                <div>
+                  <label className="block text-xs font-medium text-dark-400 mb-1">Project</label>
+                  <select
+                    value={assignment.projectId}
+                    onChange={(e) => updateAssignment(idx, 'projectId', e.target.value)}
+                    className="input-field w-full text-sm"
+                  >
+                    <option value="">Select Project</option>
+                    {tsProjects
+                      .filter(p => !assignment.clientId || p.clientId === assignment.clientId)
+                      .map(p => (
+                        <option key={p._id} value={p._id}>{p.name}</option>
+                      ))}
+                  </select>
+                </div>
+                {/* Client Billing Rate */}
+                <div>
+                  <label className="block text-xs font-medium text-dark-400 mb-1">Client Billing Rate ({'\u20B9'}/day)</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-dark-400 text-sm">{'\u20B9'}</span>
+                    <input
+                      type="number"
+                      value={assignment.clientBillingRate}
+                      onChange={(e) => updateAssignment(idx, 'clientBillingRate', e.target.value)}
+                      className="input-field w-full pl-7 text-sm"
+                      placeholder="0"
+                      min="0"
+                    />
+                  </div>
+                </div>
+                {/* Start Date */}
+                <div>
+                  <label className="block text-xs font-medium text-dark-400 mb-1">Start Date</label>
+                  <input
+                    type="date"
+                    value={assignment.startDate}
+                    onChange={(e) => updateAssignment(idx, 'startDate', e.target.value)}
+                    className="input-field w-full text-sm"
+                  />
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
 
         {/* ── Dates ─────────────────────────────────────────────────── */}

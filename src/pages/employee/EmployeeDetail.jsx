@@ -15,6 +15,7 @@ import {
   User,
   IndianRupee,
   Loader2,
+  Briefcase,
 } from 'lucide-react';
 
 // ---------------------------------------------------------------------------
@@ -338,6 +339,53 @@ export default function EmployeeDetail() {
           </SectionCard>
         )}
       </div>
+
+      {/* ── Project Assignments (full-width) ────────────────────────────── */}
+      {Array.isArray(emp.assignments) && emp.assignments.length > 0 && (
+        <div className="card p-5 mt-5">
+          <div className="flex items-center gap-2 mb-4">
+            <Briefcase size={16} className="text-orange-400" />
+            <h3 className="text-white font-semibold">Project Assignments</h3>
+            <span className="ml-auto text-xs bg-orange-500/10 text-orange-400 px-2 py-0.5 rounded-full font-medium">
+              {emp.assignments.filter(a => a.status === 'active').length} active
+            </span>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-dark-700">
+                  <th className="text-left px-3 py-2 text-xs font-medium text-dark-400 uppercase tracking-wider">Client</th>
+                  <th className="text-left px-3 py-2 text-xs font-medium text-dark-400 uppercase tracking-wider">Project</th>
+                  <th className="text-right px-3 py-2 text-xs font-medium text-dark-400 uppercase tracking-wider">Billing Rate</th>
+                  <th className="text-left px-3 py-2 text-xs font-medium text-dark-400 uppercase tracking-wider">Start Date</th>
+                  <th className="text-center px-3 py-2 text-xs font-medium text-dark-400 uppercase tracking-wider">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-dark-800">
+                {emp.assignments.map((a, i) => (
+                  <tr key={i} className="hover:bg-dark-800/30 transition-colors">
+                    <td className="px-3 py-2.5 text-sm text-white">{a.clientName || '\u2014'}</td>
+                    <td className="px-3 py-2.5 text-sm text-white">{a.projectName || '\u2014'}</td>
+                    <td className="px-3 py-2.5 text-sm text-white text-right">
+                      {a.clientBillingRate ? `\u20B9${Number(a.clientBillingRate).toLocaleString()}/day` : '\u2014'}
+                    </td>
+                    <td className="px-3 py-2.5 text-sm text-dark-300">{formatDate(a.startDate)}</td>
+                    <td className="px-3 py-2.5 text-center">
+                      <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
+                        a.status === 'active'
+                          ? 'bg-green-500/10 text-green-400'
+                          : 'bg-dark-700 text-dark-400'
+                      }`}>
+                        {a.status === 'active' ? 'Active' : 'Ended'}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -83,6 +83,11 @@ const employeeApi = {
     });
   },
 
+  // ── Timesheet Options (projects & clients for assignment dropdowns) ──
+  getTimesheetOptions(orgSlug) {
+    return api.request(`/api/org/${orgSlug}/employee/timesheet-options`);
+  },
+
   // ── App Settings ─────────────────────────────────────────────────────
   getAppSettings(orgSlug) {
     return api.request(`/api/org/${orgSlug}/employee/app-settings`);

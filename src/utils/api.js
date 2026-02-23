@@ -692,6 +692,30 @@ class ApiClient {
     });
   }
 
+  // ─── Org Branding & Settings ──────────────────────────────────────────────
+
+  async updateOrg(orgSlug, data) {
+    return this.request(`/api/org/${orgSlug}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async uploadOrgLogo(orgSlug, formData) {
+    const url = `${this.baseUrl}/api/org/${orgSlug}/logo`;
+    const token = localStorage.getItem('rivvra_token');
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      body: formData,
+    });
+    return res.json();
+  }
+
+  async deleteOrgLogo(orgSlug) {
+    return this.request(`/api/org/${orgSlug}/logo`, { method: 'DELETE' });
+  }
+
   // ─── Org Membership Management ─────────────────────────────────────────────
 
   async getOrgMembers(orgSlug) {

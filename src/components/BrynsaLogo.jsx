@@ -4,7 +4,7 @@ function RivvraLogo({ className = "w-5 h-5" }) {
     <img
       src={`${import.meta.env.BASE_URL}rivvra-logo.png`}
       alt="Rivvra"
-      className={`${className} object-contain rounded-sm`}
+      className={`${className} object-contain`}
       draggable={false}
     />
   );

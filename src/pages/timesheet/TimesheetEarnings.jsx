@@ -225,11 +225,8 @@ async function downloadPayslipHTML(month, year, showToast) {
   .net-box .net-label{font-size:13px;font-weight:600}
   .net-box .net-amount{font-size:20px;font-weight:700;letter-spacing:0.5px}
   .words{font-size:10px;color:#555;padding:8px 12px;background:#f9f9f9;border:1px solid #eee;margin-top:10px;font-style:italic}
-  .footer{margin-top:30px;padding-top:15px;border-top:1px solid #ddd;display:flex;justify-content:space-between;align-items:flex-end}
+  .footer{margin-top:30px;padding-top:15px;border-top:1px solid #ddd;text-align:center}
   .footer-left{font-size:9px;color:#aaa;line-height:1.6}
-  .footer-right{text-align:right}
-  .footer-right .auth{font-size:10px;color:#666;margin-bottom:4px}
-  .footer-right .sig-line{width:140px;border-top:1px solid #999;margin-top:30px;margin-left:auto}
   .two-col{display:flex;gap:0}
   .two-col > div{flex:1}
   @media print{body{padding:20px 30px}}
@@ -309,11 +306,6 @@ async function downloadPayslipHTML(month, year, showToast) {
     This is a system-generated payslip and does not require a physical signature.<br/>
     Generated on ${new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
   </div>
-  <div class="footer-right">
-    <div class="auth">Authorized Signatory</div>
-    <div class="sig-line"></div>
-    <div style="font-size:9px;color:#888;margin-top:4px;text-align:center">${co.name || ''}</div>
-  </div>
 </div>
 
 </body></html>`;
@@ -392,7 +384,7 @@ export default function TimesheetEarnings() {
               }`}>
                 {data.timesheetStatus}
               </span>
-              {data.month && data.year && (
+              {data.month && data.year && data.timesheetStatus === 'approved' && (
                 <button
                   onClick={() => handleDownloadPayslip(data.month, data.year)}
                   disabled={downloading === `${data.month}-${data.year}`}
@@ -507,7 +499,7 @@ export default function TimesheetEarnings() {
                     </span>
                   </td>
                   <td className="px-4 py-3 text-center">
-                    {h.grossAmount > 0 && (
+                    {h.grossAmount > 0 && h.status === 'approved' ? (
                       <button
                         onClick={() => handleDownloadPayslip(h.month, h.year)}
                         disabled={downloading === `${h.month}-${h.year}`}
@@ -516,7 +508,9 @@ export default function TimesheetEarnings() {
                       >
                         {downloading === `${h.month}-${h.year}` ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
                       </button>
-                    )}
+                    ) : h.grossAmount > 0 ? (
+                      <span className="text-dark-600 text-xs" title="Payslip available after approval">—</span>
+                    ) : null}
                   </td>
                 </tr>
               ))}

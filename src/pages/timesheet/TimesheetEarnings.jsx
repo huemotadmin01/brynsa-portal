@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useToast } from '../../context/ToastContext';
 import timesheetApi from '../../utils/timesheetApi';
+import { API_BASE_URL } from '../../utils/config';
 import { Clock, Loader2, Download, FileText } from 'lucide-react';
 
 const monthNames = ['', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -178,63 +179,150 @@ async function downloadPayslip(month, year, showToast) {
   }
 }
 
-/** Fallback: HTML-based payslip download */
+/** Professional HTML payslip — opens in new window for print-to-PDF */
 async function downloadPayslipHTML(month, year, showToast) {
   const res = await timesheetApi.get('/earnings/payslip', { params: { month, year } });
   const data = res.data;
 
+  const emp = data.employee;
+  const co = data.company || {};
+  const brk = data.breakdown;
+  const earn = data.earnings;
+
+  const fmt = (n) => Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const joinDate = emp.joiningDate ? new Date(emp.joiningDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '\u2014';
+
+  // Logo: use org logo endpoint if available
+  const logoUrl = co.logoUrl ? `${API_BASE_URL}${co.logoUrl}` : '';
+  const logoImg = logoUrl ? `<img src="${logoUrl}" style="max-height:50px;max-width:160px;object-fit:contain;" crossorigin="anonymous" />` : '';
+
   const html = `<!DOCTYPE html>
 <html><head><meta charset="utf-8"><title>Payslip - ${monthNames[data.month]} ${data.year}</title>
 <style>
-body{font-family:Arial,sans-serif;margin:20px;color:#333}
-.header{text-align:center;margin-bottom:20px}
-.header h1{margin:0;font-size:18px}
-.header p{margin:4px 0;font-size:11px;color:#666}
-.title{background:#f0f0f0;text-align:center;padding:8px;font-weight:bold;margin:15px 0;font-size:14px}
-.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 30px;margin:15px 0;font-size:11px;border:1px solid #ddd;padding:10px}
-.info-grid .label{color:#666}
-.info-grid .value{font-weight:bold}
-.table{width:100%;border-collapse:collapse;margin:15px 0}
-.table th,.table td{border:1px solid #ddd;padding:6px 10px;font-size:11px}
-.table th{background:#f5f5f5;font-weight:bold;text-align:left}
-.earn-head{background:#e8f5e9!important;color:#2e7d32}
-.ded-head{background:#ffebee!important;color:#c62828}
-.net-pay{background:#e3f2fd;padding:12px;font-size:14px;font-weight:bold;color:#1565c0;display:flex;justify-content:space-between;margin:15px 0}
-.footer{text-align:center;font-size:9px;color:#999;margin-top:20px;border-top:1px solid #ddd;padding-top:10px}
-.words{font-size:10px;color:#444;margin:10px 0}
-@media print{body{margin:0}}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Segoe UI',Arial,sans-serif;color:#1a1a1a;background:#fff;padding:40px 50px;max-width:800px;margin:0 auto}
+  .header{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:20px;border-bottom:3px solid #1a5276}
+  .header-left{display:flex;align-items:center;gap:16px}
+  .company-info h1{font-size:20px;font-weight:700;color:#1a5276;margin-bottom:2px}
+  .company-info p{font-size:10px;color:#666;line-height:1.5}
+  .header-right{text-align:right}
+  .slip-title{font-size:18px;font-weight:700;color:#1a5276;text-transform:uppercase;letter-spacing:1px}
+  .slip-period{font-size:12px;color:#555;margin-top:4px}
+  .section{margin-top:20px}
+  .section-title{font-size:11px;font-weight:700;color:#fff;background:#1a5276;padding:6px 12px;text-transform:uppercase;letter-spacing:0.5px}
+  .info-table{width:100%;border-collapse:collapse}
+  .info-table td{padding:7px 12px;font-size:11px;border-bottom:1px solid #eee}
+  .info-table .lbl{color:#888;width:140px;font-weight:500}
+  .info-table .val{color:#1a1a1a;font-weight:600}
+  .earn-table{width:100%;border-collapse:collapse;margin-top:0}
+  .earn-table th{background:#f7f9fc;color:#1a5276;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;padding:8px 12px;border-bottom:2px solid #1a5276;text-align:left}
+  .earn-table th:last-child{text-align:right}
+  .earn-table td{padding:8px 12px;font-size:11px;border-bottom:1px solid #eee}
+  .earn-table td:last-child{text-align:right;font-weight:600}
+  .earn-table .total-row{background:#f7f9fc;font-weight:700}
+  .earn-table .total-row td{border-top:2px solid #1a5276;border-bottom:2px solid #1a5276}
+  .net-box{background:#1a5276;color:#fff;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;margin-top:0}
+  .net-box .net-label{font-size:13px;font-weight:600}
+  .net-box .net-amount{font-size:20px;font-weight:700;letter-spacing:0.5px}
+  .words{font-size:10px;color:#555;padding:8px 12px;background:#f9f9f9;border:1px solid #eee;margin-top:10px;font-style:italic}
+  .footer{margin-top:30px;padding-top:15px;border-top:1px solid #ddd;display:flex;justify-content:space-between;align-items:flex-end}
+  .footer-left{font-size:9px;color:#aaa;line-height:1.6}
+  .footer-right{text-align:right}
+  .footer-right .auth{font-size:10px;color:#666;margin-bottom:4px}
+  .footer-right .sig-line{width:140px;border-top:1px solid #999;margin-top:30px;margin-left:auto}
+  .two-col{display:flex;gap:0}
+  .two-col > div{flex:1}
+  @media print{body{padding:20px 30px}}
 </style></head><body>
-<div class="header"><h1>${data.company?.name || 'Company'}</h1>${data.company?.address ? `<p>${data.company.address}</p>` : ''}</div>
-<div class="title">Payslip for the month of ${monthNames[data.month]} ${data.year}</div>
-<div class="info-grid">
-<div><span class="label">Name:</span> <span class="value">${data.employee.name}${data.employee.employeeId ? ` [${data.employee.employeeId}]` : ''}</span></div>
-<div><span class="label">Bank Name:</span> <span class="value">${data.employee.bankDetails?.bankName || 'N/A'}</span></div>
-<div><span class="label">Join Date:</span> <span class="value">${data.employee.joiningDate ? new Date(data.employee.joiningDate).toLocaleDateString('en-IN') : 'N/A'}</span></div>
-<div><span class="label">Bank A/c:</span> <span class="value">${data.employee.bankDetails?.accountNumber || 'N/A'}</span></div>
-<div><span class="label">Designation:</span> <span class="value">${data.employee.designation || 'N/A'}</span></div>
-<div><span class="label">PAN No.:</span> <span class="value">${data.employee.bankDetails?.pan || 'N/A'}</span></div>
-<div><span class="label">Department:</span> <span class="value">${data.employee.department || 'N/A'}</span></div>
-<div><span class="label">Pay Type:</span> <span class="value">${data.employee.payType === 'monthly' ? 'Monthly' : 'Daily'}</span></div>
-<div><span class="label">Work Days:</span> <span class="value">${data.breakdown.totalWorkingDays} of ${data.breakdown.totalWorkingDaysInMonth}</span></div>
-<div><span class="label">Paid Leave:</span> <span class="value">${data.breakdown.paidLeave || 0} day(s)</span></div>
+
+<!-- Header -->
+<div class="header">
+  <div class="header-left">
+    ${logoImg}
+    <div class="company-info">
+      <h1>${co.name || 'Company'}</h1>
+      ${co.address ? `<p>${co.address}</p>` : ''}
+      ${co.phone ? `<p>Phone: ${co.phone}</p>` : ''}
+      ${co.website ? `<p>${co.website}</p>` : ''}
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="slip-title">Payslip</div>
+    <div class="slip-period">${monthNames[data.month]} ${data.year}</div>
+  </div>
 </div>
-<table class="table">
-<tr><th class="earn-head" colspan="2">EARNINGS</th><th class="ded-head" colspan="2">DEDUCTIONS</th></tr>
-<tr><td>Consultancy Fees</td><td style="text-align:right">Rs. ${data.earnings.grossAmount.toLocaleString('en-IN')}</td><td>Consultant Tax (TDS 2%)</td><td style="text-align:right">Rs. ${data.earnings.tdsAmount.toLocaleString('en-IN')}</td></tr>
-<tr style="font-weight:bold;background:#f5f5f5"><td>Total Earnings</td><td style="text-align:right">Rs. ${data.earnings.grossAmount.toLocaleString('en-IN')}</td><td>Total Deductions</td><td style="text-align:right">Rs. ${data.earnings.tdsAmount.toLocaleString('en-IN')}</td></tr>
-</table>
-<div class="net-pay"><span>Net Pay for the Month</span><span>Rs. ${data.earnings.netAmount.toLocaleString('en-IN')}</span></div>
-<div class="words">Amount in Words: ${numberToWords(data.earnings.netAmount)}</div>
-<div class="footer">This is a system generated payslip and does not require signature.</div>
+
+<!-- Employee Details -->
+<div class="section">
+  <div class="section-title">Employee Details</div>
+  <div class="two-col">
+    <div>
+      <table class="info-table">
+        <tr><td class="lbl">Employee Name</td><td class="val">${emp.name}</td></tr>
+        <tr><td class="lbl">Employee ID</td><td class="val">${emp.employeeId || '\u2014'}</td></tr>
+        <tr><td class="lbl">Designation</td><td class="val">${emp.designation || '\u2014'}</td></tr>
+        <tr><td class="lbl">Department</td><td class="val">${emp.department || '\u2014'}</td></tr>
+        <tr><td class="lbl">Date of Joining</td><td class="val">${joinDate}</td></tr>
+      </table>
+    </div>
+    <div>
+      <table class="info-table">
+        <tr><td class="lbl">Bank Name</td><td class="val">${emp.bankDetails?.bankName || '\u2014'}</td></tr>
+        <tr><td class="lbl">Bank A/c No.</td><td class="val">${emp.bankDetails?.accountNumber || '\u2014'}</td></tr>
+        <tr><td class="lbl">PAN No.</td><td class="val">${emp.bankDetails?.pan || '\u2014'}</td></tr>
+        <tr><td class="lbl">Pay Type</td><td class="val">${emp.payType === 'monthly' ? 'Monthly' : 'Daily'}</td></tr>
+        <tr><td class="lbl">Working Days</td><td class="val">${brk.totalWorkingDays} of ${brk.totalWorkingDaysInMonth}${brk.paidLeave ? ` (${brk.paidLeave} paid leave)` : ''}</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Earnings & Deductions -->
+<div class="section">
+  <div class="section-title">Earnings & Deductions</div>
+  <table class="earn-table">
+    <thead><tr><th style="width:50%">Earnings</th><th style="width:50%;text-align:right">Amount (\u20B9)</th></tr></thead>
+    <tbody>
+      <tr><td>Consultancy Fees</td><td>\u20B9 ${fmt(earn.grossAmount)}</td></tr>
+      <tr class="total-row"><td>Total Earnings (A)</td><td>\u20B9 ${fmt(earn.grossAmount)}</td></tr>
+    </tbody>
+  </table>
+  <table class="earn-table" style="margin-top:10px">
+    <thead><tr><th style="width:50%">Deductions</th><th style="width:50%;text-align:right">Amount (\u20B9)</th></tr></thead>
+    <tbody>
+      <tr><td>TDS (${(earn.tdsRate * 100)}%)</td><td>\u20B9 ${fmt(earn.tdsAmount)}</td></tr>
+      <tr class="total-row"><td>Total Deductions (B)</td><td>\u20B9 ${fmt(earn.tdsAmount)}</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- Net Pay -->
+<div class="net-box">
+  <span class="net-label">Net Pay (A \u2212 B)</span>
+  <span class="net-amount">\u20B9 ${fmt(earn.netAmount)}</span>
+</div>
+<div class="words"><strong>Amount in Words:</strong> ${numberToWords(earn.netAmount)}</div>
+
+<!-- Footer -->
+<div class="footer">
+  <div class="footer-left">
+    This is a system-generated payslip and does not require a physical signature.<br/>
+    Generated on ${new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+  </div>
+  <div class="footer-right">
+    <div class="auth">Authorized Signatory</div>
+    <div class="sig-line"></div>
+    <div style="font-size:9px;color:#888;margin-top:4px;text-align:center">${co.name || ''}</div>
+  </div>
+</div>
+
 </body></html>`;
 
   const blob = new Blob([html], { type: 'text/html' });
   const url = URL.createObjectURL(blob);
   const printWindow = window.open(url, '_blank');
   if (printWindow) {
-    printWindow.onload = () => {
-      printWindow.print();
-    };
+    printWindow.onload = () => { printWindow.print(); };
   }
   showToast('Payslip opened for printing');
 }

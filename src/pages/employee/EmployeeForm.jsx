@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useOrg } from '../../context/OrgContext';
 import { usePlatform } from '../../context/PlatformContext';
+import { useToast } from '../../context/ToastContext';
 import employeeApi from '../../utils/employeeApi';
 import { ArrowLeft, Save, Loader2, AlertTriangle, Plus, Trash2, Briefcase, Upload, FileText, X } from 'lucide-react';
 import ComboSelect from '../../components/ComboSelect';
@@ -162,6 +163,7 @@ export default function EmployeeForm() {
   const { currentOrg } = useOrg();
   const { orgPath } = usePlatform();
 
+  const { showToast } = useToast();
   const isEdit = !!employeeId;
   const orgSlug = currentOrg?.slug;
 
@@ -379,6 +381,7 @@ export default function EmployeeForm() {
         : await employeeApi.create(orgSlug, form);
 
       if (result.success && result.employee?._id) {
+        showToast(isEdit ? 'Employee updated' : 'Employee created', 'success');
         navigate(orgPath('/employee/' + result.employee._id));
       } else {
         setError(result.message || 'Something went wrong.');
@@ -392,11 +395,59 @@ export default function EmployeeForm() {
   };
 
   const saveAssignment = async (idx) => {
+    // Validate the assignment before saving
+    const assignment = form.assignments[idx];
+    if (!assignment) return;
+    if (!assignment.clientName?.trim() && !assignment.clientId) {
+      setError(`Assignment ${idx + 1}: Client is required.`);
+      return;
+    }
+    if (!assignment.projectName?.trim() && !assignment.projectId) {
+      setError(`Assignment ${idx + 1}: Project is required.`);
+      return;
+    }
+
     setError('');
     setSavingAssignment(idx);
     try {
       const result = await employeeApi.update(orgSlug, employeeId, form);
-      if (!result.success) {
+      if (result.success && result.employee) {
+        // Refresh form state with backend response (assignments now have proper IDs)
+        const emp = result.employee;
+        setForm(prev => ({
+          ...prev,
+          assignments: (emp.assignments || []).map(a => {
+            const cbr = typeof a.clientBillingRate === 'number'
+              ? { daily: a.clientBillingRate || '', hourly: '', monthly: '' }
+              : a.clientBillingRate || {};
+            return {
+              clientId: a.clientId || '',
+              clientName: a.clientName || '',
+              projectId: a.projectId || '',
+              projectName: a.projectName || '',
+              billingRate: {
+                daily: a.billingRate?.daily ?? '',
+                hourly: a.billingRate?.hourly ?? '',
+                monthly: a.billingRate?.monthly ?? '',
+              },
+              clientBillingRate: {
+                daily: cbr.daily ?? '',
+                hourly: cbr.hourly ?? '',
+                monthly: cbr.monthly ?? '',
+              },
+              paidLeavePerMonth: a.paidLeavePerMonth ?? 0,
+              startDate: a.startDate ? a.startDate.slice(0, 10) : '',
+              endDate: a.endDate ? a.endDate.slice(0, 10) : '',
+              status: a.status || 'active',
+            };
+          }),
+        }));
+        // Also refresh project/client options so newly created ones appear in dropdown
+        employeeApi.getTimesheetOptions(orgSlug).then(r => {
+          if (r.success) { setTsClients(r.clients || []); setTsProjects(r.projects || []); }
+        }).catch(() => {});
+        showToast('Assignment saved successfully', 'success');
+      } else {
         setError(result.message || 'Failed to save assignment.');
       }
     } catch (err) {

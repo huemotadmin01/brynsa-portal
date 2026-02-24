@@ -179,7 +179,10 @@ export default function TimesheetPayConfig() {
                 const tc = emp.tsConfig;
                 const assignments = emp.assignments || [];
                 const activeAssignments = assignments.filter(a => a.status === 'active');
-                const candidateRate = pickBillingRate(emp.billingRate);
+                // Read candidate rate from assignments (new architecture), fallback to top-level (legacy)
+                const candidateRate = activeAssignments.length > 0
+                  ? pickBillingRate(activeAssignments[0].billingRate)
+                  : pickBillingRate(emp.billingRate);
                 return (
                   <tr key={emp._id} className="transition-colors hover:bg-dark-800/30">
                     {/* Employee Info */}
@@ -268,11 +271,27 @@ export default function TimesheetPayConfig() {
                       )}
                     </td>
 
-                    {/* Candidate Billing Rate (read-only, from Employee Directory) */}
+                    {/* Candidate Billing Rate (read-only, from Employee assignments) */}
                     <td className="px-4 py-3 text-right">
-                      <span className={`text-sm font-medium ${candidateRate ? 'text-white' : 'text-dark-600'}`}>
-                        {formatRate(candidateRate)}
-                      </span>
+                      {activeAssignments.length > 1 ? (
+                        <div className="space-y-1">
+                          {activeAssignments.slice(0, 2).map((a, i) => {
+                            const rate = pickBillingRate(a.billingRate);
+                            return (
+                              <span key={i} className={`block text-xs font-medium ${rate ? 'text-white' : 'text-dark-600'}`}>
+                                {formatRate(rate)}
+                              </span>
+                            );
+                          })}
+                          {activeAssignments.length > 2 && (
+                            <span className="text-[10px] text-dark-500">+{activeAssignments.length - 2} more</span>
+                          )}
+                        </div>
+                      ) : (
+                        <span className={`text-sm font-medium ${candidateRate ? 'text-white' : 'text-dark-600'}`}>
+                          {formatRate(candidateRate)}
+                        </span>
+                      )}
                     </td>
 
                     {/* Paid Leave (read-only — from Employee assignments) */}

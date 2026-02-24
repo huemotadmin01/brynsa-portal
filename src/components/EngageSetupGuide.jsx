@@ -1,11 +1,12 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Mail, User, CheckCircle2, ChevronRight, Sparkles,
-  ArrowRight, Building2, Briefcase, Loader2, X, Search
+  ArrowRight, Building2, Briefcase, Loader2, X
 } from 'lucide-react';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
+import ComboSelect from './ComboSelect';
 
 const STEPS = [
   {
@@ -42,13 +43,6 @@ function EngageSetupGuide({ setupStatus, onConnectGmail, onSetupComplete, onRefr
   const [expandedStep, setExpandedStep] = useState(null);
   const [dismissed, setDismissed] = useState(false);
 
-  // Company autocomplete state
-  const [companySuggestions, setCompanySuggestions] = useState([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const [searchingCompanies, setSearchingCompanies] = useState(false);
-  const companyRef = useRef(null);
-  const companySearchTimerRef = useRef(null);
-
   const gmailDone = setupStatus?.gmailConnected;
   const profileDone = setupStatus?.profileComplete;
   const allDone = setupStatus?.allComplete;
@@ -71,17 +65,6 @@ function EngageSetupGuide({ setupStatus, onConnectGmail, onSetupComplete, onRefr
     }
   }, [allDone]);
 
-  // Outside-click to close company dropdown
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (companyRef.current && !companyRef.current.contains(e.target)) {
-        setShowSuggestions(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
   // Sync input values when setupStatus prop changes (e.g., after a refresh)
   useEffect(() => {
     if (setupStatus?.senderTitle && !senderTitle) setSenderTitle(setupStatus.senderTitle);
@@ -89,48 +72,6 @@ function EngageSetupGuide({ setupStatus, onConnectGmail, onSetupComplete, onRefr
   }, [setupStatus?.senderTitle, setupStatus?.companyName]);
 
   const progress = allDone ? 100 : (gmailDone && profileDone) ? 66 : (gmailDone || profileDone) ? 33 : 0;
-
-  // Cleanup debounce timer on unmount
-  useEffect(() => {
-    return () => {
-      if (companySearchTimerRef.current) clearTimeout(companySearchTimerRef.current);
-    };
-  }, []);
-
-  // Company autocomplete search (debounced 300ms)
-  const handleCompanySearch = (value) => {
-    setCompanyName(value);
-    if (companySearchTimerRef.current) clearTimeout(companySearchTimerRef.current);
-    if (value.length < 2) {
-      setCompanySuggestions([]);
-      setShowSuggestions(false);
-      setSearchingCompanies(false);
-      return;
-    }
-    setSearchingCompanies(true);
-    companySearchTimerRef.current = setTimeout(async () => {
-      try {
-        const res = await api.searchCompanies(value);
-        if (res.success && res.companies.length > 0) {
-          setCompanySuggestions(res.companies);
-          setShowSuggestions(true);
-        } else {
-          setCompanySuggestions([]);
-          setShowSuggestions(false);
-        }
-      } catch (err) {
-        setCompanySuggestions([]);
-      } finally {
-        setSearchingCompanies(false);
-      }
-    }, 300);
-  };
-
-  const selectCompany = (company) => {
-    setCompanyName(company.name);
-    setShowSuggestions(false);
-    setCompanySuggestions([]);
-  };
 
   const handleSaveProfile = async () => {
     if (!senderTitle.trim() || !companyName.trim()) return;
@@ -203,7 +144,7 @@ function EngageSetupGuide({ setupStatus, onConnectGmail, onSetupComplete, onRefr
       </button>
 
       {/* Main card */}
-      <div className="bg-gradient-to-br from-dark-800/80 to-dark-900/80 border border-dark-700/60 rounded-2xl overflow-hidden backdrop-blur-sm">
+      <div className="bg-gradient-to-br from-dark-800/80 to-dark-900/80 border border-dark-700/60 rounded-2xl backdrop-blur-sm">
         {/* Header */}
         <div className="px-6 pt-5 pb-4">
           <div className="flex items-center gap-3 mb-1">
@@ -323,51 +264,18 @@ function EngageSetupGuide({ setupStatus, onConnectGmail, onSetupComplete, onRefr
                               className="w-full px-3 py-2 bg-dark-900 border border-dark-600 rounded-lg text-sm text-white placeholder:text-dark-500 focus:outline-none focus:border-rivvra-500 transition-colors"
                             />
                           </div>
-                          <div ref={companyRef} className="relative">
+                          <div>
                             <label className="block text-xs text-dark-400 mb-1.5">
                               <Building2 className="w-3 h-3 inline mr-1" />
                               Company name
                             </label>
-                            <div className="relative">
-                              <input
-                                type="text"
-                                value={companyName}
-                                onChange={(e) => handleCompanySearch(e.target.value)}
-                                placeholder="Search or type company name"
-                                className="w-full px-3 py-2 bg-dark-900 border border-dark-600 rounded-lg text-sm text-white placeholder:text-dark-500 focus:outline-none focus:border-rivvra-500 transition-colors pr-8"
-                              />
-                              {searchingCompanies && (
-                                <Loader2 className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-dark-500 animate-spin" />
-                              )}
-                            </div>
-                            {/* Company suggestions dropdown */}
-                            {showSuggestions && companySuggestions.length > 0 && (
-                              <div className="absolute z-50 w-full mt-1 bg-dark-800 border border-dark-600 rounded-lg shadow-xl max-h-48 overflow-y-auto">
-                                {companySuggestions.map((company) => (
-                                  <button
-                                    key={company._id}
-                                    onClick={() => selectCompany(company)}
-                                    className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-dark-700 transition-colors text-left"
-                                  >
-                                    {company.logo ? (
-                                      <img src={company.logo} alt="" className="w-6 h-6 rounded object-cover flex-shrink-0" />
-                                    ) : (
-                                      <div className="w-6 h-6 rounded bg-dark-600 flex items-center justify-center flex-shrink-0">
-                                        <Building2 className="w-3 h-3 text-dark-400" />
-                                      </div>
-                                    )}
-                                    <div className="flex-1 min-w-0">
-                                      <div className="text-sm text-white truncate">{company.name}</div>
-                                      {(company.domain || company.industry) && (
-                                        <div className="text-[11px] text-dark-400 truncate">
-                                          {[company.domain, company.industry].filter(Boolean).join(' · ')}
-                                        </div>
-                                      )}
-                                    </div>
-                                  </button>
-                                ))}
-                              </div>
-                            )}
+                            <ComboSelect
+                              value=""
+                              displayValue={companyName}
+                              options={[]}
+                              onChange={(id, name) => setCompanyName(name)}
+                              placeholder="Type your company name"
+                            />
                           </div>
                           <button
                             onClick={handleSaveProfile}

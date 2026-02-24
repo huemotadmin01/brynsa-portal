@@ -83,6 +83,13 @@ const employeeApi = {
     });
   },
 
+  cleanupTestData(orgSlug, { clientNames = [], projectNames = [] } = {}) {
+    return api.request(`/api/org/${orgSlug}/employee/admin/cleanup-test-data`, {
+      method: 'POST',
+      body: JSON.stringify({ clientNames, projectNames }),
+    });
+  },
+
   // ── Timesheet Options (projects & clients for assignment dropdowns) ──
   getTimesheetOptions(orgSlug) {
     return api.request(`/api/org/${orgSlug}/employee/timesheet-options`);

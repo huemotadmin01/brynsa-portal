@@ -3,6 +3,7 @@
  * Uses the main ApiClient for org-scoped employee endpoints.
  */
 import api from './api';
+import { API_BASE_URL } from './config';
 
 const employeeApi = {
   // ── Employees ─────────────────────────────────────────────────────────
@@ -105,6 +106,42 @@ const employeeApi = {
       method: 'PUT',
       body: JSON.stringify(data),
     });
+  },
+
+  // ── Assignment Documents ────────────────────────────────────────────────
+  async uploadAssignmentDoc(orgSlug, employeeId, assignmentIdx, file) {
+    const formData = new FormData();
+    formData.append('file', file);
+    const url = `${API_BASE_URL}/api/org/${orgSlug}/employee/employees/${employeeId}/assignments/${assignmentIdx}/documents`;
+    const token = localStorage.getItem('rivvra_token');
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: formData,
+    });
+    if (!res.ok) {
+      const ct = res.headers.get('content-type') || '';
+      if (ct.includes('application/json')) {
+        const data = await res.json();
+        throw new Error(data.error || 'Upload failed');
+      }
+      throw new Error(`Upload failed with status ${res.status}`);
+    }
+    return res.json();
+  },
+
+  listAssignmentDocs(orgSlug, employeeId, assignmentIdx) {
+    return api.request(`/api/org/${orgSlug}/employee/employees/${employeeId}/assignments/${assignmentIdx}/documents`);
+  },
+
+  deleteAssignmentDoc(orgSlug, employeeId, docId) {
+    return api.request(`/api/org/${orgSlug}/employee/employees/${employeeId}/documents/${docId}`, {
+      method: 'DELETE',
+    });
+  },
+
+  getAssignmentDocUrl(orgSlug, employeeId, docId) {
+    return `${API_BASE_URL}/api/org/${orgSlug}/employee/employees/${employeeId}/documents/${docId}`;
   },
 };
 

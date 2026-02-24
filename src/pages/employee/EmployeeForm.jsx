@@ -3,8 +3,102 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useOrg } from '../../context/OrgContext';
 import { usePlatform } from '../../context/PlatformContext';
 import employeeApi from '../../utils/employeeApi';
-import { ArrowLeft, Save, Loader2, AlertTriangle, Plus, Trash2, Briefcase } from 'lucide-react';
+import { ArrowLeft, Save, Loader2, AlertTriangle, Plus, Trash2, Briefcase, Upload, FileText, X } from 'lucide-react';
 import ComboSelect from '../../components/ComboSelect';
+
+// ── Per-assignment document manager ─────────────────────────────────────────
+function AssignmentDocs({ orgSlug, employeeId, assignmentIdx }) {
+  const [docs, setDocs] = useState([]);
+  const [uploading, setUploading] = useState(false);
+  const [loadingDocs, setLoadingDocs] = useState(true);
+  const fileRef = useRef(null);
+
+  const fetchDocs = () => {
+    if (!orgSlug || !employeeId) return;
+    employeeApi.listAssignmentDocs(orgSlug, employeeId, assignmentIdx)
+      .then(res => { if (res.success) setDocs(res.documents || []); })
+      .catch(() => {})
+      .finally(() => setLoadingDocs(false));
+  };
+
+  useEffect(() => { fetchDocs(); }, [orgSlug, employeeId, assignmentIdx]);
+
+  const handleUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      await employeeApi.uploadAssignmentDoc(orgSlug, employeeId, assignmentIdx, file);
+      fetchDocs();
+    } catch (err) {
+      console.error('Upload failed:', err);
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = '';
+    }
+  };
+
+  const handleDelete = async (docId) => {
+    try {
+      await employeeApi.deleteAssignmentDoc(orgSlug, employeeId, docId);
+      setDocs(prev => prev.filter(d => d._id !== docId));
+    } catch (err) {
+      console.error('Delete failed:', err);
+    }
+  };
+
+  const formatSize = (bytes) => {
+    if (!bytes) return '';
+    if (bytes < 1024) return `${bytes}B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)}KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
+  };
+
+  return (
+    <div>
+      <p className="text-[11px] text-dark-500 uppercase tracking-wider font-medium mb-2">Documents</p>
+      {loadingDocs ? (
+        <div className="flex items-center gap-2 text-dark-500 text-xs py-1">
+          <Loader2 size={12} className="animate-spin" /> Loading...
+        </div>
+      ) : (
+        <>
+          {docs.length > 0 && (
+            <div className="space-y-1.5 mb-2">
+              {docs.map(doc => (
+                <div key={doc._id} className="flex items-center gap-2 bg-dark-900/50 rounded-lg px-3 py-1.5 group">
+                  <FileText size={14} className="text-dark-400 flex-shrink-0" />
+                  <a
+                    href={employeeApi.getAssignmentDocUrl(orgSlug, employeeId, doc._id)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-blue-400 hover:underline truncate flex-1"
+                  >
+                    {doc.filename}
+                  </a>
+                  <span className="text-[10px] text-dark-500">{formatSize(doc.size)}</span>
+                  <button type="button" onClick={() => handleDelete(doc._id)} className="p-0.5 text-dark-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <X size={12} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+          <input ref={fileRef} type="file" accept=".pdf,.docx,.xlsx,.png,.jpg,.jpeg" onChange={handleUpload} className="hidden" />
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            disabled={uploading}
+            className="flex items-center gap-1.5 text-xs text-dark-400 hover:text-white transition-colors"
+          >
+            {uploading ? <Loader2 size={12} className="animate-spin" /> : <Upload size={12} />}
+            {uploading ? 'Uploading...' : '+ Upload Document'}
+          </button>
+        </>
+      )}
+    </div>
+  );
+}
 
 const INITIAL_FORM = {
   fullName: '',
@@ -17,16 +111,6 @@ const INITIAL_FORM = {
   designation: '',
   monthlyGrossSalary: '',
   billable: false,
-  billingRate: {
-    daily: '',
-    hourly: '',
-    monthly: '',
-  },
-  clientBillingRate: {
-    daily: '',
-    hourly: '',
-    monthly: '',
-  },
   assignments: [],
   joiningDate: '',
   lastWorkingDate: '',
@@ -106,26 +190,31 @@ export default function EmployeeForm() {
             designation: emp.designation || '',
             monthlyGrossSalary: emp.monthlyGrossSalary ?? '',
             billable: emp.billable || false,
-            billingRate: {
-              daily: emp.billingRate?.daily ?? '',
-              hourly: emp.billingRate?.hourly ?? '',
-              monthly: emp.billingRate?.monthly ?? '',
-            },
-            clientBillingRate: {
-              daily: emp.clientBillingRate?.daily ?? '',
-              hourly: emp.clientBillingRate?.hourly ?? '',
-              monthly: emp.clientBillingRate?.monthly ?? '',
-            },
-            assignments: (emp.assignments || []).map(a => ({
-              clientId: a.clientId || '',
-              clientName: a.clientName || '',
-              projectId: a.projectId || '',
-              projectName: a.projectName || '',
-              clientBillingRate: a.clientBillingRate ?? '',
-              startDate: a.startDate ? a.startDate.slice(0, 10) : '',
-              endDate: a.endDate ? a.endDate.slice(0, 10) : '',
-              status: a.status || 'active',
-            })),
+            assignments: (emp.assignments || []).map(a => {
+              // Handle backward compat: old single-number clientBillingRate
+              const cbr = typeof a.clientBillingRate === 'number'
+                ? { daily: a.clientBillingRate || '', hourly: '', monthly: '' }
+                : a.clientBillingRate || {};
+              return {
+                clientId: a.clientId || '',
+                clientName: a.clientName || '',
+                projectId: a.projectId || '',
+                projectName: a.projectName || '',
+                billingRate: {
+                  daily: a.billingRate?.daily ?? '',
+                  hourly: a.billingRate?.hourly ?? '',
+                  monthly: a.billingRate?.monthly ?? '',
+                },
+                clientBillingRate: {
+                  daily: cbr.daily ?? '',
+                  hourly: cbr.hourly ?? '',
+                  monthly: cbr.monthly ?? '',
+                },
+                startDate: a.startDate ? a.startDate.slice(0, 10) : '',
+                endDate: a.endDate ? a.endDate.slice(0, 10) : '',
+                status: a.status || 'active',
+              };
+            }),
             joiningDate: emp.joiningDate ? emp.joiningDate.slice(0, 10) : '',
             lastWorkingDate: emp.lastWorkingDate ? emp.lastWorkingDate.slice(0, 10) : '',
             dateOfBirth: emp.dateOfBirth ? emp.dateOfBirth.slice(0, 10) : '',
@@ -176,7 +265,12 @@ export default function EmployeeForm() {
       ...prev,
       assignments: [
         ...prev.assignments,
-        { clientId: '', clientName: '', projectId: '', projectName: '', clientBillingRate: '', startDate: new Date().toISOString().slice(0, 10), endDate: '', status: 'active' },
+        {
+          clientId: '', clientName: '', projectId: '', projectName: '',
+          billingRate: { daily: '', hourly: '', monthly: '' },
+          clientBillingRate: { daily: '', hourly: '', monthly: '' },
+          startDate: new Date().toISOString().slice(0, 10), endDate: '', status: 'active',
+        },
       ],
     }));
   };
@@ -217,6 +311,16 @@ export default function EmployeeForm() {
       updated[idx] = { ...updated[idx], projectId: id, projectName: name };
       return { ...prev, assignments: updated };
     });
+  };
+
+  // Update a nested field inside an assignment (e.g. billingRate.daily)
+  const updateAssignmentNested = (idx, group, field, value) => {
+    setForm(prev => ({
+      ...prev,
+      assignments: prev.assignments.map((a, i) =>
+        i === idx ? { ...a, [group]: { ...a[group], [field]: value } } : a
+      ),
+    }));
   };
 
   // Submit
@@ -455,67 +559,6 @@ export default function EmployeeForm() {
           </div>
         </div>
 
-        {/* ── Candidate Billing Rate ──────────────────────────────── */}
-        <div className="card p-5 space-y-4">
-          <h2 className="text-white font-semibold text-lg">Candidate Billing Rate</h2>
-          <p className="text-sm text-dark-400">The rate at which this candidate/employee is paid. Fill in one rate type that applies.</p>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            {/* Candidate Rate — Daily */}
-            <div>
-              <label className="block text-sm font-medium text-dark-300 mb-1">
-                Candidate Rate ({'\u20B9'}/day)
-              </label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-dark-400 text-sm">{'\u20B9'}</span>
-                <input
-                  type="number"
-                  value={form.billingRate.daily}
-                  onChange={(e) => setNested('billingRate', 'daily', e.target.value)}
-                  className="input-field w-full pl-7"
-                  placeholder="0"
-                  min="0"
-                />
-              </div>
-            </div>
-
-            {/* Candidate Rate — Hourly */}
-            <div>
-              <label className="block text-sm font-medium text-dark-300 mb-1">
-                Candidate Rate ($/hour)
-              </label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-dark-400 text-sm">$</span>
-                <input
-                  type="number"
-                  value={form.billingRate.hourly}
-                  onChange={(e) => setNested('billingRate', 'hourly', e.target.value)}
-                  className="input-field w-full pl-7"
-                  placeholder="0"
-                  min="0"
-                />
-              </div>
-            </div>
-
-            {/* Candidate Rate — Monthly */}
-            <div>
-              <label className="block text-sm font-medium text-dark-300 mb-1">
-                Candidate Rate ({'\u20B9'}/month)
-              </label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-dark-400 text-sm">{'\u20B9'}</span>
-                <input
-                  type="number"
-                  value={form.billingRate.monthly}
-                  onChange={(e) => setNested('billingRate', 'monthly', e.target.value)}
-                  className="input-field w-full pl-7"
-                  placeholder="0"
-                  min="0"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-
         {/* ── Project Assignments ───────────────────────────────── */}
         <div className="card p-5 space-y-4 relative z-10">
           <div className="flex items-center justify-between">
@@ -597,44 +640,81 @@ export default function EmployeeForm() {
                 </div>
               </div>
 
-              {/* Row 2: Billing Rate + Start Date + End Date */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-                {/* Client Billing Rate */}
-                <div>
-                  <label className="block text-xs font-medium text-dark-400 mb-1">Client Billing Rate ({'\u20B9'}/day)</label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-dark-400 text-sm">{'\u20B9'}</span>
-                    <input
-                      type="number"
-                      value={assignment.clientBillingRate}
-                      onChange={(e) => updateAssignment(idx, 'clientBillingRate', e.target.value)}
-                      className="input-field w-full pl-7 text-sm"
-                      placeholder="0"
-                      min="0"
-                    />
+              {/* Candidate Rate */}
+              <div>
+                <p className="text-[11px] text-dark-500 uppercase tracking-wider font-medium mb-2 mt-1">Candidate Rate</p>
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-dark-400 mb-1">{'\u20B9'}/day</label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-dark-400 text-xs">{'\u20B9'}</span>
+                      <input type="number" value={assignment.billingRate?.daily ?? ''} onChange={(e) => updateAssignmentNested(idx, 'billingRate', 'daily', e.target.value)} className="input-field w-full pl-7 text-sm" placeholder="0" min="0" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-dark-400 mb-1">$/hour</label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-dark-400 text-xs">$</span>
+                      <input type="number" value={assignment.billingRate?.hourly ?? ''} onChange={(e) => updateAssignmentNested(idx, 'billingRate', 'hourly', e.target.value)} className="input-field w-full pl-7 text-sm" placeholder="0" min="0" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-dark-400 mb-1">{'\u20B9'}/month</label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-dark-400 text-xs">{'\u20B9'}</span>
+                      <input type="number" value={assignment.billingRate?.monthly ?? ''} onChange={(e) => updateAssignmentNested(idx, 'billingRate', 'monthly', e.target.value)} className="input-field w-full pl-7 text-sm" placeholder="0" min="0" />
+                    </div>
                   </div>
                 </div>
-                {/* Start Date */}
-                <div>
-                  <label className="block text-xs font-medium text-dark-400 mb-1">Start Date</label>
-                  <input
-                    type="date"
-                    value={assignment.startDate}
-                    onChange={(e) => updateAssignment(idx, 'startDate', e.target.value)}
-                    className="input-field w-full text-sm"
-                  />
-                </div>
-                {/* End Date */}
-                <div>
-                  <label className="block text-xs font-medium text-dark-400 mb-1">End Date</label>
-                  <input
-                    type="date"
-                    value={assignment.endDate || ''}
-                    onChange={(e) => updateAssignment(idx, 'endDate', e.target.value)}
-                    className="input-field w-full text-sm"
-                  />
+              </div>
+
+              {/* Client Billing Rate */}
+              <div>
+                <p className="text-[11px] text-dark-500 uppercase tracking-wider font-medium mb-2">Client Billing Rate</p>
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-dark-400 mb-1">{'\u20B9'}/day</label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-dark-400 text-xs">{'\u20B9'}</span>
+                      <input type="number" value={assignment.clientBillingRate?.daily ?? ''} onChange={(e) => updateAssignmentNested(idx, 'clientBillingRate', 'daily', e.target.value)} className="input-field w-full pl-7 text-sm" placeholder="0" min="0" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-dark-400 mb-1">$/hour</label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-dark-400 text-xs">$</span>
+                      <input type="number" value={assignment.clientBillingRate?.hourly ?? ''} onChange={(e) => updateAssignmentNested(idx, 'clientBillingRate', 'hourly', e.target.value)} className="input-field w-full pl-7 text-sm" placeholder="0" min="0" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-dark-400 mb-1">{'\u20B9'}/month</label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-dark-400 text-xs">{'\u20B9'}</span>
+                      <input type="number" value={assignment.clientBillingRate?.monthly ?? ''} onChange={(e) => updateAssignmentNested(idx, 'clientBillingRate', 'monthly', e.target.value)} className="input-field w-full pl-7 text-sm" placeholder="0" min="0" />
+                    </div>
+                  </div>
                 </div>
               </div>
+
+              {/* Dates */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-dark-400 mb-1">Start Date</label>
+                  <input type="date" value={assignment.startDate} onChange={(e) => updateAssignment(idx, 'startDate', e.target.value)} className="input-field w-full text-sm" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-dark-400 mb-1">End Date</label>
+                  <input type="date" value={assignment.endDate || ''} onChange={(e) => updateAssignment(idx, 'endDate', e.target.value)} className="input-field w-full text-sm" />
+                </div>
+              </div>
+
+              {/* Documents — only in edit mode (need employee ID) */}
+              {isEdit && (
+                <AssignmentDocs orgSlug={orgSlug} employeeId={employeeId} assignmentIdx={idx} />
+              )}
+              {!isEdit && (
+                <p className="text-xs text-dark-500 italic">Save employee first to upload assignment documents.</p>
+              )}
             </div>
           ))}
         </div>

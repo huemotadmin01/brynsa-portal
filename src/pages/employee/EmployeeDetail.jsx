@@ -193,7 +193,6 @@ export default function EmployeeDetail() {
   const addr = emp.address || {};
   const emergency = emp.emergencyContact || {};
   const bank = emp.bankDetails || {};
-  const billing = emp.billingRate || {};
 
   const addressLines = [addr.street, addr.street2, addr.city, addr.state, addr.zip, addr.country]
     .filter(Boolean)
@@ -274,13 +273,6 @@ export default function EmployeeDetail() {
             label="Monthly Gross"
             value={formatCurrency(emp.monthlyGrossSalary)}
           />
-          {(billing.daily || billing.hourly || billing.monthly) && (
-            <>
-              <InfoRow label="Daily Rate" value={formatCurrency(billing.daily)} />
-              <InfoRow label="Hourly Rate" value={formatCurrency(billing.hourly)} />
-              <InfoRow label="Monthly Rate" value={formatCurrency(billing.monthly)} />
-            </>
-          )}
           <InfoRow
             label="Billable"
             value={
@@ -356,33 +348,45 @@ export default function EmployeeDetail() {
                 <tr className="border-b border-dark-700">
                   <th className="text-left px-3 py-2 text-xs font-medium text-dark-400 uppercase tracking-wider">Client</th>
                   <th className="text-left px-3 py-2 text-xs font-medium text-dark-400 uppercase tracking-wider">Project</th>
-                  <th className="text-right px-3 py-2 text-xs font-medium text-dark-400 uppercase tracking-wider">Billing Rate</th>
+                  <th className="text-right px-3 py-2 text-xs font-medium text-dark-400 uppercase tracking-wider">Candidate Rate</th>
+                  <th className="text-right px-3 py-2 text-xs font-medium text-dark-400 uppercase tracking-wider">Client Rate</th>
                   <th className="text-left px-3 py-2 text-xs font-medium text-dark-400 uppercase tracking-wider">Start Date</th>
                   <th className="text-left px-3 py-2 text-xs font-medium text-dark-400 uppercase tracking-wider">End Date</th>
                   <th className="text-center px-3 py-2 text-xs font-medium text-dark-400 uppercase tracking-wider">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-dark-800">
-                {emp.assignments.map((a, i) => (
-                  <tr key={i} className="hover:bg-dark-800/30 transition-colors">
-                    <td className="px-3 py-2.5 text-sm text-white">{a.clientName || '\u2014'}</td>
-                    <td className="px-3 py-2.5 text-sm text-white">{a.projectName || '\u2014'}</td>
-                    <td className="px-3 py-2.5 text-sm text-white text-right">
-                      {a.clientBillingRate ? `\u20B9${Number(a.clientBillingRate).toLocaleString()}/day` : '\u2014'}
-                    </td>
-                    <td className="px-3 py-2.5 text-sm text-dark-300">{formatDate(a.startDate)}</td>
-                    <td className="px-3 py-2.5 text-sm text-dark-300">{formatDate(a.endDate) || '\u2014'}</td>
-                    <td className="px-3 py-2.5 text-center">
-                      <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
-                        a.status === 'active'
-                          ? 'bg-green-500/10 text-green-400'
-                          : 'bg-dark-700 text-dark-400'
-                      }`}>
-                        {a.status === 'active' ? 'Active' : 'Ended'}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
+                {emp.assignments.map((a, i) => {
+                  const br = a.billingRate || {};
+                  const cbr = typeof a.clientBillingRate === 'number'
+                    ? { daily: a.clientBillingRate }
+                    : (a.clientBillingRate || {});
+                  const fmtRate = (r) => {
+                    if (r.daily) return `${formatCurrency(r.daily)}/day`;
+                    if (r.hourly) return `$${Number(r.hourly).toLocaleString()}/hr`;
+                    if (r.monthly) return `${formatCurrency(r.monthly)}/mo`;
+                    return '\u2014';
+                  };
+                  return (
+                    <tr key={i} className="hover:bg-dark-800/30 transition-colors">
+                      <td className="px-3 py-2.5 text-sm text-white">{a.clientName || '\u2014'}</td>
+                      <td className="px-3 py-2.5 text-sm text-white">{a.projectName || '\u2014'}</td>
+                      <td className="px-3 py-2.5 text-sm text-white text-right">{fmtRate(br)}</td>
+                      <td className="px-3 py-2.5 text-sm text-white text-right">{fmtRate(cbr)}</td>
+                      <td className="px-3 py-2.5 text-sm text-dark-300">{formatDate(a.startDate)}</td>
+                      <td className="px-3 py-2.5 text-sm text-dark-300">{formatDate(a.endDate) || '\u2014'}</td>
+                      <td className="px-3 py-2.5 text-center">
+                        <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
+                          a.status === 'active'
+                            ? 'bg-green-500/10 text-green-400'
+                            : 'bg-dark-700 text-dark-400'
+                        }`}>
+                          {a.status === 'active' ? 'Active' : 'Ended'}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

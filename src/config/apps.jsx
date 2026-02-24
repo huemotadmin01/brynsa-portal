@@ -62,18 +62,10 @@ export const APP_REGISTRY = {
       { value: 'member', label: 'Member', color: 'dark' },
     ],
     getSidebarItems: (user, timesheetUser, orgAppRole) => {
-      // Determine effective role from both org membership and ts_user role.
-      // ts_users.role is the authoritative source ('admin', 'manager', 'contractor').
-      // Org app role provides an override for org-based access.
+      // Org membership role is the source of truth for access control.
+      // ts_users.role is only a fallback when no org context exists.
       const tsRole = timesheetUser?.role || 'contractor';
-      let effectiveRole;
-      if (orgAppRole === 'admin' || tsRole === 'admin') {
-        effectiveRole = 'admin';
-      } else if (orgAppRole === 'manager' || tsRole === 'manager') {
-        effectiveRole = 'manager';
-      } else {
-        effectiveRole = 'contractor';
-      }
+      const effectiveRole = orgAppRole || (tsRole === 'contractor' ? 'member' : tsRole);
 
       const isAdmin = effectiveRole === 'admin';
       const isManager = effectiveRole === 'manager';

@@ -6,6 +6,7 @@
  */
 import { useState, useEffect, useCallback } from 'react';
 import { useTimesheetContext } from '../../context/TimesheetContext';
+import { useOrg } from '../../context/OrgContext';
 import {
   Search, Loader2, RefreshCw, Users,
 } from 'lucide-react';
@@ -31,7 +32,10 @@ function formatRate(rate) {
 
 export default function TimesheetPayConfig() {
   const { timesheetUser } = useTimesheetContext();
-  const isAdmin = timesheetUser?.role === 'admin';
+  const { getAppRole, currentOrg } = useOrg();
+  const orgRole = currentOrg ? getAppRole('timesheet') : null;
+  const effectiveRole = orgRole || timesheetUser?.role || 'contractor';
+  const isAdmin = effectiveRole === 'admin';
 
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);

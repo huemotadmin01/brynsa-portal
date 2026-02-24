@@ -254,14 +254,12 @@ export default function TimesheetDashboard() {
     );
   }
 
-  // Determine if user should see member (contractor) dashboard or admin/manager dashboard.
-  // ts_users.role is the source of truth ('admin', 'manager', 'contractor').
-  // Org membership app role is checked as a secondary signal.
+  // Org membership role is the source of truth for access control.
+  // ts_users.role is only a fallback when no org context exists.
   const orgRole = currentOrg ? getAppRole('timesheet') : null;
   const tsRole = timesheetUser.role; // 'admin' | 'manager' | 'contractor'
-
-  // Show admin/manager dashboard if EITHER ts_user role OR org app role indicates non-member
-  const isMember = tsRole === 'contractor' && (!orgRole || orgRole === 'member');
+  const effectiveRole = orgRole || (tsRole === 'contractor' ? 'member' : tsRole);
+  const isMember = effectiveRole === 'member' || effectiveRole === 'contractor';
 
   if (isMember) return <ContractorDashboard />;
   return <AdminDashboard />;

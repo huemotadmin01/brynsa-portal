@@ -145,7 +145,7 @@ export default function TimesheetEntry() {
       const ts = r.data.find(t => (t.project?._id || t.project) === selectedProject);
       if (ts) setTimesheet(ts);
     } catch (err) {
-      showToast(err.response?.data?.message || 'Save failed', 'error');
+      showToast(err.response?.data?.error || err.response?.data?.message || err.message || 'Save failed', 'error');
     } finally { setSaving(false); }
   };
 

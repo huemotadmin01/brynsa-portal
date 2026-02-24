@@ -307,11 +307,23 @@ export default function EmployeeForm() {
     }));
   };
 
-  const removeAssignment = (idx) => {
-    setForm(prev => ({
-      ...prev,
-      assignments: prev.assignments.filter((_, i) => i !== idx),
-    }));
+  const removeAssignment = async (idx) => {
+    if (!window.confirm(`Remove Assignment ${idx + 1}? This will save immediately.`)) return;
+    const newAssignments = form.assignments.filter((_, i) => i !== idx);
+    setForm(prev => ({ ...prev, assignments: newAssignments }));
+    // Persist to backend immediately (in edit mode)
+    if (isEdit) {
+      try {
+        const result = await employeeApi.update(orgSlug, employeeId, { ...form, assignments: newAssignments });
+        if (result.success) {
+          showToast('Assignment removed', 'success');
+        } else {
+          setError(result.message || 'Failed to remove assignment.');
+        }
+      } catch (err) {
+        setError(err.message || 'Failed to remove assignment.');
+      }
+    }
   };
 
   const updateAssignment = (idx, field, value) => {
@@ -327,18 +339,6 @@ export default function EmployeeForm() {
     setForm(prev => {
       const updated = [...prev.assignments];
       updated[idx] = { ...updated[idx], clientId: id, clientName: name };
-      // Only clear project if switching from one client to ANOTHER (not from empty → value)
-      const prevClientId = prev.assignments[idx]?.clientId;
-      if (prevClientId && id !== prevClientId) {
-        // Check if current project is still compatible with new client
-        const currentProjectId = updated[idx].projectId;
-        const proj = currentProjectId ? tsProjects.find(p => (p._id?.toString?.() || p._id) === currentProjectId) : null;
-        // Clear only if the project belongs to the old client (not org-wide)
-        if (proj && proj.clientId && proj.clientId !== id) {
-          updated[idx].projectId = '';
-          updated[idx].projectName = '';
-        }
-      }
       return { ...prev, assignments: updated };
     });
   };
@@ -761,13 +761,13 @@ export default function EmployeeForm() {
                     placeholder="Search or create client..."
                   />
                 </div>
-                {/* Project (ComboSelect — filtered by client + create) */}
+                {/* Project (ComboSelect — all projects, not filtered by client) */}
                 <div>
                   <label className="block text-xs font-medium text-dark-400 mb-1">Project</label>
                   <ComboSelect
                     value={assignment.projectId}
                     displayValue={assignment.projectName}
-                    options={tsProjects.filter(p => !assignment.clientId || !p.clientId || p.clientId === assignment.clientId)}
+                    options={tsProjects}
                     onChange={(id, name) => setAssignmentProject(idx, id, name)}
                     placeholder="Search or create project..."
                   />

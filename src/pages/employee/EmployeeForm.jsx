@@ -130,6 +130,7 @@ const INITIAL_FORM = {
   designation: '',
   monthlyGrossSalary: '',
   billable: false,
+  manager: '',
   assignments: [],
   joiningDate: '',
   lastWorkingDate: '',
@@ -166,6 +167,7 @@ export default function EmployeeForm() {
 
   const [form, setForm] = useState(INITIAL_FORM);
   const [departments, setDepartments] = useState([]);
+  const [managerOptions, setManagerOptions] = useState([]);
   const [tsClients, setTsClients] = useState([]);
   const [tsProjects, setTsProjects] = useState([]);
   const [loading, setLoading] = useState(isEdit);
@@ -186,6 +188,11 @@ export default function EmployeeForm() {
           setTsClients(res.clients || []);
           setTsProjects(res.projects || []);
         }
+      })
+      .catch(() => {});
+    employeeApi.getManagerOptions(orgSlug)
+      .then((res) => {
+        if (res.success) setManagerOptions(res.managers || []);
       })
       .catch(() => {});
   }, [orgSlug]);
@@ -209,6 +216,7 @@ export default function EmployeeForm() {
             designation: emp.designation || '',
             monthlyGrossSalary: emp.monthlyGrossSalary ?? '',
             billable: emp.billable || false,
+            manager: emp.manager || '',
             assignments: (emp.assignments || []).map(a => {
               // Handle backward compat: old single-number clientBillingRate
               const cbr = typeof a.clientBillingRate === 'number'
@@ -525,6 +533,25 @@ export default function EmployeeForm() {
                     {dept.name}
                   </option>
                 ))}
+              </select>
+            </div>
+
+            {/* Manager (only licensed portal users) */}
+            <div>
+              <label className="block text-sm font-medium text-dark-300 mb-1">Manager</label>
+              <select
+                value={form.manager}
+                onChange={(e) => setField('manager', e.target.value)}
+                className="input-field w-full"
+              >
+                <option value="">No Manager</option>
+                {managerOptions
+                  .filter(m => m._id !== employeeId) // Exclude self
+                  .map((m) => (
+                    <option key={m._id} value={m._id}>
+                      {m.fullName} ({m.email})
+                    </option>
+                  ))}
               </select>
             </div>
 

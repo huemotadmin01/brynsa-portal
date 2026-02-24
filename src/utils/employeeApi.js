@@ -96,6 +96,11 @@ const employeeApi = {
     return api.request(`/api/org/${orgSlug}/employee/timesheet-options`);
   },
 
+  // ── Manager Options (active employees with portal license) ──
+  getManagerOptions(orgSlug) {
+    return api.request(`/api/org/${orgSlug}/employee/manager-options`);
+  },
+
   // ── App Settings ─────────────────────────────────────────────────────
   getAppSettings(orgSlug) {
     return api.request(`/api/org/${orgSlug}/employee/app-settings`);

@@ -5,6 +5,7 @@
  */
 import { useState, useEffect } from 'react';
 import { useOrg } from '../../context/OrgContext';
+import { useToast } from '../../context/ToastContext';
 import { Save, Loader2, AlertCircle, Users, UserCog, CalendarClock } from 'lucide-react';
 import employeeApi from '../../utils/employeeApi';
 
@@ -26,26 +27,41 @@ function ToggleSwitch({ checked, onChange, disabled }) {
 }
 
 export default function SettingsEmployee() {
-  const { currentOrg, isOrgAdmin, isOrgOwner } = useOrg();
-  const isAdmin = isOrgAdmin || isOrgOwner;
+  const { currentOrg, isOrgAdmin, isOrgOwner, getAppRole } = useOrg();
+  const { showToast } = useToast();
+  // Use app-level role check for consistency with the rest of Employee app
+  const isAdmin = getAppRole('employee') === 'admin' || isOrgAdmin || isOrgOwner;
 
   const [settings, setSettings] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [fetchError, setFetchError] = useState(false);
 
   useEffect(() => {
     if (!isAdmin || !currentOrg?.slug) { setLoading(false); return; }
+    let cancelled = false;
     employeeApi.getAppSettings(currentOrg.slug)
-      .then(setSettings)
-      .catch(() => {})
-      .finally(() => setLoading(false));
+      .then((res) => {
+        if (cancelled) return;
+        // Extract settings data from wrapped response
+        if (res.success && res.settings) setSettings(res.settings);
+        else if (res && !res.success) setSettings(res); // legacy fallback
+        else setSettings(res);
+      })
+      .catch(() => { if (!cancelled) setFetchError(true); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
   }, [isAdmin, currentOrg?.slug]);
 
   const handleSave = async () => {
+    if (!settings) { showToast('No settings to save', 'error'); return; }
     setSaving(true);
     try {
       await employeeApi.updateAppSettings(currentOrg.slug, settings);
-    } catch {} finally { setSaving(false); }
+      showToast('Settings saved');
+    } catch (err) {
+      showToast(err.message || 'Failed to save settings', 'error');
+    } finally { setSaving(false); }
   };
 
   if (loading) {
@@ -58,6 +74,17 @@ export default function SettingsEmployee() {
         <div className="flex items-center gap-3 text-dark-400">
           <AlertCircle className="w-5 h-5" />
           <p className="text-sm">You need admin access to manage Employee settings.</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (fetchError) {
+    return (
+      <div className="card p-6">
+        <div className="flex items-center gap-3 text-red-400">
+          <AlertCircle className="w-5 h-5" />
+          <p className="text-sm">Failed to load settings. Please try refreshing the page.</p>
         </div>
       </div>
     );

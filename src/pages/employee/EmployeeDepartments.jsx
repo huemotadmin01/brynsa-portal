@@ -1,6 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useOrg } from '../../context/OrgContext';
-import { usePlatform } from '../../context/PlatformContext';
 import { useToast } from '../../context/ToastContext';
 import employeeApi from '../../utils/employeeApi';
 import { Plus, Edit2, X, Loader2, Users, Building2 } from 'lucide-react';
@@ -9,8 +8,8 @@ const EMPTY_FORM = { name: '', description: '' };
 
 export default function EmployeeDepartments() {
   const { currentOrg, getAppRole } = useOrg();
-  const { orgPath } = usePlatform();
   const { showToast } = useToast();
+  const modalRef = useRef(null);
 
   const isAdmin = getAppRole('employee') === 'admin';
   const orgSlug = currentOrg?.slug;
@@ -50,12 +49,15 @@ export default function EmployeeDepartments() {
     setEditingDept(null);
     setForm(EMPTY_FORM);
     setShowModal(true);
+    // Auto-focus first input after modal renders
+    setTimeout(() => modalRef.current?.querySelector('input')?.focus(), 50);
   };
 
   const openEdit = (dept) => {
     setEditingDept(dept);
     setForm({ name: dept.name, description: dept.description || '' });
     setShowModal(true);
+    setTimeout(() => modalRef.current?.querySelector('input')?.focus(), 50);
   };
 
   const closeModal = () => {
@@ -226,11 +228,21 @@ export default function EmployeeDepartments() {
 
       {/* ── Modal (Add / Edit) ──────────────────────────────────────────── */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-dark-800 rounded-xl p-6 border border-dark-700 w-full max-w-md">
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          onClick={(e) => { if (e.target === e.currentTarget) closeModal(); }}
+          onKeyDown={(e) => { if (e.key === 'Escape') closeModal(); }}
+        >
+          <div
+            ref={modalRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="dept-modal-title"
+            className="bg-dark-800 rounded-xl p-6 border border-dark-700 w-full max-w-md"
+          >
             {/* Modal header */}
             <div className="flex items-center justify-between mb-5">
-              <h3 className="text-lg font-semibold text-white">
+              <h3 id="dept-modal-title" className="text-lg font-semibold text-white">
                 {editingDept ? 'Edit Department' : 'Add Department'}
               </h3>
               <button

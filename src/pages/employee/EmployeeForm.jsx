@@ -24,9 +24,23 @@ function AssignmentDocs({ orgSlug, employeeId, assignmentIdx }) {
 
   useEffect(() => { fetchDocs(); }, [orgSlug, employeeId, assignmentIdx]);
 
+  const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+  const ALLOWED_TYPES = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'image/png', 'image/jpeg', 'image/jpg'];
+
   const handleUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    // Client-side validation
+    if (file.size > MAX_FILE_SIZE) {
+      alert('File too large. Maximum size is 5MB.');
+      if (fileRef.current) fileRef.current.value = '';
+      return;
+    }
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      alert('File type not allowed. Allowed: PDF, DOCX, XLSX, PNG, JPEG.');
+      if (fileRef.current) fileRef.current.value = '';
+      return;
+    }
     setUploading(true);
     try {
       await employeeApi.uploadAssignmentDoc(orgSlug, employeeId, assignmentIdx, file);
@@ -180,32 +194,32 @@ export default function EmployeeForm() {
   // Fetch departments + timesheet options (clients/projects for assignment dropdowns)
   useEffect(() => {
     if (!orgSlug) return;
+    let cancelled = false;
     employeeApi.listDepartments(orgSlug)
-      .then((res) => {
-        if (res.success) setDepartments(res.departments || []);
-      })
+      .then((res) => { if (!cancelled && res.success) setDepartments(res.departments || []); })
       .catch(() => {});
     employeeApi.getTimesheetOptions(orgSlug)
       .then((res) => {
-        if (res.success) {
+        if (!cancelled && res.success) {
           setTsClients(res.clients || []);
           setTsProjects(res.projects || []);
         }
       })
       .catch(() => {});
     employeeApi.getManagerOptions(orgSlug)
-      .then((res) => {
-        if (res.success) setManagerOptions(res.managers || []);
-      })
+      .then((res) => { if (!cancelled && res.success) setManagerOptions(res.managers || []); })
       .catch(() => {});
+    return () => { cancelled = true; };
   }, [orgSlug]);
 
   // Fetch employee data in edit mode
   useEffect(() => {
     if (!isEdit || !orgSlug) return;
+    let cancelled = false;
     setLoading(true);
     employeeApi.get(orgSlug, employeeId)
       .then((res) => {
+        if (cancelled) return;
         if (res.success && res.employee) {
           const emp = res.employee;
           setForm({
@@ -272,10 +286,13 @@ export default function EmployeeForm() {
         }
       })
       .catch((err) => {
-        console.error('Failed to load employee:', err);
-        setError('Failed to load employee data.');
+        if (!cancelled) {
+          console.error('Failed to load employee:', err);
+          setError('Failed to load employee data.');
+        }
       })
-      .finally(() => setLoading(false));
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
   }, [isEdit, orgSlug, employeeId]);
 
   // Generic field updater
@@ -309,6 +326,7 @@ export default function EmployeeForm() {
 
   const removeAssignment = async (idx) => {
     if (!window.confirm(`Remove Assignment ${idx + 1}? This will save immediately.`)) return;
+    const previousAssignments = [...form.assignments];
     const newAssignments = form.assignments.filter((_, i) => i !== idx);
     setForm(prev => ({ ...prev, assignments: newAssignments }));
     // Persist to backend immediately (in edit mode)
@@ -318,10 +336,14 @@ export default function EmployeeForm() {
         if (result.success) {
           showToast('Assignment removed', 'success');
         } else {
-          setError(result.message || 'Failed to remove assignment.');
+          // Rollback on failure
+          setForm(prev => ({ ...prev, assignments: previousAssignments }));
+          showToast(result.message || 'Failed to remove assignment', 'error');
         }
       } catch (err) {
-        setError(err.message || 'Failed to remove assignment.');
+        // Rollback on error
+        setForm(prev => ({ ...prev, assignments: previousAssignments }));
+        showToast(err.message || 'Failed to remove assignment', 'error');
       }
     }
   };

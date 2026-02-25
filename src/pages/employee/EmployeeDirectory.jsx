@@ -92,13 +92,15 @@ export default function EmployeeDirectory() {
   // Fetch departments once
   useEffect(() => {
     if (!orgSlug) return;
+    let cancelled = false;
     employeeApi.listDepartments(orgSlug)
       .then((res) => {
-        if (res.success) {
+        if (!cancelled && res.success) {
           setDepartments(res.departments || []);
         }
       })
       .catch(() => {});
+    return () => { cancelled = true; };
   }, [orgSlug]);
 
   // Fetch employees
@@ -127,10 +129,10 @@ export default function EmployeeDirectory() {
     }
   }, [orgSlug, page, search, departmentFilter, employmentTypeFilter, statusFilter, billableFilter]);
 
-  // Initial load + re-fetch on filter / page change (not search — that's debounced)
+  // Initial load + re-fetch on filter / page change (include fetchEmployees to fix stale closure)
   useEffect(() => {
     fetchEmployees();
-  }, [page, departmentFilter, employmentTypeFilter, statusFilter, billableFilter, orgSlug]);
+  }, [fetchEmployees]);
 
   // Debounced search
   const handleSearchChange = (value) => {
@@ -233,6 +235,7 @@ export default function EmployeeDirectory() {
           value={search}
           onChange={(e) => handleSearchChange(e.target.value)}
           className="input-field w-full pl-10"
+          aria-label="Search employees"
         />
       </div>
 
@@ -307,7 +310,10 @@ export default function EmployeeDirectory() {
               <div
                 key={emp._id}
                 onClick={() => navigate(orgPath('/employee/' + emp._id))}
-                className="card p-5 cursor-pointer hover:bg-dark-800/50 transition-colors group"
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(orgPath('/employee/' + emp._id)); } }}
+                tabIndex={0}
+                role="link"
+                className="card p-5 cursor-pointer hover:bg-dark-800/50 transition-colors group focus:outline-none focus:ring-2 focus:ring-rivvra-500/50 focus:ring-offset-1 focus:ring-offset-dark-900"
               >
                 {/* Top row: avatar + name + status */}
                 <div className="flex items-start gap-3">
@@ -408,6 +414,7 @@ export default function EmployeeDirectory() {
                 <button
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page === 1}
+                  aria-label="Previous page"
                   className="p-2 rounded-lg hover:bg-dark-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   <ChevronLeft className="w-4 h-4 text-dark-400" />
@@ -427,6 +434,8 @@ export default function EmployeeDirectory() {
                     <button
                       key={pageNum}
                       onClick={() => setPage(pageNum)}
+                      aria-label={`Go to page ${pageNum}`}
+                      aria-current={page === pageNum ? 'page' : undefined}
                       className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors ${
                         page === pageNum
                           ? 'bg-orange-500 text-white'
@@ -440,6 +449,7 @@ export default function EmployeeDirectory() {
                 <button
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                   disabled={page === totalPages}
+                  aria-label="Next page"
                   className="p-2 rounded-lg hover:bg-dark-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   <ChevronRight className="w-4 h-4 text-dark-400" />

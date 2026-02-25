@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 
 import api from '../utils/api';
+import { useOrg } from '../context/OrgContext';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell
@@ -78,6 +79,7 @@ function PieTooltip({ active, payload }) {
 export default function TeamDashboardPage() {
   const { user } = useAuth();
   const { orgPath } = usePlatform();
+  const { getAppRole, currentOrg } = useOrg();
   const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -92,7 +94,10 @@ export default function TeamDashboardPage() {
   const [showDateDropdown, setShowDateDropdown] = useState(false);
   const dateDropdownRef = useRef(null);
 
-  const canView = user?.role === 'admin' || user?.role === 'team_lead';
+  // Org membership role is the source of truth; user.role is fallback
+  const orgRole = currentOrg ? getAppRole('outreach') : null;
+  const effectiveRole = orgRole || user?.role || 'member';
+  const canView = effectiveRole === 'admin' || effectiveRole === 'team_lead';
 
   // Compute date params based on filter
   const dateParams = useMemo(() => {
@@ -268,7 +273,7 @@ export default function TeamDashboardPage() {
             <p className="text-xs text-dark-500 mt-1 ml-[42px]">
               {user?.teamName ? (
                 <span className="text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded font-medium mr-1.5">{user.teamName}</span>
-              ) : user?.role === 'admin' ? (
+              ) : effectiveRole === 'admin' ? (
                 <span className="text-rivvra-400 bg-rivvra-500/10 px-1.5 py-0.5 rounded font-medium mr-1.5">All Teams</span>
               ) : null}
               {data?.teamMembers?.length || 0} members

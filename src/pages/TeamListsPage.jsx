@@ -12,6 +12,7 @@ import {
 import LeadDetailPanel from '../components/LeadDetailPanel';
 import ManageDropdown from '../components/ManageDropdown';
 import api from '../utils/api';
+import { useOrg } from '../context/OrgContext';
 import { exportLeadsToCSV } from '../utils/csvExport';
 import ComingSoonModal from '../components/ComingSoonModal';
 import AddToListModal from '../components/AddToListModal';
@@ -24,7 +25,11 @@ function TeamListsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { user, isAuthenticated } = useAuth();
   const { showToast } = useToast();
-  const canEdit = user?.role === 'admin' || user?.role === 'team_lead';
+  const { getAppRole, currentOrg } = useOrg();
+  // Org membership role is the source of truth; user.role is fallback
+  const orgRole = currentOrg ? getAppRole('outreach') : null;
+  const effectiveRole = orgRole || user?.role || 'member';
+  const canEdit = effectiveRole === 'admin' || effectiveRole === 'team_lead';
   const [lists, setLists] = useState([]);
   const [teamMembers, setTeamMembers] = useState([]);
   const [selectedList, setSelectedList] = useState(searchParams.get('list') || null);
@@ -295,7 +300,7 @@ function TeamListsPage() {
                   <div className="flex items-center gap-2 flex-1 min-w-0">
                     <List className="w-4 h-4 flex-shrink-0" />
                     <span className="text-sm font-medium truncate max-w-[120px]">{list.name}</span>
-                    {user?.role === 'admin' ? (
+                    {effectiveRole === 'admin' ? (
                       <button
                         onClick={(e) => { e.stopPropagation(); setRenamingList({ id: list._id, name: list.name }); setRenameValue(list.name); }}
                         className="p-0.5 text-dark-500 hover:text-rivvra-400 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"

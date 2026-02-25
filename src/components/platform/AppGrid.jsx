@@ -5,8 +5,8 @@ import AppCard from './AppCard';
 
 function AppGrid() {
   const { user } = useAuth();
-  const { hasAppAccess, currentOrg, isOrgAdmin, isOrgOwner, loading } = useOrg();
-  const apps = getAllApps(user);
+  const { hasAppAccess, currentOrg, isOrgAdmin, isOrgOwner, loading, membership } = useOrg();
+  const apps = getAllApps(user, membership);
 
   // While org context is loading, show skeleton placeholders to prevent flash of all apps
   if (loading) {

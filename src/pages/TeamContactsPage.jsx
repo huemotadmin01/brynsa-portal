@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useOrg } from '../context/OrgContext';
 import {
   Linkedin, UsersRound, Search, Filter, Download,
   Building2, MapPin,
@@ -23,6 +24,9 @@ import { useToast } from '../context/ToastContext';
 function TeamContactsPage() {
   const { user } = useAuth();
   const { showToast } = useToast();
+  const { getAppRole, currentOrg } = useOrg();
+  const orgRole = currentOrg ? getAppRole('outreach') : null;
+  const effectiveRole = orgRole || user?.role || 'member';
   const [searchParams, setSearchParams] = useSearchParams();
   const [leads, setLeads] = useState([]);
   const [totalCount, setTotalCount] = useState(0);
@@ -237,7 +241,7 @@ function TeamContactsPage() {
               <p className="text-dark-400">
                 {user?.teamName ? (
                   <span className="text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded text-xs font-medium mr-1.5">{user.teamName}</span>
-                ) : user?.role === 'admin' ? (
+                ) : effectiveRole === 'admin' ? (
                   <span className="text-rivvra-400 bg-rivvra-500/10 px-1.5 py-0.5 rounded text-xs font-medium mr-1.5">All Teams</span>
                 ) : null}
                 {totalCount.toLocaleString()} contacts {selectedLeads.length > 0 && `\u2022 ${selectedLeads.length} selected`}

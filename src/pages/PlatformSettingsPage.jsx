@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useOrg } from '../context/OrgContext';
 import {
   Settings, Users, Mail, Clock, User, Shield,
   Bell, CreditCard, ChevronRight, UserCircle
@@ -17,6 +18,7 @@ import SettingsEmployee from '../components/settings/SettingsEmployee';
 
 export default function PlatformSettingsPage() {
   const { user } = useAuth();
+  const { getAppRole, currentOrg, membership } = useOrg();
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = searchParams.get('tab') || 'profile';
 
@@ -24,8 +26,10 @@ export default function PlatformSettingsPage() {
     setSearchParams({ tab }, { replace: true });
   };
 
-  const isAdmin = user?.role === 'admin' || user?.role === 'team_lead';
-  const activeApps = getActiveApps();
+  // Org membership role is the source of truth
+  const orgRole = currentOrg ? (membership?.role || getAppRole('outreach')) : null;
+  const isAdmin = orgRole === 'admin' || user?.role === 'admin' || user?.role === 'team_lead';
+  const activeApps = getActiveApps(user, membership);
   const hasOutreach = activeApps.some(a => a.id === 'outreach');
   const hasTimesheet = activeApps.some(a => a.id === 'timesheet');
   const hasEmployee = activeApps.some(a => a.id === 'employee');

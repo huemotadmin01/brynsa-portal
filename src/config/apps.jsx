@@ -19,8 +19,11 @@ export const APP_REGISTRY = {
       { value: 'team_lead', label: 'Team Lead', color: 'amber' },
       { value: 'member', label: 'Member', color: 'dark' },
     ],
-    getSidebarItems: (user) => {
-      const isAdmin = user?.role === 'admin' || user?.role === 'team_lead';
+    getSidebarItems: (user, timesheetUser, orgAppRole) => {
+      // Org membership role is the source of truth for outreach access control.
+      // user.role is only a fallback when no org context exists.
+      const effectiveRole = orgAppRole || user?.role || 'member';
+      const isAdminOrLead = effectiveRole === 'admin' || effectiveRole === 'team_lead';
       return [
         { type: 'item', path: '/outreach/dashboard', label: 'Home', icon: Home },
         { type: 'item', path: '/outreach/engage', label: 'Engage', icon: Send },
@@ -30,7 +33,7 @@ export const APP_REGISTRY = {
           icon: Users,
           children: [
             { path: '/outreach/leads', label: 'My Contacts', icon: Users },
-            ...(isAdmin ? [{ path: '/outreach/team-contacts', label: 'Team Contacts', icon: UsersRound }] : []),
+            ...(isAdminOrLead ? [{ path: '/outreach/team-contacts', label: 'Team Contacts', icon: UsersRound }] : []),
           ],
         },
         {
@@ -39,10 +42,10 @@ export const APP_REGISTRY = {
           icon: Layers,
           children: [
             { path: '/outreach/lists', label: 'My Lists', icon: List },
-            { path: '/outreach/team-lists', label: 'Team Lists', icon: Layers },
+            ...(isAdminOrLead ? [{ path: '/outreach/team-lists', label: 'Team Lists', icon: Layers }] : []),
           ],
         },
-        ...(isAdmin ? [{ type: 'item', path: '/outreach/team-dashboard', label: 'Team Dashboard', icon: BarChart3 }] : []),
+        ...(isAdminOrLead ? [{ type: 'item', path: '/outreach/team-dashboard', label: 'Team Dashboard', icon: BarChart3 }] : []),
       ];
     },
   },
@@ -148,8 +151,9 @@ export const APP_REGISTRY = {
     status: 'active',
     adminOnly: true,
     defaultRoute: '/settings/general',
-    getSidebarItems: (user) => {
-      const isAdmin = user?.role === 'admin' || user?.role === 'team_lead';
+    getSidebarItems: (user, timesheetUser, orgAppRole) => {
+      // For settings, check if user is org admin or has admin/team_lead role in outreach
+      const isAdmin = orgAppRole === 'admin' || user?.role === 'admin' || user?.role === 'team_lead';
       return [
         { type: 'item', path: '/settings/general', label: 'General Settings', icon: Settings },
         ...(isAdmin ? [{ type: 'item', path: '/settings/users', label: 'Users & Teams', icon: Users }] : []),
@@ -165,15 +169,21 @@ export function getAppById(id) {
   return APP_REGISTRY[id] || null;
 }
 
-export function getAllApps(user) {
+export function getAllApps(user, orgMembership) {
+  // When no user given (e.g. from PlatformContext), return all apps
+  if (!user) return Object.values(APP_REGISTRY);
+  const orgRole = orgMembership?.role;
   return Object.values(APP_REGISTRY).filter(app =>
-    !app.adminOnly || (user?.role === 'admin' || user?.role === 'team_lead')
+    !app.adminOnly || orgRole === 'admin' || user?.role === 'admin' || user?.role === 'team_lead'
   );
 }
 
-export function getActiveApps(user) {
+export function getActiveApps(user, orgMembership) {
+  // When no user given, return all active apps
+  if (!user) return Object.values(APP_REGISTRY).filter(app => app.status === 'active');
+  const orgRole = orgMembership?.role;
   return Object.values(APP_REGISTRY).filter(app =>
-    app.status === 'active' && (!app.adminOnly || (user?.role === 'admin' || user?.role === 'team_lead'))
+    app.status === 'active' && (!app.adminOnly || orgRole === 'admin' || user?.role === 'admin' || user?.role === 'team_lead')
   );
 }
 

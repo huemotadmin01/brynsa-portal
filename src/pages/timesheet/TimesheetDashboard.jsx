@@ -38,12 +38,15 @@ function ContractorDashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const controller = new AbortController();
+    const sig = { signal: controller.signal };
     Promise.all([
-      timesheetApi.get('/earnings/current').then(r => setCurrent(r.data)).catch(() => showToast('Failed to load current month data', 'error')),
-      timesheetApi.get('/earnings/previous').then(r => setPrevious(r.data)).catch(() => {}),
-      timesheetApi.get('/earnings/disbursement-info').then(r => setDisbursement(r.data)).catch(() => {}),
-      timesheetApi.get('/timesheets').then(r => setTimesheets(r.data)).catch(() => showToast('Failed to load timesheets', 'error')),
+      timesheetApi.get('/earnings/current', sig).then(r => setCurrent(r.data)).catch(() => {}),
+      timesheetApi.get('/earnings/previous', sig).then(r => setPrevious(r.data)).catch(() => {}),
+      timesheetApi.get('/earnings/disbursement-info', sig).then(r => setDisbursement(r.data)).catch(() => {}),
+      timesheetApi.get('/timesheets', sig).then(r => setTimesheets(r.data)).catch(() => {}),
     ]).finally(() => setLoading(false));
+    return () => controller.abort();
   }, []);
 
   if (loading) return <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-dark-400" /></div>;
@@ -162,10 +165,12 @@ function AdminDashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    timesheetApi.get('/timesheets')
+    const controller = new AbortController();
+    timesheetApi.get('/timesheets', { signal: controller.signal })
       .then(r => setTimesheets(r.data))
-      .catch(() => showToast('Failed to load timesheets', 'error'))
+      .catch(() => {})
       .finally(() => setLoading(false));
+    return () => controller.abort();
   }, []);
 
   // Hooks must be called before any early return (Rules of Hooks)

@@ -20,15 +20,18 @@ export default function TimesheetApprovals() {
   const [rejectReason, setRejectReason] = useState('');
   const [filter, setFilter] = useState('submitted');
 
+  const controllerRef = { current: null };
   const load = () => {
+    controllerRef.current?.abort();
+    controllerRef.current = new AbortController();
     setLoading(true);
-    timesheetApi.get('/timesheets')
+    timesheetApi.get('/timesheets', { signal: controllerRef.current.signal })
       .then(r => setTimesheets(r.data))
-      .catch(() => showToast('Failed to load', 'error'))
+      .catch(() => {})
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); return () => controllerRef.current?.abort(); }, []);
 
   const handleApprove = async (id) => {
     if (!window.confirm('Are you sure you want to approve this timesheet?')) return;

@@ -36,7 +36,8 @@ export default function TimesheetEntry() {
 
   useEffect(() => {
     if (!timesheetUser) return;
-    timesheetApi.get('/projects').then(r => {
+    const controller = new AbortController();
+    timesheetApi.get('/projects', { signal: controller.signal }).then(r => {
       setProjects(r.data);
       if (timesheetUser?.assignedProjects?.length > 0) {
         const assigned = r.data.find(p => timesheetUser.assignedProjects.some(ap => (ap._id || ap) === p._id));
@@ -45,13 +46,15 @@ export default function TimesheetEntry() {
       } else if (r.data.length > 0) {
         setSelectedProject(r.data[0]._id);
       }
-    });
+    }).catch(() => {});
+    return () => controller.abort();
   }, [timesheetUser]);
 
   useEffect(() => {
     if (!selectedProject || !timesheetUser) { setLoading(false); return; }
     setLoading(true);
-    timesheetApi.get('/timesheets', { params: { month, year, contractor: timesheetUser._id } })
+    const controller = new AbortController();
+    timesheetApi.get('/timesheets', { params: { month, year, contractor: timesheetUser._id }, signal: controller.signal })
       .then(r => {
         const ts = r.data.find(t => t.project?._id === selectedProject || t.project === selectedProject);
         if (ts) {
@@ -84,6 +87,7 @@ export default function TimesheetEntry() {
       })
       .catch(() => setTimesheet(null))
       .finally(() => setLoading(false));
+    return () => controller.abort();
   }, [month, year, selectedProject, timesheetUser]);
 
   const daysInMonth = new Date(year, month, 0).getDate();
@@ -200,6 +204,7 @@ export default function TimesheetEntry() {
 
   const handleSubmit = async () => {
     if (!selectedProject) { showToast('Please select a project first', 'error'); return; }
+    if (!window.confirm('Submit this timesheet for approval? You won\'t be able to edit it until it\'s reviewed.')) return;
     setSaving(true);
     try {
       // Auto-save before submitting
@@ -225,6 +230,7 @@ export default function TimesheetEntry() {
   };
 
   const handleReset = async () => {
+    if (!window.confirm('Reset this timesheet? All saved data will be deleted.')) return;
     try {
       if (timesheet && (timesheet.status === 'draft' || timesheet.status === 'rejected')) {
         await timesheetApi.delete(`/timesheets/${timesheet._id}`);

@@ -329,12 +329,15 @@ export default function TimesheetEarnings() {
   const [downloading, setDownloading] = useState(null);
 
   useEffect(() => {
+    const controller = new AbortController();
+    const sig = { signal: controller.signal };
     Promise.all([
-      timesheetApi.get('/earnings/current').then(r => setCurrent(r.data)).catch(() => showToast('Failed to load current earnings', 'error')),
-      timesheetApi.get('/earnings/previous').then(r => setPrevious(r.data)).catch(() => {}),
-      timesheetApi.get('/earnings/history').then(r => setHistory(r.data)).catch(() => showToast('Failed to load earnings history', 'error')),
-      timesheetApi.get('/earnings/disbursement-info').then(r => setDisbursement(r.data)).catch(() => {}),
+      timesheetApi.get('/earnings/current', sig).then(r => setCurrent(r.data)).catch(() => {}),
+      timesheetApi.get('/earnings/previous', sig).then(r => setPrevious(r.data)).catch(() => {}),
+      timesheetApi.get('/earnings/history', sig).then(r => setHistory(r.data)).catch(() => {}),
+      timesheetApi.get('/earnings/disbursement-info', sig).then(r => setDisbursement(r.data)).catch(() => {}),
     ]).finally(() => setLoading(false));
+    return () => controller.abort();
   }, []);
 
   const handleDownloadPayslip = async (month, year) => {

@@ -19,11 +19,29 @@ timesheetApi.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      console.error('Timesheet API auth failed');
+      console.error('Timesheet API auth failed — session expired');
+      // Clear stale tokens and redirect to login
+      localStorage.removeItem('rivvra_token');
+      localStorage.removeItem('rivvra_user');
+      const currentHash = window.location.hash || '';
+      // Avoid redirect loop if already on login page
+      if (!currentHash.includes('/login')) {
+        window.location.hash = '#/login';
+      }
     }
     return Promise.reject(error);
   }
 );
+
+/**
+ * Create an AbortController-linked cancel token for use in useEffect cleanup.
+ * Usage:
+ *   useEffect(() => {
+ *     const controller = new AbortController();
+ *     timesheetApi.get('/endpoint', { signal: controller.signal }).then(...);
+ *     return () => controller.abort();
+ *   }, []);
+ */
 
 /**
  * Pre-warm the timesheet backend.

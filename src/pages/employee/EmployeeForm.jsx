@@ -9,6 +9,7 @@ import ComboSelect from '../../components/ComboSelect';
 
 // ── Per-assignment document manager ─────────────────────────────────────────
 function AssignmentDocs({ orgSlug, employeeId, assignmentIdx }) {
+  const { showToast } = useToast();
   const [docs, setDocs] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [loadingDocs, setLoadingDocs] = useState(true);
@@ -32,12 +33,12 @@ function AssignmentDocs({ orgSlug, employeeId, assignmentIdx }) {
     if (!file) return;
     // Client-side validation
     if (file.size > MAX_FILE_SIZE) {
-      alert('File too large. Maximum size is 5MB.');
+      showToast('File too large. Maximum size is 5MB.', 'error');
       if (fileRef.current) fileRef.current.value = '';
       return;
     }
     if (!ALLOWED_TYPES.includes(file.type)) {
-      alert('File type not allowed. Allowed: PDF, DOCX, XLSX, PNG, JPEG.');
+      showToast('File type not allowed. Allowed: PDF, DOCX, XLSX, PNG, JPEG.', 'error');
       if (fileRef.current) fileRef.current.value = '';
       return;
     }
@@ -47,6 +48,7 @@ function AssignmentDocs({ orgSlug, employeeId, assignmentIdx }) {
       fetchDocs();
     } catch (err) {
       console.error('Upload failed:', err);
+      showToast(err.message || 'Upload failed', 'error');
     } finally {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = '';
@@ -59,6 +61,7 @@ function AssignmentDocs({ orgSlug, employeeId, assignmentIdx }) {
       setDocs(prev => prev.filter(d => d._id !== docId));
     } catch (err) {
       console.error('Delete failed:', err);
+      showToast(err.message || 'Delete failed', 'error');
     }
   };
 

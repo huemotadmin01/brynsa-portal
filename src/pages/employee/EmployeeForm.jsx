@@ -192,6 +192,7 @@ export default function EmployeeForm() {
   const [loading, setLoading] = useState(isEdit);
   const [saving, setSaving] = useState(false);
   const [savingAssignment, setSavingAssignment] = useState(null);
+  const [savedAssignmentCount, setSavedAssignmentCount] = useState(0);
   const [error, setError] = useState('');
   const [showSensitive, setShowSensitive] = useState(false);
 
@@ -287,6 +288,7 @@ export default function EmployeeForm() {
               bankName: emp.bankDetails?.bankName || '',
             },
           });
+          setSavedAssignmentCount((emp.assignments || []).length);
         }
       })
       .catch((err) => {
@@ -338,6 +340,7 @@ export default function EmployeeForm() {
       try {
         const result = await employeeApi.update(orgSlug, employeeId, { ...form, assignments: newAssignments });
         if (result.success) {
+          setSavedAssignmentCount(newAssignments.length);
           showToast('Assignment removed', 'success');
         } else {
           // Rollback on failure
@@ -475,6 +478,7 @@ export default function EmployeeForm() {
             };
           }),
         }));
+        setSavedAssignmentCount((emp.assignments || []).length);
         // Also refresh project/client options so newly created ones appear in dropdown
         employeeApi.getTimesheetOptions(orgSlug).then(r => {
           if (r.success) { setTsClients(r.clients || []); setTsProjects(r.projects || []); }
@@ -880,12 +884,13 @@ export default function EmployeeForm() {
                 </div>
               </div>
 
-              {/* Documents — only in edit mode (need employee ID) */}
-              {isEdit && (
+              {/* Documents — only for assignments already saved to DB */}
+              {isEdit && idx < savedAssignmentCount ? (
                 <AssignmentDocs orgSlug={orgSlug} employeeId={employeeId} assignmentIdx={idx} />
-              )}
-              {!isEdit && (
-                <p className="text-xs text-dark-500 italic">Save employee first to upload assignment documents.</p>
+              ) : (
+                <p className="text-xs text-dark-500 italic">
+                  {isEdit ? 'Save this assignment first to upload documents.' : 'Save employee first to upload assignment documents.'}
+                </p>
               )}
             </div>
           ))}

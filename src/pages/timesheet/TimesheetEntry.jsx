@@ -199,12 +199,29 @@ export default function TimesheetEntry() {
   };
 
   const handleSubmit = async () => {
-    if (!timesheet) { showToast('Please save the timesheet first', 'error'); return; }
+    if (!selectedProject) { showToast('Please select a project first', 'error'); return; }
+    setSaving(true);
     try {
-      await timesheetApi.patch(`/timesheets/${timesheet._id}/submit`);
-      showToast('Timesheet submitted for approval');
+      // Auto-save before submitting
+      const entryData = buildEntries();
+      const project = projects.find(p => p._id === selectedProject);
+      let ts = timesheet;
+      if (ts) {
+        await timesheetApi.put(`/timesheets/${ts._id}`, { entries: entryData });
+      } else {
+        const res = await timesheetApi.post('/timesheets', {
+          project: selectedProject, client: project?.client?._id || project?.client, month, year, entries: entryData
+        });
+        ts = res.data;
+        setTimesheet(ts);
+      }
+      // Now submit
+      await timesheetApi.patch(`/timesheets/${ts._id}/submit`);
+      showToast('Timesheet saved & submitted for approval');
       await refreshTimesheet();
-    } catch (err) { showToast(err.response?.data?.error || err.response?.data?.message || err.message || 'Submit failed', 'error'); }
+    } catch (err) {
+      showToast(err.response?.data?.error || err.response?.data?.message || err.message || 'Submit failed', 'error');
+    } finally { setSaving(false); }
   };
 
   const handleReset = async () => {
@@ -370,7 +387,7 @@ export default function TimesheetEntry() {
                 className="bg-dark-800 border border-dark-700 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-dark-700 flex items-center gap-2 disabled:opacity-50 transition-colors">
                 <Save size={16} /> Save as Draft
               </button>
-              <button onClick={handleSubmit} disabled={!timesheet || saving}
+              <button onClick={handleSubmit} disabled={saving}
                 className="bg-rivvra-500 text-dark-950 px-4 py-2 rounded-lg text-sm font-medium hover:bg-rivvra-400 flex items-center gap-2 disabled:opacity-50 transition-colors">
                 <Send size={16} /> Submit for Approval
               </button>

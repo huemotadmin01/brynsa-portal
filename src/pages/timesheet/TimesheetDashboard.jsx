@@ -84,7 +84,10 @@ function ContractorDashboard() {
               </>
             ) : <p className="text-2xl font-bold text-white">—</p>}
             <p className="text-xs text-dark-500 mt-1">{current?.earnings?.calculation || ''}</p>
-            {current?.statusLabel && <p className={`text-xs mt-2 font-medium ${current?.timesheetStatus === 'rejected' ? 'text-red-400' : 'text-blue-400'}`}>{current.statusLabel}</p>}
+            {current?.estimateNote && (
+              <p className="text-xs text-amber-400/80 mt-1 italic">{current.estimateNote}</p>
+            )}
+            {current?.statusLabel && <p className={`text-xs mt-2 font-medium ${current?.timesheetStatus === 'rejected' ? 'text-red-400' : current?.timesheetStatus === 'not-created' ? 'text-amber-400' : 'text-blue-400'}`}>{current.statusLabel}</p>}
             {current?.timesheetStatus === 'rejected' && current?.rejectionReason && (
               <p className="text-xs text-red-400/70 mt-1">Reason: {current.rejectionReason}</p>
             )}

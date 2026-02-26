@@ -2,7 +2,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useOrg } from '../../context/OrgContext';
 import { usePlatform } from '../../context/PlatformContext';
-import { LayoutGrid, LogOut, Settings, Crown, Building2, UserCircle } from 'lucide-react';
+import { LayoutGrid, LogOut, Settings, Crown, Building2, UserCircle, Menu, X } from 'lucide-react';
 import RivvraLogo from '../BrynsaLogo';
 import api from '../../utils/api';
 
@@ -13,7 +13,7 @@ const appColorMap = {
   orange: 'text-orange-400',
 };
 
-function TopBar() {
+function TopBar({ onToggleSidebar, sidebarOpen }) {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const { currentOrg } = useOrg();
@@ -32,8 +32,17 @@ function TopBar() {
   return (
     <header className="h-14 border-b border-dark-800/50 bg-dark-950/80 backdrop-blur-xl sticky top-0 z-40">
       <div className="h-full px-4 flex items-center justify-between">
-        {/* Left: Org Logo + Name + App Badge */}
-        <div className="flex items-center gap-4">
+        {/* Left: Hamburger + Org Logo + Name + App Badge */}
+        <div className="flex items-center gap-2 md:gap-4">
+          {currentApp && (
+            <button
+              onClick={onToggleSidebar}
+              className="md:hidden p-2 rounded-lg text-dark-400 hover:text-white hover:bg-dark-800/50 transition-colors"
+              aria-label="Toggle sidebar"
+            >
+              {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
+          )}
           <Link to={orgPath('/home')} className="flex items-center gap-2">
             {orgLogoUrl ? (
               <img

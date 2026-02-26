@@ -73,13 +73,13 @@ export default function TimesheetApprovals() {
   if (loading) return <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-dark-400" /></div>;
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-white">Timesheet Approvals</h1>
+        <h1 className="text-xl sm:text-2xl font-bold text-white">Timesheet Approvals</h1>
         <p className="text-dark-400 text-sm">Review and approve contractor timesheets</p>
       </div>
 
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         {['submitted', 'approved', 'draft', 'all'].map(f => (
           <button key={f} onClick={() => setFilter(f)}
             className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
@@ -118,24 +118,39 @@ export default function TimesheetApprovals() {
                       <div key={i} className="text-center text-[10px] text-dark-500 font-medium">{d}</div>
                     ))}
                     {Array.from({ length: new Date(ts.year, ts.month - 1, 1).getDay() }).map((_, i) => <div key={`e-${i}`} />)}
-                    {ts.entries?.map((entry, i) => {
-                      const isWorking = entry.status === 'working';
-                      const hours = entry.hours || 0;
-                      return (
-                        <div key={i} className="text-center">
-                          <div className={`w-7 h-7 mx-auto rounded-full flex items-center justify-center text-[9px] font-medium text-white ${
-                            isWorking && hours > 8 ? 'bg-blue-500' :
-                            isWorking && hours > 0 ? 'bg-emerald-500' :
-                            statusColors[entry.status] || 'bg-dark-700'
-                          }`} title={`${hours}h - ${entry.status}`}>
-                            {isWorking ? hours : new Date(entry.date).getDate()}
+                    {(() => {
+                      const daysInMonth = new Date(ts.year, ts.month, 0).getDate();
+                      const entryMap = {};
+                      (ts.entries || []).forEach(e => {
+                        const d = new Date(e.date).getDate();
+                        entryMap[d] = e;
+                      });
+                      return Array.from({ length: daysInMonth }, (_, i) => {
+                        const day = i + 1;
+                        const dayOfWeek = new Date(ts.year, ts.month - 1, day).getDay();
+                        const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+                        const entry = entryMap[day];
+                        const isWorking = entry?.status === 'working';
+                        const hours = entry?.hours || 0;
+                        return (
+                          <div key={day} className="text-center">
+                            <div className={`w-7 h-7 mx-auto rounded-full flex items-center justify-center text-[9px] font-medium ${
+                              isWeekend ? 'bg-dark-800 text-dark-500' :
+                              isWorking && hours > 8 ? 'bg-blue-500 text-white' :
+                              isWorking && hours > 0 ? 'bg-emerald-500 text-white' :
+                              entry?.status === 'leave' ? 'bg-red-500 text-white' :
+                              entry?.status === 'holiday' ? 'bg-purple-500 text-white' :
+                              'bg-dark-700 text-dark-500'
+                            }`} title={isWeekend ? 'Weekend' : entry ? `${hours}h - ${entry.status}` : 'No entry'}>
+                              {isWorking && hours > 0 ? hours : day}
+                            </div>
                           </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      });
+                    })()}
                   </div>
 
-                  <div className="flex items-center gap-3 text-sm text-dark-300 mb-4">
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs sm:text-sm text-dark-300 mb-4">
                     <span>Hours: {ts.totalHours || 0}h</span>
                     <span>Days: {ts.totalWorkingDays}</span>
                     <span>Leaves: {ts.entries?.filter(e => e.status === 'leave').length || 0}</span>

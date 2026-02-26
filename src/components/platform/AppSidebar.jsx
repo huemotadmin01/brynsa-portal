@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import ComingSoonModal from '../ComingSoonModal';
 
-function AppSidebar() {
+function AppSidebar({ isOpen, onClose }) {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout, isImpersonating } = useAuth();
@@ -59,9 +59,17 @@ function AppSidebar() {
     : null;
 
   return (
-    <aside className={`w-64 bg-dark-900 border-r border-dark-800 flex flex-col fixed left-0 z-30 ${
-      isImpersonating ? 'top-24' : 'top-14'
-    } ${isImpersonating ? 'h-[calc(100vh-6rem)]' : 'h-[calc(100vh-3.5rem)]'}`}>
+    <>
+      {/* Mobile backdrop */}
+      {isOpen && (
+        <div className="fixed inset-0 bg-dark-950/60 backdrop-blur-sm z-30 md:hidden" onClick={onClose} />
+      )}
+      <aside className={`w-64 bg-dark-900 border-r border-dark-800 flex flex-col fixed left-0 z-30
+        ${isImpersonating ? 'top-24' : 'top-14'}
+        ${isImpersonating ? 'h-[calc(100vh-6rem)]' : 'h-[calc(100vh-3.5rem)]'}
+        transition-transform duration-200 ease-in-out
+        ${isOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0
+      `}>
 
       {/* Navigation */}
       <nav className="flex-1 p-4 space-y-1 overflow-y-auto min-h-0">
@@ -161,6 +169,7 @@ function AppSidebar() {
         feature="Pro Plan"
       />
     </aside>
+    </>
   );
 }
 

@@ -60,15 +60,15 @@ function ContractorDashboard() {
   if (loading) return <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-dark-400" /></div>;
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-white">Welcome, {timesheetUser?.fullName}</h1>
-        <p className="text-dark-400 mt-1">Here's your timesheet summary</p>
+        <h1 className="text-xl sm:text-2xl font-bold text-white">Welcome, {timesheetUser?.fullName}</h1>
+        <p className="text-dark-400 text-sm mt-1">Here's your timesheet summary</p>
       </div>
 
       {/* Earnings cards — hidden for confirmed+billable employees (temporary) */}
       {!hideEarnings && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
           <div className="card p-5">
             <div className="flex items-center justify-between mb-3">
               <span className="text-sm text-dark-400">
@@ -135,13 +135,13 @@ function ContractorDashboard() {
         </div>
       )}
 
-      <div className="flex gap-3">
-        <Link to={orgPath('/timesheet/my-timesheet')} className="bg-rivvra-500 text-dark-950 px-4 py-2 rounded-lg text-sm font-medium hover:bg-rivvra-400 flex items-center gap-2 transition-colors">
-          <CalendarDays size={16} /> Fill Timesheet
+      <div className="flex flex-wrap gap-2 sm:gap-3">
+        <Link to={orgPath('/timesheet/my-timesheet')} className="bg-rivvra-500 text-dark-950 px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium hover:bg-rivvra-400 flex items-center gap-1.5 sm:gap-2 transition-colors">
+          <CalendarDays size={14} /> Fill Timesheet
         </Link>
         {!hideEarnings && (
-          <Link to={orgPath('/timesheet/earnings')} className="bg-dark-800 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-dark-700 flex items-center gap-2 transition-colors">
-            <IndianRupee size={16} /> View Earnings
+          <Link to={orgPath('/timesheet/earnings')} className="bg-dark-800 text-white px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium hover:bg-dark-700 flex items-center gap-1.5 sm:gap-2 transition-colors">
+            <IndianRupee size={14} /> View Earnings
           </Link>
         )}
       </div>
@@ -199,13 +199,13 @@ function AdminDashboard() {
   if (loading) return <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-dark-400" /></div>;
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-white">Welcome, {timesheetUser?.fullName}</h1>
-        <p className="text-dark-400 mt-1">{timesheetUser?.role === 'admin' ? 'Admin' : 'Manager'} Dashboard</p>
+        <h1 className="text-xl sm:text-2xl font-bold text-white">Welcome, {timesheetUser?.fullName}</h1>
+        <p className="text-dark-400 text-sm mt-1">{timesheetUser?.role === 'admin' ? 'Admin' : 'Manager'} Dashboard</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
         <div className="card p-5">
           <div className="flex items-center gap-2 mb-2">
             <AlertCircle size={18} className="text-amber-400" />

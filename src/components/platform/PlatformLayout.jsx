@@ -1,4 +1,5 @@
-import { Outlet } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { usePlatform } from '../../context/PlatformContext';
 import { TimesheetProvider } from '../../context/TimesheetContext';
@@ -35,16 +36,21 @@ function ImpersonationBanner() {
 function PlatformLayout() {
   const { isImpersonating } = useAuth();
   const { currentApp } = usePlatform();
+  const location = useLocation();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Close sidebar on route change (mobile)
+  useEffect(() => { setSidebarOpen(false); }, [location.pathname]);
 
   return (
     <TimesheetProvider>
       <div className={`min-h-screen bg-dark-950 ${isImpersonating ? 'pt-10' : ''}`}>
         <ImpersonationBanner />
-        <TopBar />
+        <TopBar onToggleSidebar={() => setSidebarOpen(prev => !prev)} sidebarOpen={sidebarOpen} />
         <TrialBanner />
         <div className="flex">
-          <AppSidebar />
-          <main className={`flex-1 min-w-0 min-h-[calc(100vh-3.5rem)] ${currentApp ? 'ml-64' : ''}`}>
+          <AppSidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+          <main className={`flex-1 min-w-0 min-h-[calc(100vh-3.5rem)] ${currentApp ? 'md:ml-64' : ''}`}>
             <Outlet />
           </main>
         </div>

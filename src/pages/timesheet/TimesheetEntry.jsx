@@ -285,14 +285,14 @@ export default function TimesheetEntry() {
   const isReadOnly = !canEdit;
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white">My Timesheet</h1>
-          <p className="text-dark-400 text-sm">Enter hours worked per day. Click status label to mark Leave/Holiday.</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-white">My Timesheet</h1>
+          <p className="text-dark-400 text-sm hidden sm:block">Enter hours worked per day. Click status label to mark Leave/Holiday.</p>
         </div>
         <select value={selectedProject} onChange={e => setSelectedProject(e.target.value)}
-          className="px-3 py-2 bg-dark-800/50 border border-dark-700 rounded-lg text-sm text-white focus:outline-none focus:border-rivvra-500">
+          className="px-3 py-2 bg-dark-800/50 border border-dark-700 rounded-lg text-sm text-white focus:outline-none focus:border-rivvra-500 w-full sm:w-auto">
           {projects.map(p => <option key={p._id} value={p._id}>{p.name}</option>)}
         </select>
       </div>
@@ -334,7 +334,7 @@ export default function TimesheetEntry() {
             </div>
             <div className="grid grid-cols-7">
               {Array.from({ length: firstDayOfWeek }).map((_, i) => (
-                <div key={`empty-${i}`} className="p-1.5 border-b border-r border-dark-800/50 min-h-[88px]" />
+                <div key={`empty-${i}`} className="p-1 sm:p-1.5 border-b border-r border-dark-800/50 min-h-[72px] sm:min-h-[88px]" />
               ))}
               {Array.from({ length: daysInMonth }).map((_, i) => {
                 const day = i + 1;
@@ -348,7 +348,7 @@ export default function TimesheetEntry() {
                 const isPastUnfilled = dateObj < new Date(now.getFullYear(), now.getMonth(), now.getDate()) && !isWeekend && !hasStatus;
 
                 return (
-                  <div key={day} className={`p-1.5 border-b border-r border-dark-800/50 min-h-[88px] transition-colors ${
+                  <div key={day} className={`p-1 sm:p-1.5 border-b border-r border-dark-800/50 min-h-[72px] sm:min-h-[88px] transition-colors ${
                     isPastUnfilled ? 'bg-amber-500/5 border-amber-500/20' :
                     isWeekend ? 'bg-dark-800/30' :
                     isNonWorking ? (entry.status === 'leave' ? 'bg-red-500/5' : 'bg-purple-500/5') :
@@ -370,9 +370,9 @@ export default function TimesheetEntry() {
                           onFocus={e => e.target.select()}
                           disabled={isReadOnly}
                           min="0" max="24" step="0.5" placeholder="8"
-                          className="w-12 h-7 text-center text-sm font-semibold bg-dark-800 border border-dark-700 rounded text-white focus:outline-none focus:ring-1 focus:ring-rivvra-500 focus:border-rivvra-500 disabled:bg-dark-800/50 disabled:text-dark-500 placeholder:text-dark-600 placeholder:font-normal [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          className="w-9 sm:w-12 h-6 sm:h-7 text-center text-xs sm:text-sm font-semibold bg-dark-800 border border-dark-700 rounded text-white focus:outline-none focus:ring-1 focus:ring-rivvra-500 focus:border-rivvra-500 disabled:bg-dark-800/50 disabled:text-dark-500 placeholder:text-dark-600 placeholder:font-normal [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         />
-                        <span className="text-[10px] text-dark-500 ml-0.5">h</span>
+                        <span className="text-[10px] text-dark-500 ml-0.5 hidden sm:inline">h</span>
                       </div>
                     ) : (
                       <div className="flex items-center justify-center mb-1">
@@ -383,13 +383,13 @@ export default function TimesheetEntry() {
                     <div className="text-center min-h-[18px]">
                       {hasStatus ? (
                         <button onClick={() => cycleStatus(day)} disabled={isReadOnly || isWeekend}
-                          className={`inline-block px-1.5 py-0.5 rounded text-[9px] font-medium text-white ${statusColors[entry.status]} ${!isReadOnly && !isWeekend ? 'cursor-pointer hover:opacity-80' : 'cursor-default'}`}>
+                          className={`inline-block px-1 sm:px-1.5 py-0.5 rounded text-[8px] sm:text-[9px] font-medium text-white ${statusColors[entry.status]} ${!isReadOnly && !isWeekend ? 'cursor-pointer hover:opacity-80' : 'cursor-default'}`}>
                           {statusLabels[entry.status]}
                         </button>
                       ) : (
                         !isReadOnly && (
                           <button onClick={() => cycleStatus(day)}
-                            className="inline-block px-1.5 py-0.5 rounded text-[9px] font-medium text-dark-500 border border-dashed border-dark-700 cursor-pointer hover:border-dark-500 hover:text-dark-400">
+                            className="inline-block px-1 sm:px-1.5 py-0.5 rounded text-[8px] sm:text-[9px] font-medium text-dark-500 border border-dashed border-dark-700 cursor-pointer hover:border-dark-500 hover:text-dark-400">
                             status
                           </button>
                         )
@@ -401,35 +401,35 @@ export default function TimesheetEntry() {
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-4 card p-4">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-4 card p-3 sm:p-4">
             {Object.entries(statusColors).map(([key, color]) => (
               <div key={key} className="flex items-center gap-1.5">
-                <div className={`w-3 h-3 rounded ${color}`} />
-                <span className="text-xs text-dark-400">{statusLabels[key]}</span>
+                <div className={`w-2.5 sm:w-3 h-2.5 sm:h-3 rounded ${color}`} />
+                <span className="text-[10px] sm:text-xs text-dark-400">{statusLabels[key]}</span>
               </div>
             ))}
-            <div className="ml-auto text-sm font-medium text-white flex items-center gap-3">
-              <span>{totalHours}h total</span>
+            <div className="w-full sm:w-auto sm:ml-auto text-xs sm:text-sm font-medium text-white flex items-center gap-2 sm:gap-3 mt-2 sm:mt-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-dark-800">
+              <span>{totalHours}h</span>
               <span className="text-dark-600">|</span>
-              <span>{totalDays} days</span>
+              <span>{totalDays}d</span>
               {totalLeaves > 0 && <><span className="text-dark-600">|</span><span className="text-red-400">{totalLeaves} leave</span></>}
-              {totalHolidays > 0 && <><span className="text-dark-600">|</span><span className="text-purple-400">{totalHolidays} holiday</span></>}
+              {totalHolidays > 0 && <><span className="text-dark-600">|</span><span className="text-purple-400">{totalHolidays} hol</span></>}
             </div>
           </div>
 
           {!isReadOnly && (
-            <div className="flex gap-3">
+            <div className="flex flex-wrap gap-2 sm:gap-3">
               <button onClick={handleReset} disabled={saving}
-                className="bg-dark-800 border border-dark-700 text-dark-400 px-4 py-2 rounded-lg text-sm font-medium hover:bg-dark-700 hover:text-white flex items-center gap-2 disabled:opacity-50 transition-colors">
-                <RotateCcw size={16} /> Reset
+                className="bg-dark-800 border border-dark-700 text-dark-400 px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium hover:bg-dark-700 hover:text-white flex items-center gap-1.5 sm:gap-2 disabled:opacity-50 transition-colors">
+                <RotateCcw size={14} /> Reset
               </button>
               <button onClick={handleSave} disabled={saving}
-                className="bg-dark-800 border border-dark-700 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-dark-700 flex items-center gap-2 disabled:opacity-50 transition-colors">
-                <Save size={16} /> Save as Draft
+                className="bg-dark-800 border border-dark-700 text-white px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium hover:bg-dark-700 flex items-center gap-1.5 sm:gap-2 disabled:opacity-50 transition-colors">
+                <Save size={14} /> Save Draft
               </button>
               <button onClick={handleSubmit} disabled={saving}
-                className="bg-rivvra-500 text-dark-950 px-4 py-2 rounded-lg text-sm font-medium hover:bg-rivvra-400 flex items-center gap-2 disabled:opacity-50 transition-colors">
-                <Send size={16} /> Submit for Approval
+                className="bg-rivvra-500 text-dark-950 px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium hover:bg-rivvra-400 flex items-center gap-1.5 sm:gap-2 disabled:opacity-50 transition-colors">
+                <Send size={14} /> Submit
               </button>
             </div>
           )}

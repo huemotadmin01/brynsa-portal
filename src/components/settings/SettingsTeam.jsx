@@ -11,9 +11,8 @@ import { usePlatform } from '../../context/PlatformContext';
 import { useOrg } from '../../context/OrgContext';
 import {
   Users, UserPlus, UserX, Mail, Loader2, Check,
-  ChevronDown, Clock, UsersRound, Plus, Pencil,
-  Trash2, X, ArrowLeftRight, Shield, ShieldCheck,
-  Crown, Link2, Unlink,
+  ChevronDown, Clock, X, ArrowLeftRight, Shield, ShieldCheck,
+  Crown, Link2, Unlink, Search, RotateCcw,
 } from 'lucide-react';
 import api from '../../utils/api';
 import employeeApi from '../../utils/employeeApi';
@@ -60,16 +59,11 @@ export default function SettingsTeam() {
   const [confirmAction, setConfirmAction] = useState(null);
   const [actionLoading, setActionLoading] = useState(null);
 
-  // Sub-teams (kept from legacy — still useful)
-  const [teams, setTeams] = useState([]);
-  const [showCreateTeam, setShowCreateTeam] = useState(false);
-  const [newTeamName, setNewTeamName] = useState('');
-  const [newTeamLeader, setNewTeamLeader] = useState('');
-  const [creatingTeam, setCreatingTeam] = useState(false);
-  const [manageTeamId, setManageTeamId] = useState(null);
-  const [editingTeam, setEditingTeam] = useState(null);
-  const [confirmDeleteTeam, setConfirmDeleteTeam] = useState(null);
-  const [teamActionLoading, setTeamActionLoading] = useState(false);
+  // Search
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Resend invite
+  const [resendingInvite, setResendingInvite] = useState(null); // email being resent
 
   // Related Employee linking
   const [employees, setEmployees] = useState([]);
@@ -86,7 +80,6 @@ export default function SettingsTeam() {
       loadMembers();
       loadMemberRateLimits();
       if (canManage) {
-        loadTeams();
         // Load employees for Related Employee linking
         employeeApi.list(orgSlug, { status: 'active' })
           .then(res => { if (res.success) setEmployees(res.employees || []); })
@@ -133,10 +126,6 @@ export default function SettingsTeam() {
         }
       } else { setError(res.error || 'Failed to update rate limits'); setTimeout(() => setError(''), 3000); }
     } catch (err) { setError(err.message || 'Failed to update rate limits'); setTimeout(() => setError(''), 3000); } finally { setSavingRateLimits(false); }
-  }
-
-  async function loadTeams() {
-    try { const res = await api.getTeams(); if (res.success) setTeams(res.teams || []); } catch {}
   }
 
   // ─── Member Detail Panel ─────────────────────────────────────────────────
@@ -226,50 +215,26 @@ export default function SettingsTeam() {
     else { setError(result.error); setTimeout(() => setError(''), 3000); }
   }
 
-  // ─── Sub-teams (legacy) ──────────────────────────────────────────────────
+  // ─── Resend Invitation ──────────────────────────────────────────────────
 
-  async function handleCreateTeam() {
-    if (!newTeamName.trim()) return;
-    setCreatingTeam(true);
+  async function handleResendInvite(email) {
+    if (resendingInvite) return;
+    setResendingInvite(email);
     try {
-      const res = await api.createTeam(newTeamName.trim(), newTeamLeader || null);
-      if (res.success) { setShowCreateTeam(false); setNewTeamName(''); setNewTeamLeader(''); loadTeams(); loadMembers(); }
-      else { setError(res.error || 'Failed to create team'); setTimeout(() => setError(''), 3000); }
-    } catch (err) { setError(err.message); setTimeout(() => setError(''), 3000); } finally { setCreatingTeam(false); }
-  }
-
-  async function handleUpdateTeam(teamId, data) {
-    setTeamActionLoading(true);
-    try {
-      const res = await api.updateTeam(teamId, data);
-      if (res.success) { setEditingTeam(null); loadTeams(); loadMembers(); }
-      else { setError(res.error); setTimeout(() => setError(''), 3000); }
-    } catch (err) { setError(err.message); setTimeout(() => setError(''), 3000); } finally { setTeamActionLoading(false); }
-  }
-
-  async function handleDeleteTeam(teamId) {
-    setTeamActionLoading(true); setConfirmDeleteTeam(null);
-    try {
-      const res = await api.deleteTeam(teamId);
-      if (res.success) { loadTeams(); loadMembers(); }
-      else { setError(res.error); setTimeout(() => setError(''), 3000); }
-    } catch (err) { setError(err.message); setTimeout(() => setError(''), 3000); } finally { setTeamActionLoading(false); }
-  }
-
-  async function handleAddToTeam(teamId, userId) {
-    try {
-      const res = await api.addTeamMembers(teamId, [userId]);
-      if (res.success) { loadTeams(); loadMembers(); }
-      else { setError(res.error); setTimeout(() => setError(''), 3000); }
-    } catch (err) { setError(err.message); setTimeout(() => setError(''), 3000); }
-  }
-
-  async function handleRemoveFromTeam(teamId, userId) {
-    try {
-      const res = await api.removeTeamMember(teamId, userId);
-      if (res.success) { loadTeams(); loadMembers(); }
-      else { setError(res.error); setTimeout(() => setError(''), 3000); }
-    } catch (err) { setError(err.message); setTimeout(() => setError(''), 3000); }
+      const res = await api.resendOrgInvite(orgSlug, email);
+      if (res.success) {
+        setError('✅ Invitation resent successfully');
+        setTimeout(() => setError(''), 3000);
+      } else {
+        setError(res.error || 'Failed to resend invitation');
+        setTimeout(() => setError(''), 3000);
+      }
+    } catch (err) {
+      setError(err.message || 'Failed to resend invitation');
+      setTimeout(() => setError(''), 3000);
+    } finally {
+      setResendingInvite(null);
+    }
   }
 
   // ─── Employee Linking ───────────────────────────────────────────────────
@@ -330,6 +295,13 @@ export default function SettingsTeam() {
   const activeMembers = members.filter(m => m.status === 'active');
   const invitedMembers = members.filter(m => m.status === 'invited');
 
+  // Search filter
+  const filteredActive = activeMembers.filter(m => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase();
+    return (m.name || '').toLowerCase().includes(q) || (m.email || '').toLowerCase().includes(q);
+  });
+
   return (
     <>
       <div className="space-y-6">
@@ -366,6 +338,18 @@ export default function SettingsTeam() {
             </div>
           )}
 
+          {/* Search */}
+          <div className="relative mb-4">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-dark-500" />
+            <input
+              type="text"
+              placeholder="Search by name or email..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-3 py-2.5 bg-dark-800 border border-dark-600 rounded-xl text-white text-sm placeholder-dark-500 focus:outline-none focus:border-rivvra-500 transition-colors"
+            />
+          </div>
+
           {/* Column headers */}
           <div className="flex items-center gap-4 px-4 py-2 text-[10px] uppercase text-dark-500 font-semibold tracking-wider border-b border-dark-700/50 mb-2">
             <div className="flex-1 min-w-0">User</div>
@@ -376,7 +360,10 @@ export default function SettingsTeam() {
 
           {/* Active Members */}
           <div className="space-y-1">
-            {activeMembers.map((member) => {
+            {filteredActive.length === 0 && searchQuery.trim() && (
+              <p className="text-dark-500 text-sm text-center py-6">No members match "{searchQuery}"</p>
+            )}
+            {filteredActive.map((member) => {
               const isCurrentUser = member.userId?.toString() === user?.id;
               const isMemberOwner = member.orgRole === 'owner';
               const isExpanded = expandedMember === member.userId?.toString();
@@ -594,7 +581,7 @@ export default function SettingsTeam() {
                           <div className="flex items-center gap-3 px-3 py-2.5 bg-dark-800/50 rounded-lg border border-dark-700/50">
                             <Link2 className="w-4 h-4 text-orange-400 flex-shrink-0" />
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm text-white truncate">{member.linkedEmployee.fullName}</p>
+                              <p className="text-sm text-white truncate cursor-pointer hover:text-rivvra-400 hover:underline" onClick={() => navigate(orgPath(`/employee/${member.linkedEmployee._id}`))}>{member.linkedEmployee.fullName}</p>
                               <p className="text-xs text-dark-400 truncate">
                                 {member.linkedEmployee.designation || member.linkedEmployee.email || member.linkedEmployee.employeeId}
                               </p>
@@ -719,133 +706,28 @@ export default function SettingsTeam() {
                       );
                     })}
                   </div>
+                  {/* Resend invite */}
+                  <button
+                    onClick={() => handleResendInvite(invite.email)}
+                    disabled={resendingInvite === invite.email}
+                    className="flex items-center gap-1 px-2.5 py-1.5 text-xs text-amber-400 hover:bg-amber-500/10 rounded-lg transition-colors flex-shrink-0"
+                  >
+                    {resendingInvite === invite.email ? (
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                    ) : (
+                      <RotateCcw className="w-3 h-3" />
+                    )}
+                    Resend
+                  </button>
                 </div>
               ))}
             </div>
           </div>
         )}
 
-        {/* ─── Sub-Teams ──────────────────────────────────────────────── */}
-        {canManage && (
-          <div className="card p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-semibold text-white flex items-center gap-2"><UsersRound className="w-4 h-4 text-dark-400" />Teams</h3>
-              <button onClick={() => setShowCreateTeam(true)} className="flex items-center gap-1.5 px-3 py-1.5 bg-rivvra-500 text-dark-950 rounded-lg text-xs font-semibold hover:bg-rivvra-400">
-                <Plus className="w-3 h-3" />Create Team
-              </button>
-            </div>
-
-            {showCreateTeam && (
-              <div className="mb-4 p-4 bg-dark-800/50 border border-dark-700 rounded-xl space-y-3">
-                <input type="text" value={newTeamName} onChange={(e) => setNewTeamName(e.target.value)} placeholder="Team name" className="w-full px-3 py-2 bg-dark-800 border border-dark-600 rounded-lg text-white placeholder-dark-500 text-sm focus:outline-none focus:border-rivvra-500" autoFocus />
-                <div>
-                  <label className="block text-xs text-dark-400 mb-1">Team Lead (optional)</label>
-                  <select value={newTeamLeader} onChange={(e) => setNewTeamLeader(e.target.value)} className="w-full px-3 py-2 bg-dark-800 border border-dark-600 rounded-lg text-white text-sm focus:outline-none focus:border-rivvra-500">
-                    <option value="">Select a team lead...</option>
-                    {activeMembers.filter(m => !m.teamId && m.userId?.toString() !== user?.id).map(m => <option key={m.userId} value={m.userId}>{m.name || m.email}</option>)}
-                  </select>
-                </div>
-                <div className="flex items-center gap-2 justify-end">
-                  <button onClick={() => { setShowCreateTeam(false); setNewTeamName(''); setNewTeamLeader(''); }} className="px-3 py-1.5 text-xs text-dark-400 hover:text-white">Cancel</button>
-                  <button onClick={handleCreateTeam} disabled={creatingTeam || !newTeamName.trim()} className="px-4 py-1.5 bg-rivvra-500 text-dark-950 rounded-lg text-xs font-semibold hover:bg-rivvra-400 disabled:opacity-50 flex items-center gap-1.5">
-                    {creatingTeam ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}Create
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {teams.length === 0 && !showCreateTeam ? (
-              <p className="text-dark-500 text-sm text-center py-4">No teams created yet.</p>
-            ) : (
-              <div className="space-y-3">
-                {teams.map((team) => (
-                  <div key={team.id} className="px-4 py-3 bg-dark-800/40 border border-dark-700/50 rounded-xl">
-                    <div className="flex items-center justify-between mb-2">
-                      <div>
-                        {editingTeam?.id === team.id ? (
-                          <div className="flex items-center gap-2">
-                            <input type="text" value={editingTeam.name} onChange={(e) => setEditingTeam({ ...editingTeam, name: e.target.value })} className="px-2 py-1 bg-dark-800 border border-dark-600 rounded text-white text-sm focus:outline-none focus:border-rivvra-500" />
-                            <button onClick={() => handleUpdateTeam(team.id, { name: editingTeam.name })} disabled={teamActionLoading} className="text-rivvra-400 text-xs">Save</button>
-                            <button onClick={() => setEditingTeam(null)} className="text-dark-400 text-xs">Cancel</button>
-                          </div>
-                        ) : (
-                          <h4 className="text-sm font-medium text-white">{team.name}</h4>
-                        )}
-                        <p className="text-xs text-dark-500 mt-0.5">Lead: <span className="text-dark-300">{team.leaderName || 'Unassigned'}</span> · {team.memberCount} member{team.memberCount !== 1 ? 's' : ''}</p>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <button onClick={() => setManageTeamId(manageTeamId === team.id ? null : team.id)} className="px-2.5 py-1 text-xs text-dark-400 hover:text-white hover:bg-dark-700 rounded-lg"><Users className="w-3.5 h-3.5" /></button>
-                        <button onClick={() => setEditingTeam({ id: team.id, name: team.name, leaderId: team.leaderId })} className="px-2.5 py-1 text-xs text-dark-400 hover:text-white hover:bg-dark-700 rounded-lg"><Pencil className="w-3.5 h-3.5" /></button>
-                        <button onClick={() => setConfirmDeleteTeam(team)} className="px-2.5 py-1 text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg"><Trash2 className="w-3.5 h-3.5" /></button>
-                      </div>
-                    </div>
-
-                    {manageTeamId === team.id && (
-                      <div className="mt-3 pt-3 border-t border-dark-700">
-                        <p className="text-[10px] uppercase text-dark-500 font-semibold mb-2 tracking-wider">Members</p>
-                        <div className="space-y-1 mb-3">
-                          {team.members.map((m) => (
-                            <div key={m.id} className="flex items-center justify-between px-2 py-1.5 rounded-lg hover:bg-dark-700/50">
-                              <div className="flex items-center gap-2 min-w-0">
-                                <span className="text-xs text-white truncate">{m.name || m.email}</span>
-                                {m.id === team.leaderId && <span className="text-[9px] bg-amber-500/10 text-amber-400 px-1 py-0.5 rounded">Lead</span>}
-                              </div>
-                              <button onClick={() => handleRemoveFromTeam(team.id, m.id)} className="text-dark-500 hover:text-red-400 flex-shrink-0"><X className="w-3 h-3" /></button>
-                            </div>
-                          ))}
-                        </div>
-                        {(() => {
-                          const unassigned = activeMembers.filter(m => !m.teamId && m.orgRole !== 'owner');
-                          if (unassigned.length === 0) return <p className="text-dark-500 text-xs">All members are assigned.</p>;
-                          return (
-                            <>
-                              <p className="text-[10px] uppercase text-dark-500 font-semibold mb-2 tracking-wider">Add Members</p>
-                              <div className="space-y-1">
-                                {unassigned.map((m) => (
-                                  <div key={m.userId} className="flex items-center justify-between px-2 py-1.5 rounded-lg hover:bg-dark-700/50">
-                                    <span className="text-xs text-dark-300 truncate">{m.name || m.email}</span>
-                                    <button onClick={() => handleAddToTeam(team.id, m.userId)} className="text-rivvra-400 hover:text-rivvra-300 text-xs font-medium">Add</button>
-                                  </div>
-                                ))}
-                              </div>
-                            </>
-                          );
-                        })()}
-                        <div className="mt-3 pt-2 border-t border-dark-700/50">
-                          <label className="block text-[10px] uppercase text-dark-500 font-semibold mb-1 tracking-wider">Team Lead</label>
-                          <select value={team.leaderId || ''} onChange={(e) => handleUpdateTeam(team.id, { leaderId: e.target.value || null })} className="w-full px-2 py-1.5 bg-dark-800 border border-dark-600 rounded-lg text-white text-xs focus:outline-none focus:border-rivvra-500">
-                            <option value="">No lead assigned</option>
-                            {team.members.map((m) => <option key={m.id} value={m.id}>{m.name || m.email}</option>)}
-                          </select>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
       </div>
 
       {/* ─── Modals ───────────────────────────────────────────────────── */}
-
-      {confirmDeleteTeam && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-dark-950/80 backdrop-blur-sm" onClick={() => setConfirmDeleteTeam(null)} />
-          <div className="relative bg-dark-900 border border-dark-700 rounded-2xl w-full max-w-sm shadow-2xl p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-red-500/10"><Trash2 className="w-5 h-5 text-red-400" /></div>
-              <div><h3 className="text-white font-semibold">Delete Team</h3><p className="text-dark-400 text-sm">{confirmDeleteTeam.name}</p></div>
-            </div>
-            <p className="text-dark-300 text-sm mb-6">This will remove the team. All members will become unassigned.</p>
-            <div className="flex items-center justify-end gap-3">
-              <button onClick={() => setConfirmDeleteTeam(null)} className="px-4 py-2 text-sm text-dark-400 hover:text-white">Cancel</button>
-              <button onClick={() => handleDeleteTeam(confirmDeleteTeam.id)} className="px-5 py-2 rounded-xl text-sm font-semibold bg-red-500 text-white hover:bg-red-400">Delete</button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {confirmAction && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">

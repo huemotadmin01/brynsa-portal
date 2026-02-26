@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useOrg } from '../../context/OrgContext';
 import { usePlatform } from '../../context/PlatformContext';
 import employeeApi from '../../utils/employeeApi';
@@ -274,13 +274,13 @@ export default function EmployeeDetail() {
             label="Related User"
             value={
               emp.linkedUserName ? (
-                <span className="flex items-center gap-1.5">
+                <Link to={orgPath('/settings/team')} className="flex items-center gap-1.5 group">
                   <Link2 size={12} className="text-rivvra-400" />
-                  {emp.linkedUserName}
+                  <span className="text-rivvra-400 group-hover:underline">{emp.linkedUserName}</span>
                   {emp.linkedUserEmail && (
                     <span className="text-dark-400">({emp.linkedUserEmail})</span>
                   )}
-                </span>
+                </Link>
               ) : null
             }
           />

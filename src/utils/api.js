@@ -742,6 +742,13 @@ class ApiClient {
     });
   }
 
+  async resendOrgInvite(orgSlug, email) {
+    return this.request(`/api/org/${orgSlug}/invite/resend`, {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+  }
+
   // ─── Member ↔ Employee Linking ──────────────────────────────────────────────
 
   async linkMemberEmployee(orgSlug, userId, employeeId) {

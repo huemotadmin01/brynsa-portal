@@ -66,6 +66,9 @@ export default function SettingsTeam() {
   const [resendingInvite, setResendingInvite] = useState(null); // email being resent
   const [cancellingInvite, setCancellingInvite] = useState(null); // email being cancelled
 
+  // Send workspace link
+  const [sendingLink, setSendingLink] = useState(null); // userId being sent
+
   // Related Employee linking
   const [employees, setEmployees] = useState([]);
   const [linkingEmployee, setLinkingEmployee] = useState(null); // userId being linked
@@ -258,6 +261,26 @@ export default function SettingsTeam() {
       setTimeout(() => setError(''), 3000);
     } finally {
       setCancellingInvite(null);
+    }
+  }
+
+  async function handleSendWorkspaceLink(userId) {
+    if (sendingLink) return;
+    setSendingLink(userId);
+    try {
+      const res = await api.sendWorkspaceLink(orgSlug, userId);
+      if (res.success) {
+        setError('✅ Workspace link sent');
+        setTimeout(() => setError(''), 3000);
+      } else {
+        setError(res.error || 'Failed to send workspace link');
+        setTimeout(() => setError(''), 3000);
+      }
+    } catch (err) {
+      setError(err.message || 'Failed to send workspace link');
+      setTimeout(() => setError(''), 3000);
+    } finally {
+      setSendingLink(null);
     }
   }
 
@@ -673,6 +696,14 @@ export default function SettingsTeam() {
                         <div className="flex items-center gap-2">
                           {!isCurrentUser && (
                             <>
+                              <button
+                                onClick={() => handleSendWorkspaceLink(member.userId?.toString())}
+                                disabled={sendingLink === member.userId?.toString()}
+                                className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors"
+                              >
+                                {sendingLink === member.userId?.toString() ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RotateCcw className="w-3.5 h-3.5" />}
+                                Resend Invitation
+                              </button>
                               <button
                                 onClick={() => handleImpersonate(member.userId)}
                                 className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-amber-400 hover:bg-amber-500/10 rounded-lg transition-colors"

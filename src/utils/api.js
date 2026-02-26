@@ -756,6 +756,13 @@ class ApiClient {
     });
   }
 
+  async sendWorkspaceLink(orgSlug, userId) {
+    return this.request(`/api/org/${orgSlug}/send-workspace-link`, {
+      method: 'POST',
+      body: JSON.stringify({ userId }),
+    });
+  }
+
   // ─── Member ↔ Employee Linking ──────────────────────────────────────────────
 
   async linkMemberEmployee(orgSlug, userId, employeeId) {

@@ -1,4 +1,4 @@
-# Deploys to app.rivvra.com via GitHub Pages
+# Deploys to www.rivvra.com via GitHub Pages
 name: Deploy to GitHub Pages
 
 on:

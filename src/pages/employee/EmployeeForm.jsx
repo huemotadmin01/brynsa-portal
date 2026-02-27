@@ -486,9 +486,9 @@ export default function EmployeeForm() {
       return;
     }
 
-    // Non-billable: at least one assignment is required
-    if (!form.billable && form.assignments.length === 0) {
-      setError('At least one project assignment is required for non-billable employees.');
+    // Billable: at least one assignment is required
+    if (form.billable && form.assignments.length === 0) {
+      setError('At least one project assignment is required for billable employees.');
       return;
     }
 
@@ -919,10 +919,10 @@ export default function EmployeeForm() {
           </div>
 
           {form.assignments.length === 0 && (
-            <div className={`text-center py-6 border border-dashed rounded-xl ${!form.billable ? 'border-amber-500/30 bg-amber-500/5' : 'border-dark-700'}`}>
-              <Briefcase size={24} className={`mx-auto mb-2 ${!form.billable ? 'text-amber-500/50' : 'text-dark-600'}`} />
-              <p className={`text-sm ${!form.billable ? 'text-amber-400/80' : 'text-dark-500'}`}>
-                No project assignments yet.{!form.billable && ' At least one is required for non-billable employees.'}
+            <div className={`text-center py-6 border border-dashed rounded-xl ${form.billable ? 'border-amber-500/30 bg-amber-500/5' : 'border-dark-700'}`}>
+              <Briefcase size={24} className={`mx-auto mb-2 ${form.billable ? 'text-amber-500/50' : 'text-dark-600'}`} />
+              <p className={`text-sm ${form.billable ? 'text-amber-400/80' : 'text-dark-500'}`}>
+                No project assignments yet.{form.billable && ' At least one is required for billable employees.'}
               </p>
               <p className="text-dark-600 text-xs mt-1">Click "Add Assignment" to assign this employee to a client project.</p>
             </div>

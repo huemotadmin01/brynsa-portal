@@ -94,7 +94,7 @@ export default function TimesheetExport() {
               </div>
             </div>
             <p className="text-sm text-dark-300 mb-4">
-              Exports: Employee ID, Name, Working Days, Daily Rate, Total Payable
+              Exports: Employee ID, Name, Pay Type, Hours, Working Days, Rate, Paid Leave, Total Payable
             </p>
             <button onClick={() => downloadCSV('payroll')}
               className="w-full bg-emerald-500 text-dark-950 py-2 rounded-lg text-sm font-medium hover:bg-emerald-400 flex items-center justify-center gap-2 transition-colors">

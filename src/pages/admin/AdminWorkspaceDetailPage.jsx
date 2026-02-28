@@ -6,7 +6,7 @@ import {
   Clock, AlertCircle, Globe, Calendar, ChevronRight
 } from 'lucide-react';
 
-const ALL_APPS = ['outreach', 'timesheet', 'employee', 'crm', 'ats'];
+const ALL_APPS = ['outreach', 'timesheet', 'employee', 'contacts', 'crm', 'ats'];
 const PLAN_OPTIONS = ['trial', 'pro', 'enterprise'];
 const TRIAL_STATUS_OPTIONS = ['none', 'active', 'grace', 'archived'];
 

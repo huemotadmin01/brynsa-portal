@@ -147,6 +147,13 @@ const atsApi = {
     return api.request(`/api/org/${orgSlug}/ats/candidates/${id}`);
   },
 
+  createCandidate(orgSlug, data) {
+    return api.request(`/api/org/${orgSlug}/ats/candidates`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
   updateCandidate(orgSlug, id, data) {
     return api.request(`/api/org/${orgSlug}/ats/candidates/${id}`, {
       method: 'PUT',

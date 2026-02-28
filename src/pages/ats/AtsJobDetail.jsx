@@ -7,6 +7,7 @@ import atsApi from '../../utils/atsApi';
 import {
   ArrowLeft, Loader2, Star, ChevronDown, X,
   Edit3, Check, Briefcase, Users, Calendar,
+  DollarSign, MapPin, Shield, UserCheck,
 } from 'lucide-react';
 
 /* ── Status badge helper ──────────────────────────────────────────────── */
@@ -22,6 +23,23 @@ function StatusBadge({ status }) {
   return (
     <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${styles[key] || 'bg-dark-700 text-dark-400'}`}>
       {labels[key] || status || 'Unknown'}
+    </span>
+  );
+}
+
+/* ── Approval status badge helper ─────────────────────────────────────── */
+function ApprovalBadge({ status }) {
+  const styles = {
+    pending: 'bg-amber-500/10 text-amber-400',
+    approved: 'bg-emerald-500/10 text-emerald-400',
+    rejected: 'bg-red-500/10 text-red-400',
+  };
+  const labels = { pending: 'Pending', approved: 'Approved', rejected: 'Rejected' };
+  const key = (status || '').toLowerCase();
+
+  return (
+    <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${styles[key] || 'bg-dark-700 text-dark-400'}`}>
+      {labels[key] || status || 'Not Set'}
     </span>
   );
 }
@@ -133,6 +151,21 @@ function MiniPipeline({ stageCounts }) {
   );
 }
 
+/* ── Enum option constants ────────────────────────────────────────────── */
+const EXPERIENCE_OPTIONS = [
+  '0-2 Years', '2-5 Years', '5-8 Years', '8-11 Years', '11-14 Years', '14+ Years',
+];
+
+const HIRING_MODE_OPTIONS = [
+  'C2C', 'C2H', 'Full-time Hire', 'C2C or Full-time Hire',
+];
+
+const APPROVAL_STATUS_OPTIONS = [
+  { value: 'pending', label: 'Pending' },
+  { value: 'approved', label: 'Approved' },
+  { value: 'rejected', label: 'Rejected' },
+];
+
 /* ── Main component ──────────────────────────────────────────────────── */
 export default function AtsJobDetail() {
   const { jobId } = useParams();
@@ -146,6 +179,9 @@ export default function AtsJobDetail() {
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editForm, setEditForm] = useState({});
+
+  // Recruiters list for user dropdowns
+  const [recruiters, setRecruiters] = useState([]);
 
   // Applications for this job
   const [applications, setApplications] = useState([]);
@@ -162,6 +198,16 @@ export default function AtsJobDetail() {
 
   const isAdmin = getAppRole('ats') === 'admin';
   const orgSlug = currentOrg?.slug;
+
+  // ── Fetch recruiters for dropdowns ──────────────────────────────────
+  useEffect(() => {
+    if (!orgSlug) return;
+    atsApi.listRecruiters(orgSlug)
+      .then((res) => {
+        if (res.success) setRecruiters(res.recruiters || []);
+      })
+      .catch((err) => console.error('Failed to load recruiters:', err));
+  }, [orgSlug]);
 
   // ── Fetch job ──────────────────────────────────────────────────────────
   const fetchJob = useCallback(async () => {
@@ -250,6 +296,15 @@ export default function AtsJobDetail() {
         expectedHires: Number(editForm.expectedHires) || 1,
         employmentType: editForm.employmentType?.trim(),
         location: editForm.location?.trim(),
+        // New fields
+        requiredExperience: editForm.requiredExperience || '',
+        approvalStatus: editForm.approvalStatus || '',
+        approverId: editForm.approverId || '',
+        clientBudget: editForm.clientBudget !== '' && editForm.clientBudget != null ? Number(editForm.clientBudget) : null,
+        maxBudget: editForm.maxBudget !== '' && editForm.maxBudget != null ? Number(editForm.maxBudget) : null,
+        hiringMode: editForm.hiringMode || '',
+        accountOwnerId: editForm.accountOwnerId || '',
+        accountManagerId: editForm.accountManagerId || '',
       };
       const res = await atsApi.updateJob(orgSlug, jobId, payload);
       if (res.success) {
@@ -276,6 +331,19 @@ export default function AtsJobDetail() {
       day: 'numeric',
       year: 'numeric',
     });
+  };
+
+  const formatCurrency = (val) => {
+    if (val == null || val === '') return '\u2014';
+    return `$${Number(val).toLocaleString()}`;
+  };
+
+  /** Resolve a recruiter/user ID to a display name from the recruiters list */
+  const resolveUserName = (userId, fallbackName) => {
+    if (fallbackName) return fallbackName;
+    if (!userId) return '\u2014';
+    const user = recruiters.find((r) => r._id === userId);
+    return user ? user.name : '\u2014';
   };
 
   // ── Render ─────────────────────────────────────────────────────────────
@@ -324,6 +392,7 @@ export default function AtsJobDetail() {
             <div className="flex items-center gap-3 mb-1">
               <h1 className="text-2xl font-bold text-white">{job.name}</h1>
               <StatusBadge status={job.status} />
+              {job.approvalStatus && <ApprovalBadge status={job.approvalStatus} />}
             </div>
             <p className="text-dark-400 text-sm">
               {job.department || 'No department'}{job.location ? ` \u00B7 ${job.location}` : ''}
@@ -446,19 +515,6 @@ export default function AtsJobDetail() {
             )}
           </div>
           <div>
-            <p className="text-dark-500 text-xs mb-1">Location</p>
-            {editing ? (
-              <input
-                type="text"
-                value={editForm.location || ''}
-                onChange={(e) => handleEditChange('location', e.target.value)}
-                className="input-field text-sm"
-              />
-            ) : (
-              <p className="text-white text-sm">{job.location || '\u2014'}</p>
-            )}
-          </div>
-          <div>
             <p className="text-dark-500 text-xs mb-1">Expected Hires</p>
             {editing ? (
               <input
@@ -514,6 +570,213 @@ export default function AtsJobDetail() {
               {job.requirements || 'No requirements listed.'}
             </p>
           )}
+        </div>
+      </div>
+
+      {/* ── Staffing Details ──────────────────────────────────────────────── */}
+      <div className="card p-5">
+        <div className="flex items-center gap-2 mb-4">
+          <Briefcase size={14} className="text-dark-400" />
+          <h2 className="text-sm font-semibold text-dark-400 uppercase tracking-wider">
+            Staffing Details
+          </h2>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div>
+            <p className="text-dark-500 text-xs mb-1">Required Experience</p>
+            {editing ? (
+              <select
+                value={editForm.requiredExperience || ''}
+                onChange={(e) => handleEditChange('requiredExperience', e.target.value)}
+                className="input-field text-sm"
+              >
+                <option value="">Select...</option>
+                {EXPERIENCE_OPTIONS.map((opt) => (
+                  <option key={opt} value={opt}>{opt}</option>
+                ))}
+              </select>
+            ) : (
+              <p className="text-white text-sm">{job.requiredExperience || '\u2014'}</p>
+            )}
+          </div>
+          <div>
+            <p className="text-dark-500 text-xs mb-1">Hiring Mode</p>
+            {editing ? (
+              <select
+                value={editForm.hiringMode || ''}
+                onChange={(e) => handleEditChange('hiringMode', e.target.value)}
+                className="input-field text-sm"
+              >
+                <option value="">Select...</option>
+                {HIRING_MODE_OPTIONS.map((opt) => (
+                  <option key={opt} value={opt}>{opt}</option>
+                ))}
+              </select>
+            ) : (
+              <p className="text-white text-sm">{job.hiringMode || '\u2014'}</p>
+            )}
+          </div>
+          <div>
+            <p className="text-dark-500 text-xs mb-1">Location</p>
+            {editing ? (
+              <input
+                type="text"
+                value={editForm.location || ''}
+                onChange={(e) => handleEditChange('location', e.target.value)}
+                className="input-field text-sm"
+              />
+            ) : (
+              <p className="text-white text-sm">{job.location || '\u2014'}</p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Financial ─────────────────────────────────────────────────────── */}
+      <div className="card p-5">
+        <div className="flex items-center gap-2 mb-4">
+          <DollarSign size={14} className="text-dark-400" />
+          <h2 className="text-sm font-semibold text-dark-400 uppercase tracking-wider">
+            Financial
+          </h2>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div>
+            <p className="text-dark-500 text-xs mb-1">Client Budget</p>
+            {editing ? (
+              <input
+                type="number"
+                value={editForm.clientBudget ?? ''}
+                onChange={(e) => handleEditChange('clientBudget', e.target.value)}
+                min="0"
+                placeholder="0"
+                className="input-field text-sm"
+              />
+            ) : (
+              <p className="text-white text-sm">{formatCurrency(job.clientBudget)}</p>
+            )}
+          </div>
+          <div>
+            <p className="text-dark-500 text-xs mb-1">Max Budget</p>
+            {editing ? (
+              <input
+                type="number"
+                value={editForm.maxBudget ?? ''}
+                onChange={(e) => handleEditChange('maxBudget', e.target.value)}
+                min="0"
+                placeholder="0"
+                className="input-field text-sm"
+              />
+            ) : (
+              <p className="text-white text-sm">{formatCurrency(job.maxBudget)}</p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* ── People ────────────────────────────────────────────────────────── */}
+      <div className="card p-5">
+        <div className="flex items-center gap-2 mb-4">
+          <UserCheck size={14} className="text-dark-400" />
+          <h2 className="text-sm font-semibold text-dark-400 uppercase tracking-wider">
+            People
+          </h2>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div>
+            <p className="text-dark-500 text-xs mb-1">Account Owner</p>
+            {editing ? (
+              <select
+                value={editForm.accountOwnerId || ''}
+                onChange={(e) => handleEditChange('accountOwnerId', e.target.value)}
+                className="input-field text-sm"
+              >
+                <option value="">Select...</option>
+                {recruiters.map((r) => (
+                  <option key={r._id} value={r._id}>{r.name}</option>
+                ))}
+              </select>
+            ) : (
+              <p className="text-white text-sm">
+                {resolveUserName(job.accountOwnerId, job.accountOwnerName)}
+              </p>
+            )}
+          </div>
+          <div>
+            <p className="text-dark-500 text-xs mb-1">Account Manager</p>
+            {editing ? (
+              <select
+                value={editForm.accountManagerId || ''}
+                onChange={(e) => handleEditChange('accountManagerId', e.target.value)}
+                className="input-field text-sm"
+              >
+                <option value="">Select...</option>
+                {recruiters.map((r) => (
+                  <option key={r._id} value={r._id}>{r.name}</option>
+                ))}
+              </select>
+            ) : (
+              <p className="text-white text-sm">
+                {resolveUserName(job.accountManagerId, job.accountManagerName)}
+              </p>
+            )}
+          </div>
+          <div>
+            <p className="text-dark-500 text-xs mb-1">Approver</p>
+            {editing ? (
+              <select
+                value={editForm.approverId || ''}
+                onChange={(e) => handleEditChange('approverId', e.target.value)}
+                className="input-field text-sm"
+              >
+                <option value="">Select...</option>
+                {recruiters.map((r) => (
+                  <option key={r._id} value={r._id}>{r.name}</option>
+                ))}
+              </select>
+            ) : (
+              <p className="text-white text-sm">
+                {resolveUserName(job.approverId, job.approverName)}
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Approval ──────────────────────────────────────────────────────── */}
+      <div className="card p-5">
+        <div className="flex items-center gap-2 mb-4">
+          <Shield size={14} className="text-dark-400" />
+          <h2 className="text-sm font-semibold text-dark-400 uppercase tracking-wider">
+            Approval
+          </h2>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div>
+            <p className="text-dark-500 text-xs mb-1">Approval Status</p>
+            {editing ? (
+              <select
+                value={editForm.approvalStatus || ''}
+                onChange={(e) => handleEditChange('approvalStatus', e.target.value)}
+                className="input-field text-sm"
+              >
+                <option value="">Select...</option>
+                {APPROVAL_STATUS_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+            ) : (
+              <div className="pt-0.5">
+                <ApprovalBadge status={job.approvalStatus} />
+              </div>
+            )}
+          </div>
+          <div>
+            <p className="text-dark-500 text-xs mb-1">Approver</p>
+            <p className="text-white text-sm">
+              {resolveUserName(job.approverId, job.approverName)}
+            </p>
+          </div>
         </div>
       </div>
 

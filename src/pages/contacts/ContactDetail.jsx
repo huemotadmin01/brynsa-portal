@@ -81,6 +81,7 @@ export default function ContactDetail() {
   // Dropdown data for edit
   const [companies, setCompanies] = useState([]);
   const [tags, setTags] = useState([]);
+  const [salespersons, setSalespersons] = useState([]);
 
   const isAdmin = getAppRole('contacts') === 'admin';
   const orgSlug = currentOrg?.slug;
@@ -118,10 +119,12 @@ export default function ContactDetail() {
     Promise.all([
       contactsApi.listCompanies(orgSlug).catch(() => ({ success: false })),
       contactsApi.listTags(orgSlug).catch(() => ({ success: false })),
-    ]).then(([compRes, tagRes]) => {
+      contactsApi.listSalespersons(orgSlug).catch(() => ({ success: false })),
+    ]).then(([compRes, tagRes, spRes]) => {
       if (cancelled) return;
       if (compRes.success) setCompanies(compRes.companies || []);
       if (tagRes.success) setTags(tagRes.tags || []);
+      if (spRes.success) setSalespersons(spRes.salespersons || []);
     });
 
     return () => { cancelled = true; };
@@ -132,6 +135,7 @@ export default function ContactDetail() {
     if (!contact) return;
     const addr = contact.address || {};
     setForm({
+      title: contact.title || '',
       name: contact.name || '',
       email: contact.email || '',
       phone: contact.phone || '',
@@ -146,6 +150,9 @@ export default function ContactDetail() {
       country: addr.country || '',
       tags: contact.tags || [],
       notes: contact.internalNotes || '',
+      isCustomer: contact.isCustomer || false,
+      isSupplier: contact.isSupplier || false,
+      salespersonId: contact.salespersonId || '',
     });
     setEditing(true);
   };
@@ -178,6 +185,7 @@ export default function ContactDetail() {
     try {
       setSaving(true);
       const payload = {
+        title: form.title,
         name: form.name.trim(),
         email: form.email.trim(),
         phone: form.phone.trim(),
@@ -194,6 +202,9 @@ export default function ContactDetail() {
         },
         tags: form.tags,
         internalNotes: form.notes.trim(),
+        isCustomer: form.isCustomer,
+        isSupplier: form.isSupplier,
+        salespersonId: form.salespersonId || '',
       };
 
       const res = await contactsApi.update(orgSlug, contactId, payload);
@@ -280,14 +291,28 @@ export default function ContactDetail() {
             <div className="flex items-start justify-between gap-4">
               <div>
                 {editing ? (
-                  <input
-                    type="text"
-                    value={form.name}
-                    onChange={(e) => handleChange('name', e.target.value)}
-                    className="input-field text-xl font-bold mb-1"
-                  />
+                  <div className="flex items-center gap-2 mb-1">
+                    <select
+                      value={form.title}
+                      onChange={(e) => handleChange('title', e.target.value)}
+                      className="input-field w-24 text-sm"
+                    >
+                      <option value="">Title</option>
+                      {['Mr.', 'Mrs.', 'Miss', 'Ms.', 'Dr.', 'Prof.'].map((t) => (
+                        <option key={t} value={t}>{t}</option>
+                      ))}
+                    </select>
+                    <input
+                      type="text"
+                      value={form.name}
+                      onChange={(e) => handleChange('name', e.target.value)}
+                      className="input-field text-xl font-bold flex-1"
+                    />
+                  </div>
                 ) : (
-                  <h1 className="text-2xl font-bold text-white">{contact.name}</h1>
+                  <h1 className="text-2xl font-bold text-white">
+                    {contact.title ? `${contact.title} ` : ''}{contact.name}
+                  </h1>
                 )}
                 {contact.jobTitle && !editing && (
                   <p className="text-dark-400 mt-0.5">{contact.jobTitle}</p>
@@ -300,6 +325,12 @@ export default function ContactDetail() {
                   }>
                     {contact.type === 'company' ? 'Company' : 'Individual'}
                   </Badge>
+                  {contact.isCustomer && (
+                    <Badge className="bg-purple-500/10 text-purple-400">Customer</Badge>
+                  )}
+                  {contact.isSupplier && (
+                    <Badge className="bg-amber-500/10 text-amber-400">Supplier</Badge>
+                  )}
                   {(contact.tagNames || []).map((tag, i) => (
                     <Badge key={i} className="bg-dark-700 text-dark-300">{tag}</Badge>
                   ))}
@@ -576,6 +607,62 @@ export default function ContactDetail() {
                     <p className="text-dark-500 text-sm">No tags assigned</p>
                   )}
                 </div>
+              )}
+            </SectionCard>
+
+            {/* Classification */}
+            <SectionCard title="Classification" icon={Users}>
+              {editing ? (
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-sm text-dark-400 mb-1">Salesperson</label>
+                    <select
+                      value={form.salespersonId}
+                      onChange={(e) => handleChange('salespersonId', e.target.value)}
+                      className="input-field"
+                    >
+                      <option value="">No salesperson</option>
+                      {salespersons.map((sp) => (
+                        <option key={sp._id} value={sp._id}>{sp.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex items-center gap-6 pt-1">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={form.isCustomer}
+                        onChange={(e) => handleChange('isCustomer', e.target.checked)}
+                        className="w-4 h-4 rounded border-dark-600 bg-dark-700 text-rivvra-500 focus:ring-rivvra-500 focus:ring-offset-0"
+                      />
+                      <span className="text-sm text-dark-300">Customer</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={form.isSupplier}
+                        onChange={(e) => handleChange('isSupplier', e.target.checked)}
+                        className="w-4 h-4 rounded border-dark-600 bg-dark-700 text-rivvra-500 focus:ring-rivvra-500 focus:ring-offset-0"
+                      />
+                      <span className="text-sm text-dark-300">Supplier</span>
+                    </label>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <InfoRow
+                    label="Salesperson"
+                    value={contact.salespersonName || null}
+                  />
+                  <InfoRow
+                    label="Customer"
+                    value={contact.isCustomer ? 'Yes' : 'No'}
+                  />
+                  <InfoRow
+                    label="Supplier"
+                    value={contact.isSupplier ? 'Yes' : 'No'}
+                  />
+                </>
               )}
             </SectionCard>
           </div>

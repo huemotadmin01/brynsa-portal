@@ -127,8 +127,14 @@ function KanbanCard({ application, onClick }) {
           <GripVertical size={14} />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-white font-medium text-sm truncate">
+          <p className="text-white font-medium text-sm truncate flex items-center gap-1.5">
             {application.candidateName || 'Unnamed'}
+            {application.kanbanState === 'done' && (
+              <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block flex-shrink-0" />
+            )}
+            {application.kanbanState === 'blocked' && (
+              <span className="w-2 h-2 rounded-full bg-red-400 inline-block flex-shrink-0" />
+            )}
           </p>
           {application.jobName && (
             <p className="text-dark-400 text-xs truncate mt-0.5">
@@ -252,6 +258,9 @@ const EMPTY_APP = {
   employmentType: '',
   source: '',
   evaluation: 0,
+  salaryExpected: '',
+  salaryProposed: '',
+  kanbanState: 'normal',
 };
 
 function NewApplicationModal({ show, onClose, onSaved, orgSlug, jobs, stages, recruiters }) {
@@ -291,6 +300,9 @@ function NewApplicationModal({ show, onClose, onSaved, orgSlug, jobs, stages, re
         employmentType: form.employmentType.trim(),
         source: form.source.trim(),
         evaluation: form.evaluation,
+        salaryExpected: form.salaryExpected ? Number(form.salaryExpected) : undefined,
+        salaryProposed: form.salaryProposed ? Number(form.salaryProposed) : undefined,
+        kanbanState: form.kanbanState || 'normal',
       };
       const res = await atsApi.createApplication(orgSlug, payload);
       if (res.success) {
@@ -458,6 +470,44 @@ function NewApplicationModal({ show, onClose, onSaved, orgSlug, jobs, stages, re
                 />
               </div>
             </div>
+          </div>
+
+          {/* Expected & Proposed Salary */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-dark-300 mb-1">Expected Salary</label>
+              <input
+                type="number"
+                value={form.salaryExpected}
+                onChange={(e) => handleChange('salaryExpected', e.target.value)}
+                placeholder="e.g. 80000"
+                className="input-field"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-dark-300 mb-1">Proposed Salary</label>
+              <input
+                type="number"
+                value={form.salaryProposed}
+                onChange={(e) => handleChange('salaryProposed', e.target.value)}
+                placeholder="e.g. 75000"
+                className="input-field"
+              />
+            </div>
+          </div>
+
+          {/* Kanban State */}
+          <div>
+            <label className="block text-sm font-medium text-dark-300 mb-1">Kanban State</label>
+            <select
+              value={form.kanbanState}
+              onChange={(e) => handleChange('kanbanState', e.target.value)}
+              className="input-field"
+            >
+              <option value="normal">Normal</option>
+              <option value="done">Ready</option>
+              <option value="blocked">Blocked</option>
+            </select>
           </div>
 
           {/* Actions */}

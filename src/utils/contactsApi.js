@@ -66,6 +66,11 @@ const contactsApi = {
       method: 'DELETE',
     });
   },
+
+  // ── Salespersons dropdown ──────────────────────────────────────────────
+  listSalespersons(orgSlug) {
+    return api.request(`/api/org/${orgSlug}/contacts/salespersons`);
+  },
 };
 
 export default contactsApi;

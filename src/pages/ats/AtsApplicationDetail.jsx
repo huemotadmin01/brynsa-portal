@@ -9,6 +9,7 @@ import {
   Mail, Phone, Linkedin, User, Briefcase,
   Calendar, Edit3, Check, XCircle, Award,
   Clock, Tag, MessageSquare, Plus, CheckCircle2,
+  DollarSign, Circle,
 } from 'lucide-react';
 
 /* ── Evaluation Stars ─────────────────────────────────────────────────── */
@@ -29,6 +30,54 @@ function EvalStars({ value = 0, max = 3, onChange }) {
         </button>
       ))}
     </div>
+  );
+}
+
+/* ── Kanban State Dot ─────────────────────────────────────────────────── */
+const KANBAN_STATES = ['normal', 'done', 'blocked'];
+const KANBAN_COLORS = {
+  normal: 'bg-gray-400',
+  done: 'bg-emerald-400',
+  blocked: 'bg-red-400',
+};
+const KANBAN_LABELS = {
+  normal: 'Normal',
+  done: 'Done',
+  blocked: 'Blocked',
+};
+
+function KanbanDot({ state = 'normal', onClick }) {
+  const color = KANBAN_COLORS[state] || KANBAN_COLORS.normal;
+  const label = KANBAN_LABELS[state] || 'Normal';
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={`Kanban: ${label} (click to toggle)`}
+      className="group relative flex items-center"
+    >
+      <span className={`inline-block w-3 h-3 rounded-full ${color} transition-colors ring-2 ring-dark-800 group-hover:ring-dark-600`} />
+      <span className="ml-1.5 text-xs text-dark-400 hidden sm:inline">{label}</span>
+    </button>
+  );
+}
+
+/* ── Interview Result Badge ───────────────────────────────────────────── */
+const RESULT_STYLES = {
+  awaited: 'bg-yellow-500/20 text-yellow-400',
+  selected: 'bg-emerald-500/20 text-emerald-400',
+  rejected: 'bg-red-500/20 text-red-400',
+};
+
+function ResultBadge({ result }) {
+  if (!result) return null;
+  const cls = RESULT_STYLES[result] || RESULT_STYLES.awaited;
+  const label = result.charAt(0).toUpperCase() + result.slice(1);
+  return (
+    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${cls}`}>
+      {label}
+    </span>
   );
 }
 
@@ -336,6 +385,7 @@ export default function AtsApplicationDetail() {
   // Dropdown data
   const [stages, setStages] = useState([]);
   const [refuseReasons, setRefuseReasons] = useState([]);
+  const [recruiters, setRecruiters] = useState([]);
 
   // Activities
   const [activities, setActivities] = useState([]);
@@ -372,12 +422,14 @@ export default function AtsApplicationDetail() {
   const fetchDropdowns = useCallback(async () => {
     if (!orgSlug) return;
     try {
-      const [stagesRes, reasonsRes] = await Promise.all([
+      const [stagesRes, reasonsRes, recruitersRes] = await Promise.all([
         atsApi.listStages(orgSlug),
         atsApi.listConfig(orgSlug, 'refuse-reasons').catch(() => ({ success: true, items: [] })),
+        atsApi.listRecruiters(orgSlug).catch(() => ({ success: true, recruiters: [] })),
       ]);
       if (stagesRes.success) setStages(stagesRes.stages || []);
       if (reasonsRes.success) setRefuseReasons(reasonsRes.items || reasonsRes.reasons || []);
+      if (recruitersRes.success) setRecruiters(recruitersRes.recruiters || recruitersRes.users || []);
     } catch (err) {
       console.error('Failed to load dropdowns:', err);
     }
@@ -451,7 +503,40 @@ export default function AtsApplicationDetail() {
   const handleSaveEdit = async () => {
     try {
       setSaving(true);
-      const res = await atsApi.updateApplication(orgSlug, applicationId, editForm);
+      const payload = {
+        candidateName: editForm.candidateName,
+        candidateEmail: editForm.candidateEmail,
+        candidatePhone: editForm.candidatePhone,
+        linkedinProfile: editForm.linkedinProfile,
+        evaluation: editForm.evaluation,
+        recruiterName: editForm.recruiterName,
+        employmentType: editForm.employmentType,
+        source: editForm.source,
+        medium: editForm.medium,
+        degree: editForm.degree,
+        availability: editForm.availability,
+        notes: editForm.notes,
+        // New salary fields
+        salaryExpected: editForm.salaryExpected,
+        salaryProposed: editForm.salaryProposed,
+        // New user reference fields
+        accountManagerId: editForm.accountManagerId,
+        submittedById: editForm.submittedById,
+        // Kanban state
+        kanbanState: editForm.kanbanState,
+        // Interview fields — updated
+        l1Result: editForm.l1Result,
+        l1DateTime: editForm.l1DateTime,
+        l1Feedback: editForm.l1Feedback,
+        l2Result: editForm.l2Result,
+        l2DateTime: editForm.l2DateTime,
+        l2Feedback: editForm.l2Feedback,
+        hrResult: editForm.hrResult,
+        hrDateTime: editForm.hrDateTime,
+        hrRoundFeedback: editForm.hrRoundFeedback,
+        hireDate: editForm.hireDate,
+      };
+      const res = await atsApi.updateApplication(orgSlug, applicationId, payload);
       if (res.success) {
         showToast('Application updated');
         setEditing(false);
@@ -478,6 +563,24 @@ export default function AtsApplicationDetail() {
     setEditForm((prev) => ({ ...prev, [field]: value }));
   };
 
+  const handleToggleKanban = async () => {
+    const current = application?.kanbanState || 'normal';
+    const nextIdx = (KANBAN_STATES.indexOf(current) + 1) % KANBAN_STATES.length;
+    const next = KANBAN_STATES[nextIdx];
+    try {
+      setSaving(true);
+      const res = await atsApi.updateApplication(orgSlug, applicationId, { kanbanState: next });
+      if (res.success) {
+        showToast(`Kanban state: ${KANBAN_LABELS[next]}`);
+        fetchApplication();
+      }
+    } catch (err) {
+      showToast(err.message || 'Failed to update kanban state', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   // ── Helpers ────────────────────────────────────────────────────────────
   const formatDate = (dateStr) => {
     if (!dateStr) return '\u2014';
@@ -488,8 +591,26 @@ export default function AtsApplicationDetail() {
     });
   };
 
+  const formatDateTime = (dateStr) => {
+    if (!dateStr) return '\u2014';
+    return new Date(dateStr).toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    });
+  };
+
   const currentStageId = application?.stageId?._id || application?.stageId;
   const currentStageName = application?.stageName || application?.stageId?.name || 'Unknown';
+
+  // Resolve display names for account manager / submitted by
+  const resolveUserName = (userId) => {
+    if (!userId) return '\u2014';
+    const found = recruiters.find((r) => r._id === userId);
+    return found ? (found.name || found.email || '\u2014') : '\u2014';
+  };
 
   // ── Render ─────────────────────────────────────────────────────────────
   if (loading) {
@@ -551,6 +672,11 @@ export default function AtsApplicationDetail() {
               }`}>
                 {application.status === 'hired' ? 'Hired' : application.status === 'refused' ? 'Refused' : currentStageName}
               </span>
+              {/* Kanban State Dot */}
+              <KanbanDot
+                state={application.kanbanState || 'normal'}
+                onClick={isAdmin ? handleToggleKanban : undefined}
+              />
             </div>
             <p className="text-dark-400 text-sm">
               {application.jobName || application.jobId?.name || 'No position assigned'}
@@ -774,6 +900,100 @@ export default function AtsApplicationDetail() {
                 <p className="text-dark-500 text-xs">Client</p>
                 <p className="text-white text-sm">{application.client || application.jobId?.client || '\u2014'}</p>
               </div>
+
+              {/* Salary Expected */}
+              <div className="flex items-center gap-3">
+                <DollarSign size={16} className="text-dark-500 flex-shrink-0" />
+                <div className="flex-1">
+                  <p className="text-dark-500 text-xs">Salary Expected</p>
+                  {editing ? (
+                    <input
+                      type="number"
+                      value={editForm.salaryExpected ?? ''}
+                      onChange={(e) => handleEditChange('salaryExpected', e.target.value ? Number(e.target.value) : '')}
+                      placeholder="0"
+                      className="input-field text-sm mt-0.5"
+                    />
+                  ) : (
+                    <p className="text-white text-sm">
+                      {application.salaryExpected ? `$${Number(application.salaryExpected).toLocaleString()}` : '\u2014'}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Salary Proposed */}
+              <div className="flex items-center gap-3">
+                <DollarSign size={16} className="text-dark-500 flex-shrink-0" />
+                <div className="flex-1">
+                  <p className="text-dark-500 text-xs">Salary Proposed</p>
+                  {editing ? (
+                    <input
+                      type="number"
+                      value={editForm.salaryProposed ?? ''}
+                      onChange={(e) => handleEditChange('salaryProposed', e.target.value ? Number(e.target.value) : '')}
+                      placeholder="0"
+                      className="input-field text-sm mt-0.5"
+                    />
+                  ) : (
+                    <p className="text-white text-sm">
+                      {application.salaryProposed ? `$${Number(application.salaryProposed).toLocaleString()}` : '\u2014'}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Account Manager */}
+              <div className="flex items-center gap-3">
+                <User size={16} className="text-dark-500 flex-shrink-0" />
+                <div className="flex-1">
+                  <p className="text-dark-500 text-xs">Account Manager</p>
+                  {editing ? (
+                    <select
+                      value={editForm.accountManagerId || ''}
+                      onChange={(e) => handleEditChange('accountManagerId', e.target.value || null)}
+                      className="input-field text-sm mt-0.5"
+                    >
+                      <option value="">Select...</option>
+                      {recruiters.map((r) => (
+                        <option key={r._id} value={r._id}>
+                          {r.name || r.email}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <p className="text-white text-sm">
+                      {application.accountManagerName || resolveUserName(application.accountManagerId)}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Submitted By */}
+              <div className="flex items-center gap-3">
+                <User size={16} className="text-dark-500 flex-shrink-0" />
+                <div className="flex-1">
+                  <p className="text-dark-500 text-xs">Submitted By</p>
+                  {editing ? (
+                    <select
+                      value={editForm.submittedById || ''}
+                      onChange={(e) => handleEditChange('submittedById', e.target.value || null)}
+                      className="input-field text-sm mt-0.5"
+                    >
+                      <option value="">Select...</option>
+                      {recruiters.map((r) => (
+                        <option key={r._id} value={r._id}>
+                          {r.name || r.email}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <p className="text-white text-sm">
+                      {application.submittedByName || resolveUserName(application.submittedById)}
+                    </p>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
 
@@ -879,28 +1099,49 @@ export default function AtsApplicationDetail() {
               <div className="card p-5 space-y-5">
                 {/* L1 Interview */}
                 <div>
-                  <h3 className="text-sm font-semibold text-white mb-3">L1 Interview</h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="flex items-center gap-3 mb-3">
+                    <h3 className="text-sm font-semibold text-white">L1 Interview</h3>
+                    {!editing && <ResultBadge result={application.l1Result} />}
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div>
-                      <p className="text-dark-500 text-xs mb-1">Date</p>
+                      <p className="text-dark-500 text-xs mb-1">Result</p>
                       {editing ? (
-                        <input
-                          type="date"
-                          value={editForm.l1Date || ''}
-                          onChange={(e) => handleEditChange('l1Date', e.target.value)}
+                        <select
+                          value={editForm.l1Result || ''}
+                          onChange={(e) => handleEditChange('l1Result', e.target.value || null)}
                           className="input-field text-sm"
-                        />
+                        >
+                          <option value="">Select...</option>
+                          <option value="awaited">Awaited</option>
+                          <option value="selected">Selected</option>
+                          <option value="rejected">Rejected</option>
+                        </select>
                       ) : (
-                        <p className="text-white text-sm">{formatDate(application.l1Date)}</p>
+                        <p className="text-white text-sm capitalize">{application.l1Result || '\u2014'}</p>
                       )}
                     </div>
                     <div>
-                      <p className="text-dark-500 text-xs mb-1">Feedback</p>
+                      <p className="text-dark-500 text-xs mb-1">Date &amp; Time</p>
+                      {editing ? (
+                        <input
+                          type="datetime-local"
+                          value={editForm.l1DateTime || ''}
+                          onChange={(e) => handleEditChange('l1DateTime', e.target.value)}
+                          className="input-field text-sm"
+                        />
+                      ) : (
+                        <p className="text-white text-sm">{formatDateTime(application.l1DateTime)}</p>
+                      )}
+                    </div>
+                    <div className="sm:col-span-1">
+                      <p className="text-dark-500 text-xs mb-1">Notes</p>
                       {editing ? (
                         <textarea
                           value={editForm.l1Feedback || ''}
                           onChange={(e) => handleEditChange('l1Feedback', e.target.value)}
                           rows={2}
+                          placeholder="Add feedback notes..."
                           className="input-field resize-none text-sm"
                         />
                       ) : (
@@ -912,28 +1153,49 @@ export default function AtsApplicationDetail() {
 
                 {/* L2 Interview */}
                 <div className="border-t border-dark-700 pt-5">
-                  <h3 className="text-sm font-semibold text-white mb-3">L2 Interview</h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="flex items-center gap-3 mb-3">
+                    <h3 className="text-sm font-semibold text-white">L2 Interview</h3>
+                    {!editing && <ResultBadge result={application.l2Result} />}
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div>
-                      <p className="text-dark-500 text-xs mb-1">Date</p>
+                      <p className="text-dark-500 text-xs mb-1">Result</p>
                       {editing ? (
-                        <input
-                          type="date"
-                          value={editForm.l2Date || ''}
-                          onChange={(e) => handleEditChange('l2Date', e.target.value)}
+                        <select
+                          value={editForm.l2Result || ''}
+                          onChange={(e) => handleEditChange('l2Result', e.target.value || null)}
                           className="input-field text-sm"
-                        />
+                        >
+                          <option value="">Select...</option>
+                          <option value="awaited">Awaited</option>
+                          <option value="selected">Selected</option>
+                          <option value="rejected">Rejected</option>
+                        </select>
                       ) : (
-                        <p className="text-white text-sm">{formatDate(application.l2Date)}</p>
+                        <p className="text-white text-sm capitalize">{application.l2Result || '\u2014'}</p>
                       )}
                     </div>
                     <div>
-                      <p className="text-dark-500 text-xs mb-1">Feedback</p>
+                      <p className="text-dark-500 text-xs mb-1">Date &amp; Time</p>
+                      {editing ? (
+                        <input
+                          type="datetime-local"
+                          value={editForm.l2DateTime || ''}
+                          onChange={(e) => handleEditChange('l2DateTime', e.target.value)}
+                          className="input-field text-sm"
+                        />
+                      ) : (
+                        <p className="text-white text-sm">{formatDateTime(application.l2DateTime)}</p>
+                      )}
+                    </div>
+                    <div className="sm:col-span-1">
+                      <p className="text-dark-500 text-xs mb-1">Notes</p>
                       {editing ? (
                         <textarea
                           value={editForm.l2Feedback || ''}
                           onChange={(e) => handleEditChange('l2Feedback', e.target.value)}
                           rows={2}
+                          placeholder="Add feedback notes..."
                           className="input-field resize-none text-sm"
                         />
                       ) : (
@@ -945,32 +1207,53 @@ export default function AtsApplicationDetail() {
 
                 {/* HR Interview */}
                 <div className="border-t border-dark-700 pt-5">
-                  <h3 className="text-sm font-semibold text-white mb-3">HR Interview</h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="flex items-center gap-3 mb-3">
+                    <h3 className="text-sm font-semibold text-white">HR Interview</h3>
+                    {!editing && <ResultBadge result={application.hrResult} />}
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div>
-                      <p className="text-dark-500 text-xs mb-1">Date</p>
+                      <p className="text-dark-500 text-xs mb-1">Result</p>
                       {editing ? (
-                        <input
-                          type="date"
-                          value={editForm.hrDate || ''}
-                          onChange={(e) => handleEditChange('hrDate', e.target.value)}
+                        <select
+                          value={editForm.hrResult || ''}
+                          onChange={(e) => handleEditChange('hrResult', e.target.value || null)}
                           className="input-field text-sm"
-                        />
+                        >
+                          <option value="">Select...</option>
+                          <option value="awaited">Awaited</option>
+                          <option value="selected">Selected</option>
+                          <option value="rejected">Rejected</option>
+                        </select>
                       ) : (
-                        <p className="text-white text-sm">{formatDate(application.hrDate)}</p>
+                        <p className="text-white text-sm capitalize">{application.hrResult || '\u2014'}</p>
                       )}
                     </div>
                     <div>
-                      <p className="text-dark-500 text-xs mb-1">Feedback</p>
+                      <p className="text-dark-500 text-xs mb-1">Date &amp; Time</p>
+                      {editing ? (
+                        <input
+                          type="datetime-local"
+                          value={editForm.hrDateTime || ''}
+                          onChange={(e) => handleEditChange('hrDateTime', e.target.value)}
+                          className="input-field text-sm"
+                        />
+                      ) : (
+                        <p className="text-white text-sm">{formatDateTime(application.hrDateTime)}</p>
+                      )}
+                    </div>
+                    <div className="sm:col-span-1">
+                      <p className="text-dark-500 text-xs mb-1">Notes</p>
                       {editing ? (
                         <textarea
-                          value={editForm.hrFeedback || ''}
-                          onChange={(e) => handleEditChange('hrFeedback', e.target.value)}
+                          value={editForm.hrRoundFeedback || ''}
+                          onChange={(e) => handleEditChange('hrRoundFeedback', e.target.value)}
                           rows={2}
+                          placeholder="Add feedback notes..."
                           className="input-field resize-none text-sm"
                         />
                       ) : (
-                        <p className="text-dark-300 text-sm">{application.hrFeedback || '\u2014'}</p>
+                        <p className="text-dark-300 text-sm">{application.hrRoundFeedback || '\u2014'}</p>
                       )}
                     </div>
                   </div>

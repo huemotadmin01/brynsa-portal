@@ -61,6 +61,7 @@ function FilterChip({ label, value, options, isOpen, onToggle, onSelect }) {
 /* ── New Contact Modal ────────────────────────────────────────────────── */
 const EMPTY_FORM = {
   type: 'individual',
+  title: '',
   name: '',
   email: '',
   phone: '',
@@ -75,9 +76,14 @@ const EMPTY_FORM = {
   country: '',
   tags: [],
   notes: '',
+  isCustomer: false,
+  isSupplier: false,
+  salespersonId: '',
 };
 
-function NewContactModal({ show, onClose, onSaved, orgSlug, companies, tags }) {
+const TITLE_OPTIONS = ['Mr.', 'Mrs.', 'Miss', 'Ms.', 'Dr.', 'Prof.'];
+
+function NewContactModal({ show, onClose, onSaved, orgSlug, companies, tags, salespersons }) {
   const modalRef = useRef(null);
   const { showToast } = useToast();
   const [form, setForm] = useState(EMPTY_FORM);
@@ -111,6 +117,7 @@ function NewContactModal({ show, onClose, onSaved, orgSlug, companies, tags }) {
       setSaving(true);
       const payload = {
         type: form.type,
+        title: form.title,
         name: form.name.trim(),
         email: form.email.trim(),
         phone: form.phone.trim(),
@@ -127,6 +134,9 @@ function NewContactModal({ show, onClose, onSaved, orgSlug, companies, tags }) {
         },
         tags: form.tags,
         internalNotes: form.notes.trim(),
+        isCustomer: form.isCustomer,
+        isSupplier: form.isSupplier,
+        salespersonId: form.salespersonId || '',
       };
       const res = await contactsApi.create(orgSlug, payload);
       if (res.success) {
@@ -192,19 +202,34 @@ function NewContactModal({ show, onClose, onSaved, orgSlug, companies, tags }) {
             </div>
           </div>
 
-          {/* Name */}
-          <div>
-            <label className="block text-sm font-medium text-dark-300 mb-1">
-              Name <span className="text-red-400">*</span>
-            </label>
-            <input
-              type="text"
-              required
-              value={form.name}
-              onChange={(e) => handleChange('name', e.target.value)}
-              placeholder={form.type === 'company' ? 'Company name' : 'Full name'}
-              className="input-field"
-            />
+          {/* Title & Name */}
+          <div className="grid grid-cols-[100px_1fr] gap-3">
+            <div>
+              <label className="block text-sm font-medium text-dark-300 mb-1">Title</label>
+              <select
+                value={form.title}
+                onChange={(e) => handleChange('title', e.target.value)}
+                className="input-field"
+              >
+                <option value="">--</option>
+                {TITLE_OPTIONS.map((t) => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-dark-300 mb-1">
+                Name <span className="text-red-400">*</span>
+              </label>
+              <input
+                type="text"
+                required
+                value={form.name}
+                onChange={(e) => handleChange('name', e.target.value)}
+                placeholder={form.type === 'company' ? 'Company name' : 'Full name'}
+                className="input-field"
+              />
+            </div>
           </div>
 
           {/* Email & Phone row */}
@@ -351,6 +376,48 @@ function NewContactModal({ show, onClose, onSaved, orgSlug, companies, tags }) {
             </div>
           )}
 
+          {/* Classification */}
+          <div>
+            <label className="block text-sm font-medium text-dark-300 mb-1.5">Classification</label>
+            <div className="space-y-3">
+              {/* Salesperson */}
+              <div>
+                <label className="block text-xs text-dark-400 mb-1">Salesperson</label>
+                <select
+                  value={form.salespersonId}
+                  onChange={(e) => handleChange('salespersonId', e.target.value)}
+                  className="input-field"
+                >
+                  <option value="">No salesperson</option>
+                  {salespersons.map((sp) => (
+                    <option key={sp._id} value={sp._id}>{sp.name}</option>
+                  ))}
+                </select>
+              </div>
+              {/* Customer / Supplier toggles */}
+              <div className="flex items-center gap-6">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={form.isCustomer}
+                    onChange={(e) => handleChange('isCustomer', e.target.checked)}
+                    className="w-4 h-4 rounded border-dark-600 bg-dark-700 text-rivvra-500 focus:ring-rivvra-500 focus:ring-offset-0"
+                  />
+                  <span className="text-sm text-dark-300">Customer</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={form.isSupplier}
+                    onChange={(e) => handleChange('isSupplier', e.target.checked)}
+                    className="w-4 h-4 rounded border-dark-600 bg-dark-700 text-rivvra-500 focus:ring-rivvra-500 focus:ring-offset-0"
+                  />
+                  <span className="text-sm text-dark-300">Supplier</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
           {/* Actions */}
           <div className="flex items-center gap-3 pt-2">
             <button
@@ -392,11 +459,13 @@ export default function ContactsList({ filterType }) {
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState(filterType || '');
   const [tagFilter, setTagFilter] = useState('');
+  const [salespersonFilter, setSalespersonFilter] = useState('');
   const [openFilter, setOpenFilter] = useState(null);
 
   // Dropdown data
   const [companies, setCompanies] = useState([]);
   const [tags, setTags] = useState([]);
+  const [salespersons, setSalespersons] = useState([]);
 
   // Modal
   const [showModal, setShowModal] = useState(false);
@@ -406,7 +475,7 @@ export default function ContactsList({ filterType }) {
   const orgSlug = currentOrg?.slug;
 
   // Active filter count
-  const activeFilterCount = [typeFilter, tagFilter].filter(Boolean).length;
+  const activeFilterCount = [typeFilter, tagFilter, salespersonFilter].filter(Boolean).length;
 
   // ── Fetch companies + tags once ─────────────────────────────────────
   useEffect(() => {
@@ -416,10 +485,12 @@ export default function ContactsList({ filterType }) {
     Promise.all([
       contactsApi.listCompanies(orgSlug).catch(() => ({ success: false })),
       contactsApi.listTags(orgSlug).catch(() => ({ success: false })),
-    ]).then(([compRes, tagRes]) => {
+      contactsApi.listSalespersons(orgSlug).catch(() => ({ success: false })),
+    ]).then(([compRes, tagRes, spRes]) => {
       if (cancelled) return;
       if (compRes.success) setCompanies(compRes.companies || []);
       if (tagRes.success) setTags(tagRes.tags || []);
+      if (spRes.success) setSalespersons(spRes.salespersons || []);
     });
 
     return () => { cancelled = true; };
@@ -435,6 +506,7 @@ export default function ContactsList({ filterType }) {
         search: params.search !== undefined ? params.search : search,
         type: params.type !== undefined ? params.type : typeFilter,
         tag: params.tag !== undefined ? params.tag : tagFilter,
+        salesperson: params.salesperson !== undefined ? params.salesperson : salespersonFilter,
       });
       if (res.success) {
         setContacts(res.contacts || []);
@@ -448,7 +520,7 @@ export default function ContactsList({ filterType }) {
     } finally {
       setLoading(false);
     }
-  }, [orgSlug, page, search, typeFilter, tagFilter, showToast]);
+  }, [orgSlug, page, search, typeFilter, tagFilter, salespersonFilter, showToast]);
 
   useEffect(() => {
     fetchContacts();
@@ -485,6 +557,7 @@ export default function ContactsList({ filterType }) {
   const clearAllFilters = () => {
     setTypeFilter('');
     setTagFilter('');
+    setSalespersonFilter('');
     setPage(1);
   };
 
@@ -511,6 +584,11 @@ export default function ContactsList({ filterType }) {
   const tagOptions = [
     { value: '', label: 'All Tags' },
     ...tags.map((t) => ({ value: t._id, label: t.name })),
+  ];
+
+  const salespersonOptions = [
+    { value: '', label: 'All Salespersons' },
+    ...salespersons.map((sp) => ({ value: sp._id, label: sp.name })),
   ];
 
   // Pagination
@@ -569,6 +647,14 @@ export default function ContactsList({ filterType }) {
           onToggle={() => toggleFilter('tag')}
           onSelect={handleFilterSelect(setTagFilter)}
         />
+        <FilterChip
+          label="Salesperson"
+          value={salespersonFilter}
+          options={salespersonOptions}
+          isOpen={openFilter === 'salesperson'}
+          onToggle={() => toggleFilter('salesperson')}
+          onSelect={handleFilterSelect(setSalespersonFilter)}
+        />
 
         {activeFilterCount > 0 && (
           <button
@@ -611,6 +697,7 @@ export default function ContactsList({ filterType }) {
                     <th className="text-left px-4 py-3 text-dark-400 font-medium hidden lg:table-cell">Phone</th>
                     <th className="text-left px-4 py-3 text-dark-400 font-medium hidden sm:table-cell">Type</th>
                     <th className="text-left px-4 py-3 text-dark-400 font-medium hidden lg:table-cell">Company</th>
+                    <th className="text-left px-4 py-3 text-dark-400 font-medium hidden xl:table-cell">Salesperson</th>
                     <th className="text-left px-4 py-3 text-dark-400 font-medium hidden xl:table-cell">City</th>
                     <th className="text-left px-4 py-3 text-dark-400 font-medium hidden xl:table-cell">Tags</th>
                   </tr>
@@ -657,20 +744,37 @@ export default function ContactsList({ filterType }) {
                         {contact.phone || '\u2014'}
                       </td>
 
-                      {/* Type badge */}
+                      {/* Type badge + Customer/Supplier */}
                       <td className="px-4 py-3 hidden sm:table-cell">
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                          contact.type === 'company'
-                            ? 'bg-blue-500/10 text-blue-400'
-                            : 'bg-emerald-500/10 text-emerald-400'
-                        }`}>
-                          {contact.type === 'company' ? 'Company' : 'Individual'}
-                        </span>
+                        <div className="flex flex-wrap items-center gap-1">
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                            contact.type === 'company'
+                              ? 'bg-blue-500/10 text-blue-400'
+                              : 'bg-emerald-500/10 text-emerald-400'
+                          }`}>
+                            {contact.type === 'company' ? 'Company' : 'Individual'}
+                          </span>
+                          {contact.isCustomer && (
+                            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-purple-500/10 text-purple-400">
+                              Customer
+                            </span>
+                          )}
+                          {contact.isSupplier && (
+                            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-amber-500/10 text-amber-400">
+                              Supplier
+                            </span>
+                          )}
+                        </div>
                       </td>
 
                       {/* Company (parent) */}
                       <td className="px-4 py-3 text-dark-300 hidden lg:table-cell">
                         {contact.parentCompanyName || '\u2014'}
+                      </td>
+
+                      {/* Salesperson */}
+                      <td className="px-4 py-3 text-dark-300 hidden xl:table-cell">
+                        {contact.salespersonName || '\u2014'}
                       </td>
 
                       {/* City */}
@@ -766,6 +870,7 @@ export default function ContactsList({ filterType }) {
         orgSlug={orgSlug}
         companies={companies}
         tags={tags}
+        salespersons={salespersons}
       />
     </div>
   );

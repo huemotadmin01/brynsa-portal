@@ -71,6 +71,23 @@ function StatusBadge({ status }) {
   );
 }
 
+/* ── Approval status badge helper ─────────────────────────────────────── */
+function ApprovalBadge({ status }) {
+  const styles = {
+    pending: 'bg-yellow-500/20 text-yellow-400',
+    approved: 'bg-emerald-500/20 text-emerald-400',
+    rejected: 'bg-red-500/20 text-red-400',
+  };
+  const labels = { pending: 'Pending', approved: 'Approved', rejected: 'Rejected' };
+  const key = (status || 'pending').toLowerCase();
+
+  return (
+    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${styles[key] || 'bg-dark-700 text-dark-400'}`}>
+      {labels[key] || status || 'Pending'}
+    </span>
+  );
+}
+
 /* ── New Job Modal ────────────────────────────────────────────────────── */
 const EMPTY_JOB = {
   name: '',
@@ -81,13 +98,56 @@ const EMPTY_JOB = {
   expectedHires: 1,
   employmentType: '',
   location: '',
+  requiredExperience: '',
+  approvalStatus: 'pending',
+  approverId: '',
+  clientBudget: '',
+  maxBudget: '',
+  hiringMode: '',
+  accountOwnerId: '',
+  accountManagerId: '',
 };
+
+const EXPERIENCE_OPTIONS = [
+  { value: '', label: 'Select Experience' },
+  { value: '0-2 Years', label: '0-2 Years' },
+  { value: '2-5 Years', label: '2-5 Years' },
+  { value: '5-8 Years', label: '5-8 Years' },
+  { value: '8-11 Years', label: '8-11 Years' },
+  { value: '11-14 Years', label: '11-14 Years' },
+  { value: '14+ Years', label: '14+ Years' },
+];
+
+const APPROVAL_STATUS_OPTIONS = [
+  { value: 'pending', label: 'Pending' },
+  { value: 'approved', label: 'Approved' },
+  { value: 'rejected', label: 'Rejected' },
+];
+
+const HIRING_MODE_OPTIONS = [
+  { value: '', label: 'Select Hiring Mode' },
+  { value: 'C2C', label: 'C2C' },
+  { value: 'C2H', label: 'C2H' },
+  { value: 'Full-time Hire', label: 'Full-time Hire' },
+  { value: 'C2C or Full-time Hire', label: 'C2C or Full-time Hire' },
+];
 
 function NewJobModal({ show, onClose, onSaved, orgSlug }) {
   const modalRef = useRef(null);
   const { showToast } = useToast();
   const [form, setForm] = useState(EMPTY_JOB);
   const [saving, setSaving] = useState(false);
+  const [recruiters, setRecruiters] = useState([]);
+
+  // Fetch recruiters for user dropdowns
+  useEffect(() => {
+    if (!orgSlug) return;
+    atsApi.listRecruiters(orgSlug).then((res) => {
+      if (res.success && res.recruiters) {
+        setRecruiters(res.recruiters);
+      }
+    }).catch(() => {});
+  }, [orgSlug]);
 
   useEffect(() => {
     if (show) {
@@ -115,6 +175,14 @@ function NewJobModal({ show, onClose, onSaved, orgSlug }) {
         expectedHires: Number(form.expectedHires) || 1,
         employmentType: form.employmentType.trim(),
         location: form.location.trim(),
+        requiredExperience: form.requiredExperience,
+        approvalStatus: form.approvalStatus,
+        approverId: form.approverId || undefined,
+        clientBudget: form.clientBudget ? Number(form.clientBudget) : undefined,
+        maxBudget: form.maxBudget ? Number(form.maxBudget) : undefined,
+        hiringMode: form.hiringMode,
+        accountOwnerId: form.accountOwnerId || undefined,
+        accountManagerId: form.accountManagerId || undefined,
       };
       const res = await atsApi.createJob(orgSlug, payload);
       if (res.success) {
@@ -142,7 +210,7 @@ function NewJobModal({ show, onClose, onSaved, orgSlug }) {
         role="dialog"
         aria-modal="true"
         aria-labelledby="job-modal-title"
-        className="bg-dark-800 rounded-xl p-6 border border-dark-700 w-full max-w-lg my-8"
+        className="bg-dark-800 rounded-xl p-6 border border-dark-700 w-full max-w-2xl my-8"
       >
         <div className="flex items-center justify-between mb-5">
           <h3 id="job-modal-title" className="text-lg font-semibold text-white">
@@ -238,6 +306,119 @@ function NewJobModal({ show, onClose, onSaved, orgSlug }) {
                 min="1"
                 className="input-field"
               />
+            </div>
+          </div>
+
+          {/* Required Experience & Hiring Mode */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-dark-300 mb-1">Required Experience</label>
+              <select
+                value={form.requiredExperience}
+                onChange={(e) => handleChange('requiredExperience', e.target.value)}
+                className="input-field"
+              >
+                {EXPERIENCE_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-dark-300 mb-1">Hiring Mode</label>
+              <select
+                value={form.hiringMode}
+                onChange={(e) => handleChange('hiringMode', e.target.value)}
+                className="input-field"
+              >
+                {HIRING_MODE_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Client Budget & Max Budget */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-dark-300 mb-1">Client Budget</label>
+              <input
+                type="number"
+                value={form.clientBudget}
+                onChange={(e) => handleChange('clientBudget', e.target.value)}
+                placeholder="e.g. 80000"
+                min="0"
+                className="input-field"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-dark-300 mb-1">Max Budget (Candidate)</label>
+              <input
+                type="number"
+                value={form.maxBudget}
+                onChange={(e) => handleChange('maxBudget', e.target.value)}
+                placeholder="e.g. 120000"
+                min="0"
+                className="input-field"
+              />
+            </div>
+          </div>
+
+          {/* Approval Status & Approver */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-dark-300 mb-1">Approval Status</label>
+              <select
+                value={form.approvalStatus}
+                onChange={(e) => handleChange('approvalStatus', e.target.value)}
+                className="input-field"
+              >
+                {APPROVAL_STATUS_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-dark-300 mb-1">Approver</label>
+              <select
+                value={form.approverId}
+                onChange={(e) => handleChange('approverId', e.target.value)}
+                className="input-field"
+              >
+                <option value="">Select Approver</option>
+                {recruiters.map((r) => (
+                  <option key={r._id} value={r._id}>{r.name || r.email}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Account Owner & Account Manager */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-dark-300 mb-1">Account Owner</label>
+              <select
+                value={form.accountOwnerId}
+                onChange={(e) => handleChange('accountOwnerId', e.target.value)}
+                className="input-field"
+              >
+                <option value="">Select Account Owner</option>
+                {recruiters.map((r) => (
+                  <option key={r._id} value={r._id}>{r.name || r.email}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-dark-300 mb-1">Account Manager</label>
+              <select
+                value={form.accountManagerId}
+                onChange={(e) => handleChange('accountManagerId', e.target.value)}
+                className="input-field"
+              >
+                <option value="">Select Account Manager</option>
+                {recruiters.map((r) => (
+                  <option key={r._id} value={r._id}>{r.name || r.email}</option>
+                ))}
+              </select>
             </div>
           </div>
 
@@ -493,6 +674,9 @@ export default function AtsJobPositions() {
                     <th className="text-left px-4 py-3 text-dark-400 font-medium">Name</th>
                     <th className="text-left px-4 py-3 text-dark-400 font-medium hidden md:table-cell">Department</th>
                     <th className="text-left px-4 py-3 text-dark-400 font-medium hidden sm:table-cell">Status</th>
+                    <th className="text-left px-4 py-3 text-dark-400 font-medium hidden lg:table-cell">Experience</th>
+                    <th className="text-left px-4 py-3 text-dark-400 font-medium hidden lg:table-cell">Hiring Mode</th>
+                    <th className="text-left px-4 py-3 text-dark-400 font-medium hidden lg:table-cell">Approval</th>
                     <th className="text-left px-4 py-3 text-dark-400 font-medium hidden lg:table-cell">Recruiter</th>
                     <th className="text-left px-4 py-3 text-dark-400 font-medium hidden lg:table-cell">Client</th>
                     <th className="text-center px-4 py-3 text-dark-400 font-medium hidden xl:table-cell">Applications</th>
@@ -530,6 +714,21 @@ export default function AtsJobPositions() {
                       {/* Status */}
                       <td className="px-4 py-3 hidden sm:table-cell">
                         <StatusBadge status={job.status} />
+                      </td>
+
+                      {/* Required Experience */}
+                      <td className="px-4 py-3 text-dark-300 hidden lg:table-cell">
+                        {job.requiredExperience || '\u2014'}
+                      </td>
+
+                      {/* Hiring Mode */}
+                      <td className="px-4 py-3 text-dark-300 hidden lg:table-cell">
+                        {job.hiringMode || '\u2014'}
+                      </td>
+
+                      {/* Approval Status */}
+                      <td className="px-4 py-3 hidden lg:table-cell">
+                        <ApprovalBadge status={job.approvalStatus} />
                       </td>
 
                       {/* Recruiter */}

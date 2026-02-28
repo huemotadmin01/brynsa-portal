@@ -531,7 +531,7 @@ export default function AtsPipeline() {
         recruiter: params.recruiter !== undefined ? params.recruiter : recruiterFilter,
       });
       if (res.success) {
-        setColumns(res.stages || []);
+        setColumns(res.kanban || []);
       }
     } catch (err) {
       console.error('Failed to load pipeline:', err);
@@ -691,8 +691,8 @@ export default function AtsPipeline() {
         stageId,
         offset: currentCount,
       });
-      if (res.success && res.stages) {
-        const stageData = res.stages.find((s) => (s.stage?._id || s._id) === stageId);
+      if (res.success && res.kanban) {
+        const stageData = res.kanban.find((s) => (s.stage?._id || s._id) === stageId);
         if (stageData) {
           setColumns((prev) =>
             prev.map((c) => {

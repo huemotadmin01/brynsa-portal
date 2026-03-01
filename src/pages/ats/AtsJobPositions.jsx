@@ -93,8 +93,8 @@ const EMPTY_JOB = {
   name: '',
   department: '',
   description: '',
-  recruiter: '',
-  client: '',
+  recruiterId: '',
+  clientName: '',
   expectedHires: 1,
   employmentType: '',
   location: '',
@@ -170,8 +170,8 @@ function NewJobModal({ show, onClose, onSaved, orgSlug }) {
         name: form.name.trim(),
         department: form.department.trim(),
         description: form.description.trim(),
-        recruiter: form.recruiter.trim(),
-        client: form.client.trim(),
+        recruiterId: form.recruiterId || undefined,
+        clientName: form.clientName.trim(),
         expectedHires: Number(form.expectedHires) || 1,
         employmentType: form.employmentType.trim(),
         location: form.location.trim(),
@@ -265,20 +265,23 @@ function NewJobModal({ show, onClose, onSaved, orgSlug }) {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-sm font-medium text-dark-300 mb-1">Recruiter</label>
-              <input
-                type="text"
-                value={form.recruiter}
-                onChange={(e) => handleChange('recruiter', e.target.value)}
-                placeholder="Recruiter name"
+              <select
+                value={form.recruiterId}
+                onChange={(e) => handleChange('recruiterId', e.target.value)}
                 className="input-field"
-              />
+              >
+                <option value="">Select Recruiter</option>
+                {recruiters.map((r) => (
+                  <option key={r._id} value={r._id}>{r.name || r.email}</option>
+                ))}
+              </select>
             </div>
             <div>
               <label className="block text-sm font-medium text-dark-300 mb-1">Client</label>
               <input
                 type="text"
-                value={form.client}
-                onChange={(e) => handleChange('client', e.target.value)}
+                value={form.clientName}
+                onChange={(e) => handleChange('clientName', e.target.value)}
                 placeholder="Client / Company"
                 className="input-field"
               />
@@ -733,12 +736,12 @@ export default function AtsJobPositions() {
 
                       {/* Recruiter */}
                       <td className="px-4 py-3 text-dark-300 hidden lg:table-cell">
-                        {job.recruiterName || job.recruiter || '\u2014'}
+                        {job.recruiterName || '\u2014'}
                       </td>
 
                       {/* Client */}
                       <td className="px-4 py-3 text-dark-300 hidden lg:table-cell">
-                        {job.client || '\u2014'}
+                        {job.clientName || '\u2014'}
                       </td>
 
                       {/* Applications count */}

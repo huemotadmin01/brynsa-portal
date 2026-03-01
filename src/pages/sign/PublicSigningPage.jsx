@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import * as pdfjsLib from 'pdfjs-dist';
 import SignatureCanvas from 'react-signature-canvas';
 import signApi from '../../utils/signApi';
+import { API_BASE_URL } from '../../utils/config';
 import {
   PenTool, Type, Calendar, User, Mail, Phone, Building2,
   CheckSquare, AlignLeft, Loader2, Check, X, AlertTriangle,
@@ -547,12 +548,15 @@ export default function PublicSigningPage() {
 
   // ── Load PDF document ────────────────────────────────────────────────
   useEffect(() => {
-    if (status !== 'signing' || !template?.pdfUrl) return;
+    const pdfSrc = template?.pdfProxyUrl
+      ? `${API_BASE_URL}${template.pdfProxyUrl}`
+      : template?.pdfUrl;
+    if (status !== 'signing' || !pdfSrc) return;
     let cancelled = false;
 
     async function loadPdf() {
       try {
-        const doc = await pdfjsLib.getDocument(template.pdfUrl).promise;
+        const doc = await pdfjsLib.getDocument(pdfSrc).promise;
         if (!cancelled) {
           setPdfDoc(doc);
           setNumPages(doc.numPages);
@@ -567,7 +571,7 @@ export default function PublicSigningPage() {
     }
     loadPdf();
     return () => { cancelled = true; };
-  }, [status, template?.pdfUrl]);
+  }, [status, template?.pdfUrl, template?.pdfProxyUrl]);
 
   // ── Responsive scale ─────────────────────────────────────────────────
   useEffect(() => {

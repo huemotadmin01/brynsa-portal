@@ -179,7 +179,9 @@ export default function SignRequestDetail() {
   const pdfUrl = request.pdfUrl || template?.pdfUrl || null;
 
   // Helper: fetch PDF via proxy and open in new tab (Cloudinary strict ACL blocks direct access)
+  // Opens window immediately to avoid popup blocker, then navigates to blob URL after fetch
   const openProxyPdf = async (type) => {
+    const newTab = window.open('about:blank', '_blank');
     try {
       const endpoint = type === 'certificate' ? 'certificate' : 'signed-pdf';
       const token = localStorage.getItem('rivvra_token');
@@ -188,11 +190,15 @@ export default function SignRequestDetail() {
       });
       if (!resp.ok) throw new Error('Failed to fetch');
       const blob = await resp.blob();
-      const url = URL.createObjectURL(blob);
-      window.open(url, '_blank');
-      // Clean up blob URL after a delay
+      const url = URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
+      if (newTab) {
+        newTab.location.href = url;
+      } else {
+        window.open(url, '_blank');
+      }
       setTimeout(() => URL.revokeObjectURL(url), 60000);
     } catch {
+      if (newTab) newTab.close();
       showToast(`Failed to open ${type === 'certificate' ? 'certificate' : 'signed PDF'}`, 'error');
     }
   };

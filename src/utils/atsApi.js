@@ -335,6 +335,31 @@ const atsApi = {
       method: 'DELETE',
     });
   },
+
+  // ── Email Templates ───────────────────────────────────────────────
+  listEmailTemplates(orgSlug) {
+    return api.request(`/api/org/${orgSlug}/ats/config/email-templates`);
+  },
+  updateEmailTemplate(orgSlug, key, data) {
+    return api.request(`/api/org/${orgSlug}/ats/config/email-templates/${key}`, {
+      method: 'PUT', body: JSON.stringify(data),
+    });
+  },
+  previewEmailTemplate(orgSlug, key, sampleData) {
+    return api.request(`/api/org/${orgSlug}/ats/config/email-templates/${key}/preview`, {
+      method: 'POST', body: JSON.stringify({ sampleData }),
+    });
+  },
+  deleteEmailTemplate(orgSlug, key) {
+    return api.request(`/api/org/${orgSlug}/ats/config/email-templates/${key}`, {
+      method: 'DELETE',
+    });
+  },
+  toggleStageEmail(orgSlug, stageId, emailEnabled) {
+    return api.request(`/api/org/${orgSlug}/ats/stages/${stageId}/email`, {
+      method: 'PATCH', body: JSON.stringify({ emailEnabled }),
+    });
+  },
 };
 
 export default atsApi;

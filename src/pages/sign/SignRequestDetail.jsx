@@ -4,6 +4,7 @@ import { useOrg } from '../../context/OrgContext';
 import { usePlatform } from '../../context/PlatformContext';
 import { useToast } from '../../context/ToastContext';
 import signApi from '../../utils/signApi';
+import { API_BASE_URL } from '../../utils/config';
 import {
   Loader2, ArrowLeft, FileText, XCircle, Bell,
   Download, User, Calendar, Clock, Send,
@@ -177,6 +178,25 @@ export default function SignRequestDetail() {
   const signedCount = signers.filter((s) => s.state === 'completed').length;
   const pdfUrl = request.pdfUrl || template?.pdfUrl || null;
 
+  // Helper: fetch PDF via proxy and open in new tab (Cloudinary strict ACL blocks direct access)
+  const openProxyPdf = async (type) => {
+    try {
+      const endpoint = type === 'certificate' ? 'certificate' : 'signed-pdf';
+      const token = localStorage.getItem('rivvra_token');
+      const resp = await fetch(`${API_BASE_URL}/api/org/${orgSlug}/sign/requests/${requestId}/${endpoint}`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      if (!resp.ok) throw new Error('Failed to fetch');
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank');
+      // Clean up blob URL after a delay
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+    } catch {
+      showToast(`Failed to open ${type === 'certificate' ? 'certificate' : 'signed PDF'}`, 'error');
+    }
+  };
+
   return (
     <div className="p-6 md:p-8 space-y-6">
       {/* Back button */}
@@ -239,26 +259,22 @@ export default function SignRequestDetail() {
           )}
           {/* Signed PDF + Certificate downloads (when completed) */}
           {request.state === 'signed' && request.signedPdfUrl && (
-            <a
-              href={request.signedPdfUrl}
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              onClick={() => openProxyPdf('signed')}
               className="flex items-center gap-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-lg px-4 py-2 text-sm font-medium transition-colors"
             >
               <Download size={14} />
               Signed PDF
-            </a>
+            </button>
           )}
           {request.state === 'signed' && request.certificateUrl && (
-            <a
-              href={request.certificateUrl}
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              onClick={() => openProxyPdf('certificate')}
               className="flex items-center gap-2 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 rounded-lg px-4 py-2 text-sm font-medium transition-colors"
             >
               <Download size={14} />
               Certificate
-            </a>
+            </button>
           )}
           {pdfUrl && (
             <a
@@ -498,15 +514,25 @@ export default function SignRequestDetail() {
                 <p className="text-dark-500 text-xs text-center mb-5">
                   Open the PDF in a new tab to view the full document
                 </p>
-                <a
-                  href={request.signedPdfUrl || pdfUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-lg px-5 py-2.5 text-sm font-medium transition-colors"
-                >
-                  <ExternalLink size={14} />
-                  Open Document
-                </a>
+                {request.signedPdfUrl ? (
+                  <button
+                    onClick={() => openProxyPdf('signed')}
+                    className="flex items-center gap-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-lg px-5 py-2.5 text-sm font-medium transition-colors"
+                  >
+                    <ExternalLink size={14} />
+                    Open Document
+                  </button>
+                ) : (
+                  <a
+                    href={pdfUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-lg px-5 py-2.5 text-sm font-medium transition-colors"
+                  >
+                    <ExternalLink size={14} />
+                    Open Document
+                  </a>
+                )}
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center py-16">

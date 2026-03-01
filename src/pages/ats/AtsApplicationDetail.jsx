@@ -466,8 +466,23 @@ export default function AtsApplicationDetail() {
     try {
       const res = await atsApi.getApplication(orgSlug, applicationId);
       if (res.success) {
-        setApplication(res.application);
-        setEditForm(res.application);
+        // Merge top-level enriched fields into application object
+        const merged = {
+          ...res.application,
+          candidateEmail: res.application.email || res.application.candidateEmail,
+          candidatePhone: res.application.phone || res.application.candidatePhone,
+          jobName: res.jobName || res.application.jobName,
+          department: res.jobDepartment || res.application.department,
+          client: res.jobClientName || res.application.client,
+          stageName: res.stageName || res.application.stageName,
+          recruiterName: res.recruiterName || res.application.recruiterName,
+          recruiterId: res.application.recruiterId,
+          accountOwnerName: res.accountOwnerName || null,
+          accountManagerName: res.accountManagerName || null,
+          submittedByName: res.submittedByName || null,
+        };
+        setApplication(merged);
+        setEditForm(merged);
       }
     } catch (err) {
       console.error('Failed to load application:', err);

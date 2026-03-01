@@ -291,8 +291,8 @@ export default function AtsJobDetail() {
         department: editForm.department?.trim(),
         description: editForm.description?.trim(),
         requirements: editForm.requirements?.trim(),
-        recruiter: editForm.recruiter?.trim(),
-        client: editForm.client?.trim(),
+        recruiterId: editForm.recruiterId || undefined,
+        clientName: editForm.clientName?.trim(),
         expectedHires: Number(editForm.expectedHires) || 1,
         employmentType: editForm.employmentType?.trim(),
         location: editForm.location?.trim(),
@@ -491,14 +491,18 @@ export default function AtsJobDetail() {
           <div>
             <p className="text-dark-500 text-xs mb-1">Recruiter</p>
             {editing ? (
-              <input
-                type="text"
-                value={editForm.recruiter || ''}
-                onChange={(e) => handleEditChange('recruiter', e.target.value)}
+              <select
+                value={editForm.recruiterId || ''}
+                onChange={(e) => handleEditChange('recruiterId', e.target.value)}
                 className="input-field text-sm"
-              />
+              >
+                <option value="">Select Recruiter</option>
+                {recruiters.map((r) => (
+                  <option key={r._id} value={r._id}>{r.name || r.email}</option>
+                ))}
+              </select>
             ) : (
-              <p className="text-white text-sm">{job.recruiterName || job.recruiter || '\u2014'}</p>
+              <p className="text-white text-sm">{job.recruiterName || '\u2014'}</p>
             )}
           </div>
           <div>
@@ -506,12 +510,12 @@ export default function AtsJobDetail() {
             {editing ? (
               <input
                 type="text"
-                value={editForm.client || ''}
-                onChange={(e) => handleEditChange('client', e.target.value)}
+                value={editForm.clientName || ''}
+                onChange={(e) => handleEditChange('clientName', e.target.value)}
                 className="input-field text-sm"
               />
             ) : (
-              <p className="text-white text-sm">{job.client || '\u2014'}</p>
+              <p className="text-white text-sm">{job.clientName || '\u2014'}</p>
             )}
           </div>
           <div>

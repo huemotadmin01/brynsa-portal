@@ -441,7 +441,7 @@ export default function SignTemplates() {
                         </button>
                       </td>
                       <td className="px-4 py-3 text-dark-300 hidden sm:table-cell">
-                        {tpl.pageCount || tpl.pages || '\u2014'}
+                        {tpl.numPages || tpl.pageCount || tpl.pages || '\u2014'}
                       </td>
                       <td className="px-4 py-3 text-dark-300 hidden md:table-cell">
                         {fieldsCount}

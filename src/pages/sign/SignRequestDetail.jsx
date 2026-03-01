@@ -488,12 +488,25 @@ export default function SignRequestDetail() {
               </h2>
             </div>
             {(request.signedPdfUrl || pdfUrl) ? (
-              <div className="aspect-[3/4] bg-dark-900">
-                <iframe
-                  src={`https://docs.google.com/gview?url=${encodeURIComponent(request.signedPdfUrl || pdfUrl)}&embedded=true`}
-                  className="w-full h-full border-0"
-                  title="PDF Preview"
-                />
+              <div className="flex flex-col items-center justify-center py-12 px-6">
+                <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 flex items-center justify-center mb-4">
+                  <FileText size={32} className="text-emerald-400" />
+                </div>
+                <p className="text-white font-medium text-sm mb-1">
+                  {request.state === 'signed' ? 'Signed document ready' : 'Document available'}
+                </p>
+                <p className="text-dark-500 text-xs text-center mb-5">
+                  Open the PDF in a new tab to view the full document
+                </p>
+                <a
+                  href={request.signedPdfUrl || pdfUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-lg px-5 py-2.5 text-sm font-medium transition-colors"
+                >
+                  <ExternalLink size={14} />
+                  Open Document
+                </a>
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center py-16">

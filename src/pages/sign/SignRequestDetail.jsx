@@ -237,6 +237,29 @@ export default function SignRequestDetail() {
               </button>
             </>
           )}
+          {/* Signed PDF + Certificate downloads (when completed) */}
+          {request.state === 'signed' && request.signedPdfUrl && (
+            <a
+              href={request.signedPdfUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-lg px-4 py-2 text-sm font-medium transition-colors"
+            >
+              <Download size={14} />
+              Signed PDF
+            </a>
+          )}
+          {request.state === 'signed' && request.certificateUrl && (
+            <a
+              href={request.certificateUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 rounded-lg px-4 py-2 text-sm font-medium transition-colors"
+            >
+              <Download size={14} />
+              Certificate
+            </a>
+          )}
           {pdfUrl && (
             <a
               href={pdfUrl}
@@ -245,7 +268,7 @@ export default function SignRequestDetail() {
               className="flex items-center gap-2 bg-dark-800 hover:bg-dark-700 text-dark-200 border border-dark-700 rounded-lg px-4 py-2 text-sm font-medium transition-colors"
             >
               <Download size={14} />
-              Download PDF
+              Original PDF
             </a>
           )}
         </div>
@@ -461,13 +484,13 @@ export default function SignRequestDetail() {
             <div className="px-5 py-4 border-b border-dark-700">
               <h2 className="text-lg font-semibold text-white flex items-center gap-2">
                 <Eye size={16} className="text-dark-400" />
-                Document Preview
+                {request.state === 'signed' && request.signedPdfUrl ? 'Signed Document' : 'Document Preview'}
               </h2>
             </div>
-            {pdfUrl ? (
+            {(request.signedPdfUrl || pdfUrl) ? (
               <div className="aspect-[3/4] bg-dark-900">
                 <iframe
-                  src={pdfUrl}
+                  src={request.signedPdfUrl || pdfUrl}
                   className="w-full h-full border-0"
                   title="PDF Preview"
                 />

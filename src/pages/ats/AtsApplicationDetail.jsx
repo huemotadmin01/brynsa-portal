@@ -930,7 +930,7 @@ export default function AtsApplicationDetail() {
           <div className="card p-5">
             <AttachmentsPanel
               orgSlug={orgSlug}
-              applicationId={id}
+              applicationId={applicationId}
               readOnly={!isAdmin}
             />
           </div>

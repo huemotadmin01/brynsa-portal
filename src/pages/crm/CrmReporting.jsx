@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 
 export default function CrmReporting() {
-  const { slug } = useOrg();
+  const { orgSlug: slug } = useOrg();
   const { addToast } = useToast();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);

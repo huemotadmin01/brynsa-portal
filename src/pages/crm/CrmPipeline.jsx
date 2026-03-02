@@ -261,7 +261,7 @@ function CreateModal({ stages, onClose, onCreate }) {
 // MAIN COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════
 export default function CrmPipeline() {
-  const { slug } = useOrg();
+  const { orgSlug: slug } = useOrg();
   const { addToast } = useToast();
   const navigate = useNavigate();
 

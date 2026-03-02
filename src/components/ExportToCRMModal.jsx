@@ -7,7 +7,7 @@ import crmApi from '../utils/crmApi';
 
 function ExportToCRMModal({ isOpen, onClose, lead }) {
   const { user } = useAuth();
-  const { slug: orgSlug } = useOrg();
+  const { orgSlug } = useOrg();
   const isPro = user?.plan === 'pro' || user?.plan === 'premium';
 
   // 'choose' → 'form' → 'confirm' → 'exporting' → 'success' | 'error' | 'duplicate'

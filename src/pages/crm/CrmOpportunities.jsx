@@ -25,7 +25,7 @@ function EvalStars({ value = 0 }) {
 }
 
 export default function CrmOpportunities() {
-  const { slug } = useOrg();
+  const { orgSlug: slug } = useOrg();
   const { addToast } = useToast();
   const navigate = useNavigate();
 

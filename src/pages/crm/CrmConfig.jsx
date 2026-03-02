@@ -234,7 +234,7 @@ function LostReasonsConfig({ orgSlug }) {
 // MAIN
 // ═══════════════════════════════════════════════════════════════════════════
 export default function CrmConfig() {
-  const { slug } = useOrg();
+  const { orgSlug: slug } = useOrg();
 
   return (
     <div className="p-4 max-w-3xl mx-auto space-y-8">

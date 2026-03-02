@@ -52,7 +52,7 @@ function PipelineBar({ data }) {
 }
 
 export default function CrmDashboard() {
-  const { slug } = useOrg();
+  const { orgSlug: slug } = useOrg();
   const { addToast } = useToast();
   const navigate = useNavigate();
   const [data, setData] = useState(null);

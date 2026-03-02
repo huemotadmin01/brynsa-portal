@@ -89,7 +89,7 @@ function ActivityItem({ activity, onToggle, onDelete }) {
 }
 
 export default function CrmOpportunityDetail() {
-  const { slug } = useOrg();
+  const { orgSlug: slug } = useOrg();
   const { opportunityId } = useParams();
   const { addToast } = useToast();
   const navigate = useNavigate();

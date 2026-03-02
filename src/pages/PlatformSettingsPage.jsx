@@ -15,6 +15,7 @@ import SettingsTeam from '../components/settings/SettingsTeam';
 import SettingsOutreach from '../components/settings/SettingsOutreach';
 import SettingsTimesheet from '../components/settings/SettingsTimesheet';
 import SettingsEmployee from '../components/settings/SettingsEmployee';
+import SettingsEmailLogs from '../components/settings/SettingsEmailLogs';
 
 export default function PlatformSettingsPage() {
   const { user } = useAuth();
@@ -42,6 +43,7 @@ export default function PlatformSettingsPage() {
         { id: 'profile', label: 'My Profile', icon: UserCircle, description: 'Your account & preferences' },
         { id: 'general', label: 'General Settings', icon: Settings, description: 'Organization & branding' },
         { id: 'users', label: 'Users & Teams', icon: Users, description: 'Manage members & roles', adminOnly: true },
+        { id: 'email-logs', label: 'Email Logs', icon: Mail, description: 'View sent platform emails', adminOnly: true },
       ],
     },
     {
@@ -130,6 +132,7 @@ export default function PlatformSettingsPage() {
           {activeTab === 'profile' && <SettingsProfile />}
           {activeTab === 'general' && <SettingsGeneral />}
           {activeTab === 'users' && isAdmin && <SettingsTeam />}
+          {activeTab === 'email-logs' && isAdmin && <SettingsEmailLogs />}
           {activeTab === 'outreach' && <SettingsOutreach />}
           {activeTab === 'timesheet' && <SettingsTimesheet />}
           {activeTab === 'employee' && <SettingsEmployee />}

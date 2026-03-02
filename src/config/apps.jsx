@@ -2,7 +2,7 @@ import {
   Send, Users, List, Home, BarChart3, UsersRound, Layers,
   Clock, Briefcase, UserSearch, Mail, CalendarDays, IndianRupee,
   CheckCircle2, Download, Settings, Building2, UserPlus, Wallet,
-  Contact, Kanban, FileText, GripVertical, PenTool, FileSignature
+  Contact, Kanban, FileText, GripVertical, PenTool, FileSignature, Inbox
 } from 'lucide-react';
 
 export const APP_REGISTRY = {
@@ -230,6 +230,7 @@ export const APP_REGISTRY = {
       return [
         { type: 'item', path: '/settings/general', label: 'General Settings', icon: Settings },
         ...(isAdmin ? [{ type: 'item', path: '/settings/users', label: 'Users & Teams', icon: Users }] : []),
+        ...(isAdmin ? [{ type: 'item', path: '/settings/email-logs', label: 'Email Logs', icon: Inbox }] : []),
         { type: 'item', path: '/settings/outreach', label: 'Outreach', icon: Mail },
         { type: 'item', path: '/settings/timesheet', label: 'ESS', icon: Clock },
         { type: 'item', path: '/settings/employee', label: 'Employee', icon: UsersRound },

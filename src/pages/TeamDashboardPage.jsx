@@ -241,6 +241,13 @@ export default function TeamDashboardPage() {
 
   // Use enrollment-based count (source of truth) instead of leads.outreachStatus
   const totalInSequence = data?.inSequenceCount || 0;
+  // Date-filtered In Sequence (for KPI card, bar chart, detail table)
+  const totalInSequenceInRange = data?.inSequenceCountInRange || 0;
+  const inSequenceDataInRange = (data?.inSequenceByUserInRange || []).map(r => ({
+    name: r.sourcedBy?.split(' ')[0] || 'Unknown',
+    fullName: r.sourcedBy || 'Unknown',
+    count: r.count,
+  }));
   const leadsScrapedInRange = data?.leadsScrapedInRange || [];
   const leadsScrapedThisWeek = data?.leadsScrapedThisWeek || [];
   const emailsScheduledInRange = data?.emailsScheduledInRange || [];
@@ -391,11 +398,11 @@ export default function TeamDashboardPage() {
           />
           <KPICard
             label="In Sequence"
-            value={totalInSequence}
+            value={totalInSequenceInRange}
             icon={Send}
             gradient="from-rivvra-500/20 to-rivvra-600/5"
             iconColor="text-rivvra-400"
-            subtitle="current"
+            subtitle={dateLabel.toLowerCase()}
             onClick={() => navigate(orgPath('/outreach/team-contacts') + '?status=in_sequence')}
           />
           <KPICard
@@ -474,10 +481,10 @@ export default function TeamDashboardPage() {
               <Send className="w-4 h-4 text-rivvra-400" />
               In Sequence by Team Member
             </h3>
-            <p className="text-[11px] text-dark-500 mb-4">Current active enrollments grouped by team member</p>
-            {inSequenceData.length > 0 ? (
+            <p className="text-[11px] text-dark-500 mb-4">{`Enrollments ${dateLabel.toLowerCase()} grouped by team member`}</p>
+            {inSequenceDataInRange.length > 0 ? (
               <ResponsiveContainer width="100%" height={260}>
-                <BarChart data={inSequenceData} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
+                <BarChart data={inSequenceDataInRange} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
                   <XAxis
                     dataKey="name"
                     tick={{ fill: '#9ca3af', fontSize: 11 }}
@@ -492,7 +499,7 @@ export default function TeamDashboardPage() {
                   />
                   <Tooltip content={<ChartTooltip />} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
                   <Bar dataKey="count" radius={[6, 6, 0, 0]} maxBarSize={42}>
-                    {inSequenceData.map((_, i) => (
+                    {inSequenceDataInRange.map((_, i) => (
                       <Cell key={i} fill={i === 0 ? '#22c55e' : '#22c55e80'} />
                     ))}
                   </Bar>
@@ -500,7 +507,7 @@ export default function TeamDashboardPage() {
               </ResponsiveContainer>
             ) : (
               <div className="flex items-center justify-center h-[260px] text-dark-500 text-sm">
-                No leads in sequence yet
+                {`No leads enrolled ${dateLabel.toLowerCase()}`}
               </div>
             )}
           </div>
@@ -872,15 +879,15 @@ export default function TeamDashboardPage() {
             <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
               <Send className="w-4 h-4 text-rivvra-400" />
               In Sequence Detail
-              <span className="text-[10px] text-dark-500 font-normal ml-1">current</span>
+              <span className="text-[10px] text-dark-500 font-normal ml-1">{dateLabel.toLowerCase()}</span>
               <span className="ml-auto px-2 py-0.5 rounded-lg bg-rivvra-500/10 text-rivvra-400 text-[10px] font-bold">
-                {totalInSequence}
+                {totalInSequenceInRange}
               </span>
             </h3>
-            {(data?.inSequenceByUser?.length || 0) > 0 ? (
+            {(data?.inSequenceByUserInRange?.length || 0) > 0 ? (
               <div className="space-y-2.5">
-                {data.inSequenceByUser.map((r, i) => {
-                  const pct = totalInSequence > 0 ? (r.count / totalInSequence) * 100 : 0;
+                {data.inSequenceByUserInRange.map((r, i) => {
+                  const pct = totalInSequenceInRange > 0 ? (r.count / totalInSequenceInRange) * 100 : 0;
                   return (
                     <div key={i}>
                       <div className="flex items-center justify-between mb-1">
@@ -908,7 +915,7 @@ export default function TeamDashboardPage() {
                 })}
               </div>
             ) : (
-              <p className="text-dark-600 text-[11px] py-4 text-center">No leads in sequence</p>
+              <p className="text-dark-600 text-[11px] py-4 text-center">{`No leads enrolled ${dateLabel.toLowerCase()}`}</p>
             )}
           </div>
         </div>

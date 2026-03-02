@@ -1,16 +1,24 @@
 import { useState, useEffect } from 'react';
-import { X, Upload, RefreshCw, CheckCircle, AlertTriangle, Pencil, Sparkles } from 'lucide-react';
+import { X, Upload, RefreshCw, CheckCircle, AlertTriangle, Pencil, Sparkles, Briefcase, ExternalLink } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useOrg } from '../context/OrgContext';
 import api from '../utils/api';
+import crmApi from '../utils/crmApi';
 
 function ExportToCRMModal({ isOpen, onClose, lead }) {
   const { user } = useAuth();
+  const { slug: orgSlug } = useOrg();
   const isPro = user?.plan === 'pro' || user?.plan === 'premium';
-  const [step, setStep] = useState('form'); // 'form' | 'confirm' | 'exporting' | 'success' | 'error' | 'duplicate'
+
+  // 'choose' → 'form' → 'confirm' → 'exporting' → 'success' | 'error' | 'duplicate'
+  const [step, setStep] = useState('choose');
+  const [destination, setDestination] = useState(''); // 'odoo' | 'rivvra'
   const [profileType, setProfileType] = useState('');
   const [name, setName] = useState('');
   const [company, setCompany] = useState('');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [expectedRole, setExpectedRole] = useState('');
   const [checking, setChecking] = useState(false);
   const [alreadyExported, setAlreadyExported] = useState(false);
   const [exportResult, setExportResult] = useState(null);
@@ -20,18 +28,21 @@ function ExportToCRMModal({ isOpen, onClose, lead }) {
   // Reset state when modal opens with a new lead
   useEffect(() => {
     if (isOpen && lead) {
-      setStep('form');
+      setStep('choose');
+      setDestination('');
       setProfileType(lead.profileType || '');
       setName(lead.name || '');
       setCompany(lead.company || lead.companyName || '');
       setEmail(lead.email || '');
+      setPhone(lead.phone || '');
+      setExpectedRole(lead.title || lead.headline || lead.currentTitle || '');
       setAlreadyExported(false);
       setExportResult(null);
       setErrorMessage('');
       setProfileTypeError(false);
       setChecking(false);
 
-      // Check if already exported
+      // Check if already exported (Odoo)
       if (lead.linkedinUrl && user?.email) {
         setChecking(true);
         api.checkCRMExport(lead.linkedinUrl, user.email)
@@ -75,7 +86,14 @@ function ExportToCRMModal({ isOpen, onClose, lead }) {
     );
   }
 
-  const handleExportClick = () => {
+  const handleClose = () => {
+    setStep('choose');
+    setDestination('');
+    onClose();
+  };
+
+  // ── Odoo Export Handler ──
+  const handleOdooExportClick = () => {
     if (!profileType) {
       setProfileTypeError(true);
       return;
@@ -84,10 +102,9 @@ function ExportToCRMModal({ isOpen, onClose, lead }) {
     setStep('confirm');
   };
 
-  const handleConfirmExport = async () => {
+  const handleConfirmOdooExport = async () => {
     setStep('exporting');
     try {
-      // For candidates, extract skill from headline before exporting
       let extractedSkill = null;
       if (profileType === 'candidate') {
         const headline = lead.headline || lead.title || lead.currentTitle || '';
@@ -98,7 +115,6 @@ function ExportToCRMModal({ isOpen, onClose, lead }) {
               extractedSkill = skillResult.skill;
             }
           } catch (skillErr) {
-            // Continue without skill if extraction fails
             console.warn('Skill extraction failed:', skillErr);
           }
         }
@@ -137,13 +153,196 @@ function ExportToCRMModal({ isOpen, onClose, lead }) {
     }
   };
 
-  const handleClose = () => {
-    setStep('form');
-    onClose();
+  // ── Rivvra CRM Export Handler ──
+  const handleRivvraExport = async () => {
+    setStep('exporting');
+    try {
+      const oppData = {
+        name: `${name.trim()} — ${company.trim() || 'Opportunity'}`,
+        contactName: name.trim(),
+        contactEmail: email.trim(),
+        contactPhone: phone.trim(),
+        companyName: company.trim(),
+        clientType: profileType === 'client' ? 'existing' : 'new',
+        expectedRole: expectedRole.trim() || null,
+        linkedinUrl: lead.linkedinUrl || null,
+        source: 'Outreach',
+        salespersonName: user?.name || user?.email || null,
+        notes: lead.notes?.length ? lead.notes.map(n => typeof n === 'string' ? n : n.text || '').join('\n') : null,
+      };
+
+      const result = await crmApi.createOpportunity(orgSlug, oppData);
+
+      if (result.success) {
+        setExportResult({
+          message: 'Contact exported as a CRM opportunity.',
+          opportunityId: result.opportunity?._id,
+          opportunityName: result.opportunity?.name,
+        });
+        setStep('success');
+      } else {
+        setErrorMessage(result.error || 'Export failed');
+        setStep('error');
+      }
+    } catch (err) {
+      setErrorMessage(err.message || 'Export failed. Please try again.');
+      setStep('error');
+    }
   };
 
-  // Form step
+  // ═══════════════════════════════════════════════════════════════════════
+  // STEP: Choose Destination
+  // ═══════════════════════════════════════════════════════════════════════
+  if (step === 'choose') {
+    return (
+      <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+        <div className="absolute inset-0 bg-dark-950/80 backdrop-blur-sm" onClick={handleClose} />
+        <div className="relative bg-dark-900 border border-dark-700 rounded-2xl w-full max-w-md shadow-2xl">
+          <button onClick={handleClose} className="absolute top-4 right-4 p-1 text-dark-400 hover:text-white transition-colors z-10">
+            <X className="w-5 h-5" />
+          </button>
+          <div className="p-6">
+            <div className="flex items-center gap-3 mb-5">
+              <div className="w-12 h-12 rounded-xl bg-rivvra-500/10 flex items-center justify-center">
+                <Upload className="w-6 h-6 text-rivvra-400" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-white">Export to CRM</h2>
+                <p className="text-dark-400 text-sm">Choose where to export this contact</p>
+              </div>
+            </div>
+
+            <div className="space-y-3 mb-4">
+              {/* Rivvra CRM Option */}
+              <button
+                onClick={() => { setDestination('rivvra'); setStep('form'); }}
+                className="w-full flex items-center gap-4 px-4 py-4 bg-dark-800 border border-dark-600 rounded-xl hover:border-rivvra-500/50 hover:bg-rivvra-500/5 transition-all text-left group"
+              >
+                <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center flex-shrink-0">
+                  <Briefcase className="w-5 h-5 text-emerald-400" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-white font-medium group-hover:text-rivvra-400 transition-colors">Export to Rivvra CRM</p>
+                  <p className="text-dark-500 text-xs mt-0.5">Create an opportunity in your Rivvra pipeline</p>
+                </div>
+                <ExternalLink className="w-4 h-4 text-dark-600 group-hover:text-dark-400" />
+              </button>
+
+              {/* Odoo Option */}
+              <button
+                onClick={() => { setDestination('odoo'); setStep('form'); }}
+                className="w-full flex items-center gap-4 px-4 py-4 bg-dark-800 border border-dark-600 rounded-xl hover:border-purple-500/50 hover:bg-purple-500/5 transition-all text-left group"
+              >
+                <div className="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center flex-shrink-0">
+                  <Upload className="w-5 h-5 text-purple-400" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-white font-medium group-hover:text-purple-400 transition-colors">Export to Odoo</p>
+                  <p className="text-dark-500 text-xs mt-0.5">Send this contact to your Odoo CRM instance</p>
+                </div>
+                <ExternalLink className="w-4 h-4 text-dark-600 group-hover:text-dark-400" />
+              </button>
+            </div>
+
+            <button
+              onClick={handleClose}
+              className="w-full px-4 py-2.5 rounded-xl bg-dark-800 text-dark-300 font-medium hover:bg-dark-700 transition-colors text-sm"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // STEP: Form (differs by destination)
+  // ═══════════════════════════════════════════════════════════════════════
   if (step === 'form') {
+    if (destination === 'rivvra') {
+      // Rivvra CRM form — simpler, create opportunity directly
+      return (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-dark-950/80 backdrop-blur-sm" onClick={handleClose} />
+          <div className="relative bg-dark-900 border border-dark-700 rounded-2xl w-full max-w-md shadow-2xl">
+            <button onClick={handleClose} className="absolute top-4 right-4 p-1 text-dark-400 hover:text-white transition-colors z-10">
+              <X className="w-5 h-5" />
+            </button>
+            <div className="p-6">
+              <div className="flex items-center gap-3 mb-5">
+                <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center">
+                  <Briefcase className="w-6 h-6 text-emerald-400" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-white">Export to Rivvra CRM</h2>
+                  <p className="text-dark-400 text-sm">Create an opportunity from this contact</p>
+                </div>
+              </div>
+
+              {/* Name */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-dark-300 mb-1.5">
+                  Contact Name <span className="text-red-400">*</span>
+                </label>
+                <div className="relative">
+                  <input type="text" value={name} onChange={(e) => setName(e.target.value)}
+                    className="w-full px-3 py-2.5 pr-10 bg-dark-800 border border-dark-600 rounded-xl text-white focus:outline-none focus:border-rivvra-500" />
+                  <Pencil className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-dark-500" />
+                </div>
+              </div>
+
+              {/* Company */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-dark-300 mb-1.5">
+                  Company <span className="text-red-400">*</span>
+                </label>
+                <div className="relative">
+                  <input type="text" value={company} onChange={(e) => setCompany(e.target.value)}
+                    className="w-full px-3 py-2.5 pr-10 bg-dark-800 border border-dark-600 rounded-xl text-white focus:outline-none focus:border-rivvra-500" />
+                  <Pencil className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-dark-500" />
+                </div>
+              </div>
+
+              {/* Email */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-dark-300 mb-1.5">Email</label>
+                <div className="relative">
+                  <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="No email found"
+                    className="w-full px-3 py-2.5 pr-10 bg-dark-800 border border-dark-600 rounded-xl text-white placeholder-dark-500 focus:outline-none focus:border-rivvra-500" />
+                  <Pencil className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-dark-500" />
+                </div>
+              </div>
+
+              {/* Expected Role */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-dark-300 mb-1.5">Expected Role / Title</label>
+                <div className="relative">
+                  <input type="text" value={expectedRole} onChange={(e) => setExpectedRole(e.target.value)} placeholder="e.g., Backend Developer"
+                    className="w-full px-3 py-2.5 pr-10 bg-dark-800 border border-dark-600 rounded-xl text-white placeholder-dark-500 focus:outline-none focus:border-rivvra-500" />
+                  <Pencil className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-dark-500" />
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-3">
+                <button onClick={() => setStep('choose')}
+                  className="flex-1 px-4 py-2.5 rounded-xl bg-dark-800 text-white font-medium hover:bg-dark-700 transition-colors">
+                  Back
+                </button>
+                <button onClick={handleRivvraExport} disabled={!name.trim() || !company.trim()}
+                  className="flex-1 px-4 py-2.5 rounded-xl bg-rivvra-500 text-dark-950 font-semibold hover:bg-rivvra-400 transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
+                  <Briefcase className="w-4 h-4" />
+                  Create Opportunity
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Odoo form — existing behavior
     return (
       <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
         <div className="absolute inset-0 bg-dark-950/80 backdrop-blur-sm" onClick={handleClose} />
@@ -154,8 +353,8 @@ function ExportToCRMModal({ isOpen, onClose, lead }) {
 
           <div className="p-6">
             <div className="flex items-center gap-3 mb-5">
-              <div className="w-12 h-12 rounded-xl bg-rivvra-500/10 flex items-center justify-center">
-                <Upload className="w-6 h-6 text-rivvra-400" />
+              <div className="w-12 h-12 rounded-xl bg-purple-500/10 flex items-center justify-center">
+                <Upload className="w-6 h-6 text-purple-400" />
               </div>
               <div>
                 <h2 className="text-xl font-bold text-white">Export to Odoo CRM</h2>
@@ -210,12 +409,8 @@ function ExportToCRMModal({ isOpen, onClose, lead }) {
                 Name <span className="text-red-400">*</span>
               </label>
               <div className="relative">
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full px-3 py-2.5 pr-10 bg-dark-800 border border-dark-600 rounded-xl text-white focus:outline-none focus:border-rivvra-500"
-                />
+                <input type="text" value={name} onChange={(e) => setName(e.target.value)}
+                  className="w-full px-3 py-2.5 pr-10 bg-dark-800 border border-dark-600 rounded-xl text-white focus:outline-none focus:border-rivvra-500" />
                 <Pencil className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-dark-500" />
               </div>
             </div>
@@ -226,12 +421,8 @@ function ExportToCRMModal({ isOpen, onClose, lead }) {
                 Company <span className="text-red-400">*</span>
               </label>
               <div className="relative">
-                <input
-                  type="text"
-                  value={company}
-                  onChange={(e) => setCompany(e.target.value)}
-                  className="w-full px-3 py-2.5 pr-10 bg-dark-800 border border-dark-600 rounded-xl text-white focus:outline-none focus:border-rivvra-500"
-                />
+                <input type="text" value={company} onChange={(e) => setCompany(e.target.value)}
+                  className="w-full px-3 py-2.5 pr-10 bg-dark-800 border border-dark-600 rounded-xl text-white focus:outline-none focus:border-rivvra-500" />
                 <Pencil className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-dark-500" />
               </div>
             </div>
@@ -240,32 +431,22 @@ function ExportToCRMModal({ isOpen, onClose, lead }) {
             <div className="mb-6">
               <label className="block text-sm font-medium text-dark-300 mb-1.5">Email</label>
               <div className="relative">
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="No email found"
-                  className="w-full px-3 py-2.5 pr-10 bg-dark-800 border border-dark-600 rounded-xl text-white placeholder-dark-500 focus:outline-none focus:border-rivvra-500"
-                />
+                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="No email found"
+                  className="w-full px-3 py-2.5 pr-10 bg-dark-800 border border-dark-600 rounded-xl text-white placeholder-dark-500 focus:outline-none focus:border-rivvra-500" />
                 <Pencil className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-dark-500" />
               </div>
             </div>
 
             {/* Actions */}
             <div className="flex gap-3">
-              <button
-                onClick={handleClose}
-                className="flex-1 px-4 py-2.5 rounded-xl bg-dark-800 text-white font-medium hover:bg-dark-700 transition-colors"
-              >
-                Cancel
+              <button onClick={() => setStep('choose')}
+                className="flex-1 px-4 py-2.5 rounded-xl bg-dark-800 text-white font-medium hover:bg-dark-700 transition-colors">
+                Back
               </button>
-              <button
-                onClick={handleExportClick}
-                disabled={!name.trim() || !company.trim() || checking}
-                className="flex-1 px-4 py-2.5 rounded-xl bg-rivvra-500 text-dark-950 font-semibold hover:bg-rivvra-400 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-              >
+              <button onClick={handleOdooExportClick} disabled={!name.trim() || !company.trim() || checking}
+                className="flex-1 px-4 py-2.5 rounded-xl bg-purple-500 text-white font-semibold hover:bg-purple-400 transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
                 <Upload className="w-4 h-4" />
-                Export to CRM
+                Export to Odoo
               </button>
             </div>
           </div>
@@ -274,7 +455,9 @@ function ExportToCRMModal({ isOpen, onClose, lead }) {
     );
   }
 
-  // Confirm step
+  // ═══════════════════════════════════════════════════════════════════════
+  // STEP: Confirm (Odoo only — Rivvra goes straight to exporting)
+  // ═══════════════════════════════════════════════════════════════════════
   if (step === 'confirm') {
     return (
       <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
@@ -311,16 +494,12 @@ function ExportToCRMModal({ isOpen, onClose, lead }) {
             </div>
 
             <div className="flex gap-3">
-              <button
-                onClick={() => setStep('form')}
-                className="flex-1 px-4 py-2.5 rounded-xl bg-dark-800 text-white font-medium hover:bg-dark-700 transition-colors"
-              >
-                Cancel
+              <button onClick={() => setStep('form')}
+                className="flex-1 px-4 py-2.5 rounded-xl bg-dark-800 text-white font-medium hover:bg-dark-700 transition-colors">
+                Back
               </button>
-              <button
-                onClick={handleConfirmExport}
-                className="flex-1 px-4 py-2.5 rounded-xl bg-rivvra-500 text-dark-950 font-semibold hover:bg-rivvra-400 transition-colors flex items-center justify-center gap-2"
-              >
+              <button onClick={handleConfirmOdooExport}
+                className="flex-1 px-4 py-2.5 rounded-xl bg-purple-500 text-white font-semibold hover:bg-purple-400 transition-colors flex items-center justify-center gap-2">
                 <Upload className="w-4 h-4" />
                 Yes, Export
               </button>
@@ -331,26 +510,34 @@ function ExportToCRMModal({ isOpen, onClose, lead }) {
     );
   }
 
-  // Exporting step
+  // ═══════════════════════════════════════════════════════════════════════
+  // STEP: Exporting
+  // ═══════════════════════════════════════════════════════════════════════
   if (step === 'exporting') {
+    const isRivvra = destination === 'rivvra';
     return (
       <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
         <div className="absolute inset-0 bg-dark-950/80 backdrop-blur-sm" />
         <div className="relative bg-dark-900 border border-dark-700 rounded-2xl w-full max-w-md shadow-2xl">
           <div className="p-6 text-center">
-            <div className="w-16 h-16 rounded-2xl bg-rivvra-500/10 flex items-center justify-center mx-auto mb-4">
-              <RefreshCw className="w-8 h-8 text-rivvra-400 animate-spin" />
+            <div className={`w-16 h-16 rounded-2xl ${isRivvra ? 'bg-emerald-500/10' : 'bg-rivvra-500/10'} flex items-center justify-center mx-auto mb-4`}>
+              <RefreshCw className={`w-8 h-8 ${isRivvra ? 'text-emerald-400' : 'text-rivvra-400'} animate-spin`} />
             </div>
-            <h2 className="text-xl font-bold text-white mb-2">Exporting to Odoo CRM</h2>
-            <p className="text-dark-400">Please wait while we export this contact...</p>
+            <h2 className="text-xl font-bold text-white mb-2">
+              {isRivvra ? 'Creating Opportunity...' : 'Exporting to Odoo CRM'}
+            </h2>
+            <p className="text-dark-400">Please wait...</p>
           </div>
         </div>
       </div>
     );
   }
 
-  // Success step
+  // ═══════════════════════════════════════════════════════════════════════
+  // STEP: Success
+  // ═══════════════════════════════════════════════════════════════════════
   if (step === 'success') {
+    const isRivvra = destination === 'rivvra';
     return (
       <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
         <div className="absolute inset-0 bg-dark-950/80 backdrop-blur-sm" onClick={handleClose} />
@@ -359,24 +546,39 @@ function ExportToCRMModal({ isOpen, onClose, lead }) {
             <div className="w-16 h-16 rounded-2xl bg-green-500/10 flex items-center justify-center mx-auto mb-4">
               <CheckCircle className="w-8 h-8 text-green-400" />
             </div>
-            <h2 className="text-xl font-bold text-white mb-2">Export Successful</h2>
-            <p className="text-dark-400 mb-2">{exportResult?.message || 'Contact exported to Odoo CRM.'}</p>
+            <h2 className="text-xl font-bold text-white mb-2">
+              {isRivvra ? 'Opportunity Created' : 'Export Successful'}
+            </h2>
+            <p className="text-dark-400 mb-2">
+              {exportResult?.message || (isRivvra ? 'Opportunity created in Rivvra CRM.' : 'Contact exported to Odoo CRM.')}
+            </p>
             {exportResult?.crmId && (
-              <p className="text-dark-500 text-sm mb-6">CRM ID: {exportResult.crmId}</p>
+              <p className="text-dark-500 text-sm mb-4">CRM ID: {exportResult.crmId}</p>
             )}
-            <button
-              onClick={handleClose}
-              className="px-6 py-2.5 rounded-xl bg-rivvra-500 text-dark-950 font-semibold hover:bg-rivvra-400 transition-colors"
-            >
-              Done
-            </button>
+            {isRivvra && exportResult?.opportunityId && orgSlug && (
+              <a
+                href={`/#/org/${orgSlug}/crm/opportunities/${exportResult.opportunityId}`}
+                className="inline-flex items-center gap-1.5 text-sm text-rivvra-400 hover:text-rivvra-300 mb-4"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+                View Opportunity
+              </a>
+            )}
+            <div className="mt-2">
+              <button onClick={handleClose}
+                className="px-6 py-2.5 rounded-xl bg-rivvra-500 text-dark-950 font-semibold hover:bg-rivvra-400 transition-colors">
+                Done
+              </button>
+            </div>
           </div>
         </div>
       </div>
     );
   }
 
-  // Duplicate step
+  // ═══════════════════════════════════════════════════════════════════════
+  // STEP: Duplicate (Odoo only)
+  // ═══════════════════════════════════════════════════════════════════════
   if (step === 'duplicate') {
     return (
       <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
@@ -391,10 +593,8 @@ function ExportToCRMModal({ isOpen, onClose, lead }) {
             {exportResult?.crmId && (
               <p className="text-dark-500 text-sm mb-6">CRM ID: {exportResult.crmId}</p>
             )}
-            <button
-              onClick={handleClose}
-              className="px-6 py-2.5 rounded-xl bg-dark-800 text-white font-medium hover:bg-dark-700 transition-colors"
-            >
+            <button onClick={handleClose}
+              className="px-6 py-2.5 rounded-xl bg-dark-800 text-white font-medium hover:bg-dark-700 transition-colors">
               Close
             </button>
           </div>
@@ -403,7 +603,9 @@ function ExportToCRMModal({ isOpen, onClose, lead }) {
     );
   }
 
-  // Error step
+  // ═══════════════════════════════════════════════════════════════════════
+  // STEP: Error
+  // ═══════════════════════════════════════════════════════════════════════
   if (step === 'error') {
     return (
       <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
@@ -416,16 +618,12 @@ function ExportToCRMModal({ isOpen, onClose, lead }) {
             <h2 className="text-xl font-bold text-white mb-2">Export Failed</h2>
             <p className="text-dark-400 mb-6">{errorMessage}</p>
             <div className="flex gap-3">
-              <button
-                onClick={handleClose}
-                className="flex-1 px-4 py-2.5 rounded-xl bg-dark-800 text-white font-medium hover:bg-dark-700 transition-colors"
-              >
+              <button onClick={handleClose}
+                className="flex-1 px-4 py-2.5 rounded-xl bg-dark-800 text-white font-medium hover:bg-dark-700 transition-colors">
                 Close
               </button>
-              <button
-                onClick={() => setStep('form')}
-                className="flex-1 px-4 py-2.5 rounded-xl bg-rivvra-500 text-dark-950 font-semibold hover:bg-rivvra-400 transition-colors"
-              >
+              <button onClick={() => setStep('form')}
+                className="flex-1 px-4 py-2.5 rounded-xl bg-rivvra-500 text-dark-950 font-semibold hover:bg-rivvra-400 transition-colors">
                 Try Again
               </button>
             </div>

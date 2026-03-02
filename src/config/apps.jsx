@@ -152,11 +152,27 @@ export const APP_REGISTRY = {
     name: 'CRM',
     description: 'Manage deals & pipeline',
     icon: Briefcase,
-    color: 'purple',
+    color: 'emerald',
     basePath: '/crm',
-    status: 'coming_soon',
-    defaultRoute: '/crm/dashboard',
-    getSidebarItems: () => [],
+    status: 'active',
+    defaultRoute: '/crm/pipeline',
+    roles: [
+      { value: 'admin', label: 'Admin', color: 'emerald' },
+      { value: 'salesperson', label: 'Salesperson', color: 'blue' },
+      { value: 'member', label: 'Member', color: 'dark' },
+    ],
+    getSidebarItems: (user, timesheetUser, orgAppRole) => {
+      const isAdmin = orgAppRole === 'admin';
+      return [
+        { type: 'item', path: '/crm/dashboard', label: 'Dashboard', icon: Home },
+        { type: 'item', path: '/crm/pipeline', label: 'Pipeline', icon: Kanban },
+        { type: 'item', path: '/crm/opportunities', label: 'Opportunities', icon: Briefcase },
+        ...(isAdmin ? [
+          { type: 'item', path: '/crm/reporting', label: 'Reporting', icon: BarChart3 },
+          { type: 'item', path: '/crm/config', label: 'Configuration', icon: Settings },
+        ] : []),
+      ];
+    },
   },
 
   ats: {
@@ -235,6 +251,7 @@ export const APP_REGISTRY = {
         { type: 'item', path: '/settings/timesheet', label: 'ESS', icon: Clock },
         { type: 'item', path: '/settings/employee', label: 'Employee', icon: UsersRound },
         { type: 'item', path: '/settings/contacts', label: 'Contacts', icon: Contact },
+        { type: 'item', path: '/settings/crm', label: 'CRM', icon: Briefcase },
         { type: 'item', path: '/settings/ats', label: 'ATS', icon: UserSearch },
         { type: 'item', path: '/settings/sign', label: 'Sign', icon: PenTool },
       ];

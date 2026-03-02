@@ -75,6 +75,14 @@ const AtsCandidates = lazy(() => import('./pages/ats/AtsCandidates'));
 const AtsReporting = lazy(() => import('./pages/ats/AtsReporting'));
 const AtsConfig = lazy(() => import('./pages/ats/AtsConfig'));
 
+// Lazy-loaded: CRM app pages
+const CrmDashboard = lazy(() => import('./pages/crm/CrmDashboard'));
+const CrmPipeline = lazy(() => import('./pages/crm/CrmPipeline'));
+const CrmOpportunities = lazy(() => import('./pages/crm/CrmOpportunities'));
+const CrmOpportunityDetail = lazy(() => import('./pages/crm/CrmOpportunityDetail'));
+const CrmReporting = lazy(() => import('./pages/crm/CrmReporting'));
+const CrmConfig = lazy(() => import('./pages/crm/CrmConfig'));
+
 // Lazy-loaded: Sign app pages
 const SignDashboard = lazy(() => import('./pages/sign/SignDashboard'));
 const SignTemplates = lazy(() => import('./pages/sign/SignTemplates'));
@@ -223,6 +231,18 @@ function App() {
                 <Route path="/org/:slug/contacts/:contactId" element={<ErrorBoundary><ContactDetail /></ErrorBoundary>} />
               </Route>
 
+              {/* CRM app routes — gated by crm access */}
+              <Route element={<AppAccessGate appId="crm" />}>
+                <Route path="/org/:slug/crm/dashboard" element={<ErrorBoundary><CrmDashboard /></ErrorBoundary>} />
+                <Route path="/org/:slug/crm/pipeline" element={<ErrorBoundary><CrmPipeline /></ErrorBoundary>} />
+                <Route path="/org/:slug/crm/opportunities" element={<ErrorBoundary><CrmOpportunities /></ErrorBoundary>} />
+                <Route path="/org/:slug/crm/opportunities/:opportunityId" element={<ErrorBoundary><CrmOpportunityDetail /></ErrorBoundary>} />
+                <Route element={<AppRoleGate appId="crm" requiredRole="admin" />}>
+                  <Route path="/org/:slug/crm/reporting" element={<ErrorBoundary><CrmReporting /></ErrorBoundary>} />
+                  <Route path="/org/:slug/crm/config" element={<ErrorBoundary><CrmConfig /></ErrorBoundary>} />
+                </Route>
+              </Route>
+
               {/* ATS app routes — gated by ats access */}
               <Route element={<AppAccessGate appId="ats" />}>
                 <Route path="/org/:slug/ats/pipeline" element={<ErrorBoundary><AtsPipeline /></ErrorBoundary>} />
@@ -265,6 +285,7 @@ function App() {
             <Route path="/timesheet/*" element={<OrgRedirect />} />
             <Route path="/employee/*" element={<OrgRedirect />} />
             <Route path="/contacts/*" element={<OrgRedirect />} />
+            <Route path="/crm/*" element={<OrgRedirect />} />
             <Route path="/ats/*" element={<OrgRedirect />} />
             <Route path="/sign/*" element={<OrgRedirect />} />
             <Route path="/settings" element={<OrgRedirect to="/settings" />} />

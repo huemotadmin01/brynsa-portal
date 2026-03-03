@@ -25,16 +25,15 @@ const MANAGEABLE_APPS = Object.values(APP_REGISTRY).filter(
   app => app.id !== 'settings' && app.status === 'active' && app.roles
 );
 
-// App badge color schemes
-const appBadgeColors = {
-  enabled: {
-    outreach: 'bg-rivvra-500/10 text-rivvra-400 border-rivvra-500/20',
-    timesheet: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
-    employee: 'bg-orange-500/10 text-orange-400 border-orange-500/20',
-    crm: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
-    ats: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-  },
-  disabled: 'bg-dark-700/30 text-dark-500 border-dark-600/50',
+// App dot colors for access indicators
+const appDotColors = {
+  outreach: 'bg-rivvra-400',
+  timesheet: 'bg-blue-400',
+  employee: 'bg-orange-400',
+  contacts: 'bg-cyan-400',
+  crm: 'bg-emerald-400',
+  ats: 'bg-purple-400',
+  sign: 'bg-indigo-400',
 };
 
 export default function SettingsTeam() {
@@ -399,8 +398,8 @@ export default function SettingsTeam() {
           {/* Column headers */}
           <div className="flex items-center gap-4 px-4 py-2 text-[10px] uppercase text-dark-500 font-semibold tracking-wider border-b border-dark-700/50 mb-2">
             <div className="flex-1 min-w-0">User</div>
-            <div className="w-32 text-center">Apps</div>
-            <div className="w-24 text-center">Org Role</div>
+            <div className="text-center">Apps</div>
+            <div className="w-28 text-center">Org Role</div>
             {canManage && <div className="w-8" />}
           </div>
 
@@ -420,7 +419,7 @@ export default function SettingsTeam() {
                 <div key={member._id} className={`rounded-xl transition-colors ${isCurrentUser ? 'bg-rivvra-500/5 border border-rivvra-500/20' : 'bg-dark-800/40 border border-dark-700/50'}`}>
                   {/* Main row */}
                   <div
-                    className={`flex items-center gap-4 px-4 py-3 ${canManage ? 'cursor-pointer hover:bg-dark-800/60' : ''}`}
+                    className={`flex items-center gap-4 px-4 py-3.5 ${canManage ? 'cursor-pointer hover:bg-dark-800/60' : ''}`}
                     onClick={() => canManage && openMemberDetail(member)}
                   >
                     {/* Avatar + name */}
@@ -444,29 +443,28 @@ export default function SettingsTeam() {
                       </div>
                     </div>
 
-                    {/* App access badges */}
-                    <div className="w-32 flex items-center justify-center gap-1.5 flex-shrink-0">
+                    {/* App access dots */}
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
                       {MANAGEABLE_APPS.map(app => {
                         const access = member.appAccess?.[app.id];
                         const isEnabled = access?.enabled === true;
-                        const colorClass = isEnabled
-                          ? (appBadgeColors.enabled[app.id] || appBadgeColors.enabled.outreach)
-                          : appBadgeColors.disabled;
                         return (
                           <span
                             key={app.id}
-                            className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium border ${colorClass}`}
-                            title={`${app.name}: ${isEnabled ? access.role : 'No access'}`}
-                          >
-                            <app.icon className="w-3 h-3" />
-                            {isEnabled ? '✓' : '—'}
-                          </span>
+                            className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                              isEnabled ? (appDotColors[app.id] || 'bg-rivvra-400') : 'bg-dark-600'
+                            }`}
+                            title={`${app.name}: ${isEnabled ? (access.role || 'Enabled') : 'No access'}`}
+                          />
                         );
                       })}
+                      <span className="text-[10px] text-dark-500 ml-0.5">
+                        {Object.values(member.appAccess || {}).filter(a => a?.enabled).length}/{MANAGEABLE_APPS.length}
+                      </span>
                     </div>
 
                     {/* Org role badge */}
-                    <div className="w-24 flex justify-center flex-shrink-0">
+                    <div className="w-28 flex justify-center flex-shrink-0">
                       <span className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium ${
                         member.orgRole === 'owner' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
                         : member.orgRole === 'admin' ? 'bg-rivvra-500/10 text-rivvra-400 border border-rivvra-500/20'
@@ -769,20 +767,18 @@ export default function SettingsTeam() {
                       )}
                     </p>
                   </div>
-                  {/* App access badges */}
-                  <div className="flex items-center gap-1">
+                  {/* App access dots */}
+                  <div className="flex items-center gap-1.5">
                     {MANAGEABLE_APPS.map(app => {
                       const isEnabled = invite.appAccess?.[app.id]?.enabled;
                       return (
                         <span
                           key={app.id}
-                          className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium border ${
-                            isEnabled ? (appBadgeColors.enabled[app.id] || appBadgeColors.enabled.outreach) : appBadgeColors.disabled
+                          className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                            isEnabled ? (appDotColors[app.id] || 'bg-rivvra-400') : 'bg-dark-600'
                           }`}
-                        >
-                          <app.icon className="w-3 h-3" />
-                          {isEnabled ? '✓' : '—'}
-                        </span>
+                          title={`${app.name}: ${isEnabled ? 'Enabled' : 'No access'}`}
+                        />
                       );
                     })}
                   </div>

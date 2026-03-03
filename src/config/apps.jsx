@@ -47,7 +47,15 @@ export const APP_REGISTRY = {
             ...(isAdminOrLead ? [{ path: '/outreach/team-lists', label: 'Team Lists', icon: Layers }] : []),
           ],
         },
-        ...(isAdminOrLead ? [{ type: 'item', path: '/outreach/team-dashboard', label: 'Team Dashboard', icon: BarChart3 }] : []),
+        ...(isAdminOrLead ? [
+          { type: 'item', path: '/outreach/team-dashboard', label: 'Team Dashboard', icon: BarChart3 },
+          {
+            type: 'group', label: 'Configuration', icon: Settings,
+            children: [
+              { path: '/settings/outreach', label: 'Settings', icon: Settings },
+            ],
+          },
+        ] : []),
       ];
     },
   },
@@ -92,6 +100,12 @@ export const APP_REGISTRY = {
         ...(isAdmin ? [
           { type: 'item', path: '/timesheet/pay-config', label: 'Pay Config', icon: Wallet },
           { type: 'item', path: '/timesheet/export', label: 'Export Data', icon: Download },
+          {
+            type: 'group', label: 'Configuration', icon: Settings,
+            children: [
+              { path: '/settings/timesheet', label: 'Settings', icon: Settings },
+            ],
+          },
         ] : []),
       ];
     },
@@ -117,6 +131,12 @@ export const APP_REGISTRY = {
         { type: 'item', path: '/employee/departments', label: 'Departments', icon: Building2 },
         ...(isAdmin ? [
           { type: 'item', path: '/employee/add', label: 'Add Employee', icon: UserPlus },
+          {
+            type: 'group', label: 'Configuration', icon: Settings,
+            children: [
+              { path: '/settings/employee', label: 'Settings', icon: Settings },
+            ],
+          },
         ] : []),
       ];
     },

@@ -3,7 +3,7 @@ import { useOrg } from '../../context/OrgContext';
 import { useToast } from '../../context/ToastContext';
 import crmApi from '../../utils/crmApi';
 import {
-  Settings, Plus, Trash2, Edit3, Loader2, Search, X, Check,
+  Settings, Plus, Trash2, Edit3, Loader2, Search, X, Check, RotateCcw,
 } from 'lucide-react';
 
 export default function CrmConfigStages() {
@@ -22,6 +22,7 @@ export default function CrmConfigStages() {
   const [formError, setFormError] = useState('');
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [resetting, setResetting] = useState(false);
 
   // ── Fetch stages ───────────────────────────────────────────────────────
   const fetchStages = useCallback(async () => {
@@ -126,6 +127,23 @@ export default function CrmConfigStages() {
     }
   };
 
+  // ── Reset to defaults ─────────────────────────────────────────────────
+  const handleResetDefaults = async () => {
+    if (!confirm('This will replace all stages with the defaults (Initial Contact → Converted to Job). Existing opportunities will be moved to Initial Contact. Continue?')) return;
+    setResetting(true);
+    try {
+      const res = await crmApi.resetStagesToDefaults(orgSlug);
+      if (res.success) {
+        setStages(res.stages || []);
+        addToast('Stages reset to defaults', 'success');
+      }
+    } catch (err) {
+      addToast(err.message || 'Failed to reset stages', 'error');
+    } finally {
+      setResetting(false);
+    }
+  };
+
   // ── Loading state ──────────────────────────────────────────────────────
   if (loading) {
     return (
@@ -151,13 +169,23 @@ export default function CrmConfigStages() {
             </p>
           </div>
         </div>
-        <button
-          onClick={openCreateModal}
-          className="flex items-center gap-2 px-4 py-2 bg-rivvra-500 text-white text-sm font-medium rounded-lg hover:bg-rivvra-600 transition-colors"
-        >
-          <Plus size={16} />
-          New
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleResetDefaults}
+            disabled={resetting}
+            className="flex items-center gap-2 px-3 py-2 text-sm text-dark-400 hover:text-dark-200 bg-dark-800 border border-dark-700 rounded-lg hover:bg-dark-700 disabled:opacity-50 transition-colors"
+          >
+            {resetting ? <Loader2 size={14} className="animate-spin" /> : <RotateCcw size={14} />}
+            Reset to Defaults
+          </button>
+          <button
+            onClick={openCreateModal}
+            className="flex items-center gap-2 px-4 py-2 bg-rivvra-500 text-white text-sm font-medium rounded-lg hover:bg-rivvra-600 transition-colors"
+          >
+            <Plus size={16} />
+            New
+          </button>
+        </div>
       </div>
 
       {/* Search */}

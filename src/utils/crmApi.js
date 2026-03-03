@@ -21,6 +21,9 @@ const crmApi = {
   reorderStages(orgSlug, order) {
     return api.request(`/api/org/${orgSlug}/crm/stages/reorder`, { method: 'PUT', body: JSON.stringify({ order }) });
   },
+  resetStagesToDefaults(orgSlug) {
+    return api.request(`/api/org/${orgSlug}/crm/stages/reset-defaults`, { method: 'POST' });
+  },
 
   // ---------- OPPORTUNITIES ----------
   listOpportunities(orgSlug, params = {}) {

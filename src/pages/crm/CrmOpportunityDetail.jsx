@@ -329,7 +329,7 @@ export default function CrmOpportunityDetail() {
             <RotateCcw size={12} /> Restore
           </button>
         )}
-        {!opp.isConverted && (opp.wonAt || !opp.isLost) && (
+        {!opp.isConverted && opp.requirementType !== 'Project Based' && (opp.wonAt || !opp.isLost) && (
           <button onClick={handleConvert} disabled={converting}
             className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 rounded-lg hover:bg-emerald-500/25 disabled:opacity-50">
             {converting ? <Loader2 size={12} className="animate-spin" /> : <Briefcase size={12} />}

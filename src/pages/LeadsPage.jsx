@@ -26,8 +26,11 @@ function LeadsPage() {
   const { showToast } = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
   const [leads, setLeads] = useState([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [selectedLeads, setSelectedLeads] = useState([]);
   const [showFilters, setShowFilters] = useState(false);
   const [profileTypeFilter, setProfileTypeFilter] = useState('all');
@@ -53,20 +56,33 @@ function LeadsPage() {
   const [showCreateContact, setShowCreateContact] = useState(false);
   const [setupComplete, setSetupComplete] = useState(null);
 
-  const leadsPerPage = 10;
+  const leadsPerPage = 50;
   const isPro = user?.plan === 'pro' || user?.plan === 'premium';
+
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+      setCurrentPage(1);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   const loadLeads = useCallback(async (showRefreshIndicator = false) => {
     if (showRefreshIndicator) setRefreshing(true);
+    else setLoading(true);
     try {
-      const response = await api.getLeads();
-      console.log('📥 Loaded leads:', response.leads?.length, 'total:', response.total);
-      const deletedLeads = response.leads?.filter(l => l.deleted);
-      if (deletedLeads?.length > 0) {
-        console.warn('⚠️ Found deleted leads in response:', deletedLeads.map(l => l.name));
-      }
+      const response = await api.getLeads({
+        page: currentPage,
+        limit: leadsPerPage,
+        search: debouncedSearch || undefined,
+        profileType: profileTypeFilter,
+        outreachStatus: outreachStatusFilter,
+      });
       if (response.success) {
         setLeads(response.leads || []);
+        setTotalCount(response.total || 0);
+        setTotalPages(response.totalPages || 1);
       }
     } catch (err) {
       console.error('Failed to load leads:', err);
@@ -75,7 +91,7 @@ function LeadsPage() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [currentPage, debouncedSearch, profileTypeFilter, outreachStatusFilter]);
 
   // Auto-open filters and clear URL param when navigated with ?status=xxx
   useEffect(() => {
@@ -83,64 +99,52 @@ function LeadsPage() {
     if (statusParam && statusParam !== 'all') {
       setOutreachStatusFilter(statusParam);
       setShowFilters(true);
-      // Clean the URL param so it doesn't persist on refresh/back
       setSearchParams({}, { replace: true });
     }
-  }, []); // Run once on mount
+  }, []);
 
+  // Load leads whenever filters/page/search change
   useEffect(() => {
     loadLeads();
-    // Check setup status for sequence guard
+  }, [loadLeads]);
+
+  // Load setup status once
+  useEffect(() => {
     api.getSetupStatus().then(res => {
       setSetupComplete(res.success ? res.allComplete : false);
     }).catch(() => setSetupComplete(false));
-  }, [loadLeads]);
+  }, []);
 
-  const [lastSeenTimestamp, setLastSeenTimestamp] = useState(0);
-
+  // Extension sync - listen for new saves (event-driven, no aggressive polling)
   useEffect(() => {
     const handleStorageChange = (e) => {
       if (e.key === 'rivvra_lead_saved') {
-        console.log('Lead saved from extension (storage event), refreshing...');
         setTimeout(() => loadLeads(true), 500);
       }
     };
-
-    const handleCustomEvent = (e) => {
-      console.log('Lead saved from extension (custom event), refreshing...', e.detail);
+    const handleCustomEvent = () => {
       setTimeout(() => loadLeads(true), 500);
     };
-
-    const handleFocus = () => checkForNewSaves();
-
-    const checkForNewSaves = () => {
+    const handleFocus = () => {
       const lastSave = localStorage.getItem('rivvra_lead_saved');
       if (lastSave) {
         try {
           const data = JSON.parse(lastSave);
-          const saveTime = data.timestamp;
-          if (saveTime > lastSeenTimestamp) {
-            console.log('New lead detected, refreshing...');
-            setLastSeenTimestamp(saveTime);
-            loadLeads(true);
-          }
+          if (Date.now() - data.timestamp < 10000) loadLeads(true);
         } catch (err) {}
       }
     };
-
-    const pollInterval = setInterval(checkForNewSaves, 2000);
 
     window.addEventListener('storage', handleStorageChange);
     window.addEventListener('focus', handleFocus);
     window.addEventListener('rivvra_lead_saved', handleCustomEvent);
 
     return () => {
-      clearInterval(pollInterval);
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('focus', handleFocus);
       window.removeEventListener('rivvra_lead_saved', handleCustomEvent);
     };
-  }, [loadLeads, lastSeenTimestamp]);
+  }, [loadLeads]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -150,14 +154,10 @@ function LeadsPage() {
         setShowFilters(false);
       }
     };
-
     if (showFilters) {
       document.addEventListener('mousedown', handleClickOutside);
     }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showFilters]);
 
   const handleFeatureClick = (feature) => {
@@ -184,25 +184,19 @@ function LeadsPage() {
     setDeleting(true);
     try {
       if (deleteTarget) {
-        console.log('🗑️ Deleting single lead:', deleteTarget._id);
-        const response = await api.deleteLead(deleteTarget._id);
-        console.log('🗑️ Delete response:', response);
+        await api.deleteLead(deleteTarget._id);
         setLeads(leads.filter(l => l._id !== deleteTarget._id));
-        if (selectedLead?._id === deleteTarget._id) {
-          setSelectedLead(null);
-        }
+        setTotalCount(prev => prev - 1);
+        if (selectedLead?._id === deleteTarget._id) setSelectedLead(null);
       } else {
-        console.log('🗑️ Deleting multiple leads:', selectedLeads);
-        const responses = await Promise.all(selectedLeads.map(id => api.deleteLead(id)));
-        console.log('🗑️ Delete responses:', responses);
+        await Promise.all(selectedLeads.map(id => api.deleteLead(id)));
         setLeads(leads.filter(l => !selectedLeads.includes(l._id)));
+        setTotalCount(prev => prev - selectedLeads.length);
         setSelectedLeads([]);
-        if (selectedLead && selectedLeads.includes(selectedLead._id)) {
-          setSelectedLead(null);
-        }
+        if (selectedLead && selectedLeads.includes(selectedLead._id)) setSelectedLead(null);
       }
     } catch (err) {
-      console.error('❌ Failed to delete:', err);
+      console.error('Failed to delete:', err);
     } finally {
       setDeleting(false);
       setShowDeleteModal(false);
@@ -210,46 +204,26 @@ function LeadsPage() {
     }
   };
 
-  const handleRowClick = (lead) => {
-    setSelectedLead(lead);
-  };
+  const handleRowClick = (lead) => setSelectedLead(lead);
 
   const handleLeadUpdate = (updatedLead) => {
     setLeads(leads.map(l => l._id === updatedLead._id ? updatedLead : l));
     setSelectedLead(updatedLead);
   };
 
+  const handleFilterChange = (setter) => (value) => {
+    setter(value);
+    setCurrentPage(1);
+  };
+
   const activeFilterCount = (profileTypeFilter !== 'all' ? 1 : 0) + (outreachStatusFilter !== 'all' ? 1 : 0);
-
-  const filteredLeads = leads.filter(lead => {
-    const searchLower = searchQuery.toLowerCase();
-    const matchesSearch = !searchQuery ||
-      lead.name?.toLowerCase().includes(searchLower) ||
-      lead.company?.toLowerCase().includes(searchLower) ||
-      lead.title?.toLowerCase().includes(searchLower);
-
-    const matchesProfileType = profileTypeFilter === 'all' ||
-      (profileTypeFilter === 'candidate' && lead.profileType === 'candidate') ||
-      (profileTypeFilter === 'client' && lead.profileType === 'client');
-
-    const leadStatus = lead.outreachStatus || 'not_contacted';
-    const matchesOutreachStatus = outreachStatusFilter === 'all' || leadStatus === outreachStatusFilter;
-
-    return matchesSearch && matchesProfileType && matchesOutreachStatus;
-  });
-
-  const totalPages = Math.ceil(filteredLeads.length / leadsPerPage);
-  const paginatedLeads = filteredLeads.slice(
-    (currentPage - 1) * leadsPerPage,
-    currentPage * leadsPerPage
-  );
 
   const toggleSelectAll = (e) => {
     e.stopPropagation();
-    if (selectedLeads.length === paginatedLeads.length) {
+    if (selectedLeads.length === leads.length) {
       setSelectedLeads([]);
     } else {
-      setSelectedLeads(paginatedLeads.map(l => l._id));
+      setSelectedLeads(leads.map(l => l._id));
     }
   };
 
@@ -271,7 +245,7 @@ function LeadsPage() {
             <div>
               <h1 className="text-2xl font-bold text-white mb-1">Saved Contacts</h1>
               <p className="text-dark-400">
-                {leads.length} contacts saved {selectedLeads.length > 0 && `• ${selectedLeads.length} selected`}
+                {totalCount.toLocaleString()} contacts saved {selectedLeads.length > 0 && `• ${selectedLeads.length} selected`}
               </p>
             </div>
 
@@ -304,7 +278,7 @@ function LeadsPage() {
                 onClick={() => {
                   const leadsToExport = selectedLeads.length > 0
                     ? leads.filter(l => selectedLeads.includes(l._id))
-                    : filteredLeads;
+                    : leads;
                   if (leadsToExport.length > 0) exportLeadsToCSV(leadsToExport, 'rivvra-contacts');
                 }}
                 className="flex items-center gap-2 px-4 py-2 rounded-lg bg-dark-800 text-white hover:bg-dark-700 transition-colors"
@@ -359,7 +333,7 @@ function LeadsPage() {
                         <span className="text-sm font-medium text-white">Filters</span>
                         {activeFilterCount > 0 && (
                           <button
-                            onClick={() => { setProfileTypeFilter('all'); setOutreachStatusFilter('all'); }}
+                            onClick={() => { handleFilterChange(setProfileTypeFilter)('all'); handleFilterChange(setOutreachStatusFilter)('all'); }}
                             className="text-xs text-rivvra-400 hover:text-rivvra-300"
                           >
                             Clear all
@@ -371,7 +345,7 @@ function LeadsPage() {
                         <label className="block text-xs text-dark-400 mb-2">Profile Type</label>
                         <select
                           value={profileTypeFilter}
-                          onChange={(e) => setProfileTypeFilter(e.target.value)}
+                          onChange={(e) => handleFilterChange(setProfileTypeFilter)(e.target.value)}
                           className="w-full px-3 py-2 bg-dark-900 border border-dark-600 rounded-lg text-sm text-white focus:outline-none focus:border-rivvra-500"
                         >
                           <option value="all">All Types</option>
@@ -384,7 +358,7 @@ function LeadsPage() {
                         <label className="block text-xs text-dark-400 mb-2">Outreach Status</label>
                         <select
                           value={outreachStatusFilter}
-                          onChange={(e) => setOutreachStatusFilter(e.target.value)}
+                          onChange={(e) => handleFilterChange(setOutreachStatusFilter)(e.target.value)}
                           className="w-full px-3 py-2 bg-dark-900 border border-dark-600 rounded-lg text-sm text-white focus:outline-none focus:border-rivvra-500"
                         >
                           <option value="all">All Statuses</option>
@@ -419,7 +393,7 @@ function LeadsPage() {
                   <p className="text-dark-400">Loading contacts...</p>
                 </div>
               </div>
-            ) : leads.length === 0 ? (
+            ) : leads.length === 0 && !debouncedSearch && activeFilterCount === 0 ? (
               <div className="p-12 text-center flex-1 flex items-center justify-center">
                 <div>
                   <div className="w-16 h-16 rounded-2xl bg-dark-800 flex items-center justify-center mx-auto mb-4">
@@ -440,6 +414,16 @@ function LeadsPage() {
                   </a>
                 </div>
               </div>
+            ) : leads.length === 0 ? (
+              <div className="p-12 text-center flex-1 flex items-center justify-center">
+                <div>
+                  <div className="w-16 h-16 rounded-2xl bg-dark-800 flex items-center justify-center mx-auto mb-4">
+                    <Search className="w-8 h-8 text-dark-500" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-white mb-2">No Results Found</h3>
+                  <p className="text-dark-400 mb-4">Try adjusting your search or filters.</p>
+                </div>
+              </div>
             ) : (
               <>
                 <div className="flex-1 overflow-auto">
@@ -449,7 +433,7 @@ function LeadsPage() {
                         <th className="sticky left-0 z-30 bg-dark-800 px-4 py-3 text-left" style={{ width: 48, minWidth: 48 }}>
                           <input
                             type="checkbox"
-                            checked={selectedLeads.length === paginatedLeads.length && paginatedLeads.length > 0}
+                            checked={selectedLeads.length === leads.length && leads.length > 0}
                             onChange={toggleSelectAll}
                             className="w-4 h-4 rounded border-dark-600 bg-dark-700 text-rivvra-500 focus:ring-rivvra-500"
                           />
@@ -469,7 +453,7 @@ function LeadsPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {paginatedLeads.map((lead) => (
+                      {leads.map((lead) => (
                         <tr
                           key={lead._id}
                           onClick={() => handleRowClick(lead)}
@@ -613,7 +597,7 @@ function LeadsPage() {
                 {totalPages > 1 && (
                   <div className="flex items-center justify-between px-4 py-3 border-t border-dark-700 bg-dark-900">
                     <p className="text-sm text-dark-400">
-                      Showing {((currentPage - 1) * leadsPerPage) + 1} to {Math.min(currentPage * leadsPerPage, filteredLeads.length)} of {filteredLeads.length}
+                      Showing {((currentPage - 1) * leadsPerPage) + 1} to {Math.min(currentPage * leadsPerPage, totalCount)} of {totalCount.toLocaleString()}
                     </p>
                     <div className="flex items-center gap-2">
                       <button
@@ -674,11 +658,7 @@ function LeadsPage() {
 
       {showDeleteModal && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-          <div
-            className="absolute inset-0 bg-dark-950/80 backdrop-blur-sm"
-            onClick={() => !deleting && setShowDeleteModal(false)}
-          />
-
+          <div className="absolute inset-0 bg-dark-950/80 backdrop-blur-sm" onClick={() => !deleting && setShowDeleteModal(false)} />
           <div className="relative bg-dark-900 border border-dark-700 rounded-2xl p-6 max-w-md w-full shadow-2xl">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-12 h-12 rounded-xl bg-red-500/10 flex items-center justify-center">
@@ -691,77 +671,31 @@ function LeadsPage() {
                 <p className="text-dark-400 text-sm">This action cannot be undone</p>
               </div>
             </div>
-
             <p className="text-dark-300 mb-6">
               {deleteTarget
                 ? `Are you sure you want to delete "${deleteTarget.name}"?`
-                : `Are you sure you want to delete ${selectedLeads.length} selected leads?`
-              }
+                : `Are you sure you want to delete ${selectedLeads.length} selected leads?`}
             </p>
-
             <div className="flex gap-3">
-              <button
-                onClick={() => setShowDeleteModal(false)}
-                disabled={deleting}
-                className="flex-1 px-4 py-2.5 rounded-xl bg-dark-800 text-white font-medium hover:bg-dark-700 transition-colors disabled:opacity-50"
-              >
+              <button onClick={() => setShowDeleteModal(false)} disabled={deleting} className="flex-1 px-4 py-2.5 rounded-xl bg-dark-800 text-white font-medium hover:bg-dark-700 transition-colors disabled:opacity-50">
                 Cancel
               </button>
-              <button
-                onClick={confirmDelete}
-                disabled={deleting}
-                className="flex-1 px-4 py-2.5 rounded-xl bg-red-500 text-white font-semibold hover:bg-red-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                {deleting ? (
-                  <RefreshCw className="w-4 h-4 animate-spin" />
-                ) : (
-                  <>
-                    <Trash2 className="w-4 h-4" />
-                    Delete
-                  </>
-                )}
+              <button onClick={confirmDelete} disabled={deleting} className="flex-1 px-4 py-2.5 rounded-xl bg-red-500 text-white font-semibold hover:bg-red-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
+                {deleting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <><Trash2 className="w-4 h-4" />Delete</>}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      <ComingSoonModal
-        isOpen={showComingSoon}
-        onClose={() => setShowComingSoon(false)}
-        feature={comingSoonFeature}
-      />
-
-      <AddToListModal
-        isOpen={showAddToList}
-        onClose={() => {
-          setShowAddToList(false);
-          setAddToListTarget(null);
-        }}
-        lead={addToListTarget}
-        onLeadUpdate={handleLeadUpdate}
-      />
-
-      <ExportToCRMModal
-        isOpen={showExportCRM}
-        onClose={() => {
-          setShowExportCRM(false);
-          setExportCRMTarget(null);
-        }}
-        lead={exportCRMTarget}
-      />
-
+      <ComingSoonModal isOpen={showComingSoon} onClose={() => setShowComingSoon(false)} feature={comingSoonFeature} />
+      <AddToListModal isOpen={showAddToList} onClose={() => { setShowAddToList(false); setAddToListTarget(null); }} lead={addToListTarget} onLeadUpdate={handleLeadUpdate} />
+      <ExportToCRMModal isOpen={showExportCRM} onClose={() => { setShowExportCRM(false); setExportCRMTarget(null); }} lead={exportCRMTarget} />
       <AddToSequenceModal
         isOpen={showAddToSequence}
-        onClose={() => {
-          setShowAddToSequence(false);
-          setSequenceTarget(null);
-        }}
+        onClose={() => { setShowAddToSequence(false); setSequenceTarget(null); }}
         onEnrolled={({ leadIds: enrolledIds }) => {
-          // Instantly update local state so status reflects without waiting for API
-          setLeads(prev => prev.map(l =>
-            enrolledIds.includes(l._id) ? { ...l, outreachStatus: 'in_sequence' } : l
-          ));
+          setLeads(prev => prev.map(l => enrolledIds.includes(l._id) ? { ...l, outreachStatus: 'in_sequence' } : l));
           if (selectedLead && enrolledIds.includes(selectedLead._id)) {
             setSelectedLead(prev => ({ ...prev, outreachStatus: 'in_sequence' }));
           }
@@ -769,22 +703,13 @@ function LeadsPage() {
         leadIds={sequenceTarget ? [sequenceTarget._id] : []}
         leadNames={sequenceTarget ? [sequenceTarget.name] : []}
       />
-
-      <EditContactModal
-        lead={editContactTarget}
-        isOpen={showEditContact}
-        onClose={() => {
-          setShowEditContact(false);
-          setEditContactTarget(null);
-        }}
-        onLeadUpdate={handleLeadUpdate}
-      />
-
+      <EditContactModal lead={editContactTarget} isOpen={showEditContact} onClose={() => { setShowEditContact(false); setEditContactTarget(null); }} onLeadUpdate={handleLeadUpdate} />
       <CreateContactModal
         isOpen={showCreateContact}
         onClose={() => setShowCreateContact(false)}
         onCreated={(newLead) => {
           setLeads(prev => [newLead, ...prev]);
+          setTotalCount(prev => prev + 1);
         }}
       />
     </>

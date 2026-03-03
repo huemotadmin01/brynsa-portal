@@ -210,11 +210,13 @@ class ApiClient {
     });
   }
 
-  async getLeads(listName = null) {
-    // Request all leads since the portal does client-side pagination
-    const baseUrl = '/api/portal/leads?limit=10000';
-    const url = listName ? `${baseUrl}&list=${encodeURIComponent(listName)}` : baseUrl;
-    return this.request(url);
+  async getLeads({ page = 1, limit = 50, search, profileType, outreachStatus, listName } = {}) {
+    const params = new URLSearchParams({ page, limit });
+    if (search) params.set('search', search);
+    if (profileType && profileType !== 'all') params.set('profileType', profileType);
+    if (outreachStatus && outreachStatus !== 'all') params.set('outreachStatus', outreachStatus);
+    if (listName) params.set('listName', listName);
+    return this.request(`/api/portal/leads?${params.toString()}`);
   }
 
   async searchAllLeads({ search, location, title, profileType, company, emailStatus, listName, page = 1, limit = 25, sort = 'createdAt', sortDir = 'desc' } = {}) {

@@ -393,12 +393,12 @@ function DashboardPage() {
     try {
       const [featuresRes, leadsRes, listsRes] = await Promise.all([
         api.getFeatures(),
-        api.getLeads().catch(() => ({ leads: [] })),
+        api.getLeads({ limit: 1 }).catch(() => ({ total: 0 })),
         api.getLists().catch(() => ({ lists: [] }))
       ]);
 
       if (featuresRes.success) setFeatures(featuresRes);
-      setSavedLeadsCount(leadsRes.leads?.length || 0);
+      setSavedLeadsCount(leadsRes.total || 0);
       setLists(listsRes.lists || []);
     } catch (err) {
       console.error('Failed to load data:', err);

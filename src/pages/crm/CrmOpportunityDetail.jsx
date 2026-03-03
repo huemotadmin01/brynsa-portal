@@ -7,7 +7,7 @@ import {
   ArrowLeft, Star, Building2, User, Phone, Mail, Briefcase, Trophy, X,
   Globe, Linkedin, IndianRupee, Calendar, Tag, MessageSquare, Plus,
   Check, Clock, Edit3, Trash2, ChevronRight, Loader2, XCircle, RotateCcw,
-  ExternalLink,
+  ExternalLink, Save,
 } from 'lucide-react';
 
 function EvalStars({ value = 0, onChange, size = 16 }) {
@@ -364,8 +364,14 @@ export default function CrmOpportunityDetail() {
             <ExternalLink size={12} /> View Job Position
           </button>
         )}
-        {/* Delete — always available, pushed to the right */}
+        {/* Save & Delete — pushed to the right */}
         <div className="flex-1" />
+        {editing && (
+          <button onClick={() => handleFieldSave(editing, editValue)}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-dark-500 hover:text-emerald-400 hover:bg-emerald-500/10 border border-transparent hover:border-emerald-500/20 rounded-lg transition-colors">
+            <Save size={12} /> Save
+          </button>
+        )}
         <button onClick={() => setShowDeleteModal(true)}
           className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-dark-500 hover:text-red-400 hover:bg-red-500/10 border border-transparent hover:border-red-500/20 rounded-lg transition-colors">
           <Trash2 size={12} /> Delete

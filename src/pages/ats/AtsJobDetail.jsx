@@ -7,7 +7,7 @@ import atsApi from '../../utils/atsApi';
 import {
   ArrowLeft, Loader2, Star, ChevronDown, X,
   Edit3, Check, Briefcase, Users, Calendar,
-  DollarSign, MapPin, Shield, UserCheck,
+  DollarSign, MapPin, Shield, UserCheck, Trash2,
 } from 'lucide-react';
 
 /* ── Status badge helper ──────────────────────────────────────────────── */
@@ -195,6 +195,8 @@ export default function AtsJobDetail() {
 
   // UI
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const isAdmin = getAppRole('ats') === 'admin';
   const orgSlug = currentOrg?.slug;
@@ -321,6 +323,18 @@ export default function AtsJobDetail() {
     }
   };
 
+  const handleDeleteJob = async () => {
+    setDeleting(true);
+    try {
+      await atsApi.deleteJob(orgSlug, jobId);
+      showToast('Job position deleted', 'success');
+      navigate(`${orgPath}/ats/jobs`);
+    } catch (err) {
+      setDeleting(false);
+      showToast(err.message || 'Failed to delete job position', 'error');
+    }
+  };
+
   const handleEditChange = (field, value) => {
     setEditForm((prev) => ({ ...prev, [field]: value }));
   };
@@ -440,6 +454,12 @@ export default function AtsJobDetail() {
                   Cancel
                 </button>
               )}
+              <button
+                onClick={() => setShowDeleteModal(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm font-medium transition-all text-dark-500 border-transparent hover:text-red-400 hover:bg-red-500/10 hover:border-red-500/20"
+              >
+                <Trash2 size={14} /> Delete
+              </button>
             </div>
           )}
         </div>
@@ -950,6 +970,30 @@ export default function AtsJobDetail() {
           </>
         )}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+          <div className="bg-dark-800 border border-dark-700 rounded-xl w-full max-w-sm mx-4 shadow-2xl p-5">
+            <h2 className="text-sm font-semibold text-dark-100 mb-2">Delete Job Position</h2>
+            <p className="text-xs text-dark-400 mb-1">
+              Are you sure you want to permanently delete <span className="text-dark-200 font-medium">{job.name}</span>?
+            </p>
+            <p className="text-xs text-dark-500 mb-5">This will also remove all related applications. This action cannot be undone.</p>
+            <div className="flex gap-2">
+              <button onClick={() => setShowDeleteModal(false)}
+                className="flex-1 px-3 py-2 text-xs text-dark-300 bg-dark-900 border border-dark-600 rounded-lg hover:bg-dark-700 transition-colors">
+                Cancel
+              </button>
+              <button onClick={handleDeleteJob} disabled={deleting}
+                className="flex-1 px-3 py-2 text-xs text-white bg-red-500 rounded-lg hover:bg-red-400 transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5">
+                {deleting ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

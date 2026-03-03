@@ -260,7 +260,7 @@ export default function ContactDetail() {
     return (
       <div className="p-6">
         <button
-          onClick={() => navigate(orgPath('/contacts'))}
+          onClick={() => navigate(orgPath('/contacts/list'))}
           className="flex items-center gap-1.5 text-dark-400 hover:text-white transition-colors mb-6"
         >
           <ArrowLeft size={18} />
@@ -289,7 +289,7 @@ export default function ContactDetail() {
     <div className="p-6 max-w-5xl">
       {/* Back button */}
       <button
-        onClick={() => navigate(orgPath('/contacts'))}
+        onClick={() => navigate(orgPath('/contacts/list'))}
         className="flex items-center gap-1.5 text-dark-400 hover:text-white transition-colors mb-6"
       >
         <ArrowLeft size={18} />

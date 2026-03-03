@@ -20,6 +20,7 @@ function ExportToCRMModal({ isOpen, onClose, lead, onSuccess }) {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [expectedRole, setExpectedRole] = useState('');
+  const [contactTitle, setContactTitle] = useState('');
   const [checking, setChecking] = useState(false);
   const [alreadyExported, setAlreadyExported] = useState(false);
   const [exportResult, setExportResult] = useState(null);
@@ -36,7 +37,8 @@ function ExportToCRMModal({ isOpen, onClose, lead, onSuccess }) {
       setCompany(lead.company || lead.companyName || '');
       setEmail(lead.email || '');
       setPhone(lead.phone || '');
-      setExpectedRole(lead.title || lead.headline || lead.currentTitle || '');
+      setContactTitle(lead.title || lead.headline || lead.currentTitle || '');
+      setExpectedRole('');
       setAlreadyExported(false);
       setExportResult(null);
       setErrorMessage('');
@@ -163,7 +165,7 @@ function ExportToCRMModal({ isOpen, onClose, lead, onSuccess }) {
         companyName: company.trim(),
         contactEmail: email.trim() || undefined,
         contactPhone: phone.trim() || undefined,
-        contactJobTitle: lead.title || lead.headline || lead.currentTitle || undefined,
+        contactJobTitle: contactTitle.trim() || undefined,
         expectedRole: expectedRole.trim() || undefined,
         linkedinUrl: lead.linkedinUrl || undefined,
         clientType: profileType === 'client' ? 'existing' : 'new',
@@ -324,6 +326,18 @@ function ExportToCRMModal({ isOpen, onClose, lead, onSuccess }) {
                 </div>
               </div>
 
+              {/* Contact Title */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-dark-300 mb-1.5">
+                  Contact Title <span className="text-red-400">*</span>
+                </label>
+                <div className="relative">
+                  <input type="text" value={contactTitle} onChange={(e) => setContactTitle(e.target.value)} placeholder="e.g., VP Engineering"
+                    className="w-full px-3 py-2.5 pr-10 bg-dark-800 border border-dark-600 rounded-xl text-white placeholder-dark-500 focus:outline-none focus:border-rivvra-500" />
+                  <Pencil className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-dark-500" />
+                </div>
+              </div>
+
               {/* Email */}
               <div className="mb-4">
                 <label className="block text-sm font-medium text-dark-300 mb-1.5">Email</label>
@@ -336,7 +350,8 @@ function ExportToCRMModal({ isOpen, onClose, lead, onSuccess }) {
 
               {/* Expected Role */}
               <div className="mb-6">
-                <label className="block text-sm font-medium text-dark-300 mb-1.5">Expected Role / Title</label>
+                <label className="block text-sm font-medium text-dark-300 mb-1.5">Expected Role</label>
+                <p className="text-[10px] text-dark-500 -mt-1 mb-1.5">Used as Job Position name when converting to ATS</p>
                 <div className="relative">
                   <input type="text" value={expectedRole} onChange={(e) => setExpectedRole(e.target.value)} placeholder="e.g., Backend Developer"
                     className="w-full px-3 py-2.5 pr-10 bg-dark-800 border border-dark-600 rounded-xl text-white placeholder-dark-500 focus:outline-none focus:border-rivvra-500" />
@@ -350,7 +365,7 @@ function ExportToCRMModal({ isOpen, onClose, lead, onSuccess }) {
                   className="flex-1 px-4 py-2.5 rounded-xl bg-dark-800 text-white font-medium hover:bg-dark-700 transition-colors">
                   Back
                 </button>
-                <button onClick={handleRivvraExport} disabled={!name.trim() || !company.trim()}
+                <button onClick={handleRivvraExport} disabled={!name.trim() || !company.trim() || !contactTitle.trim()}
                   className="flex-1 px-4 py-2.5 rounded-xl bg-rivvra-500 text-dark-950 font-semibold hover:bg-rivvra-400 transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
                   <Briefcase className="w-4 h-4" />
                   Create Opportunity

@@ -171,7 +171,7 @@ function KanbanColumn({ stage, opportunities, totalCount, totalRevenue, onCardCl
 function CreateModal({ stages, orgSlug, onClose, onCreate }) {
   const [form, setForm] = useState({
     name: '', contactId: '', contactName: '', companyId: '', companyName: '',
-    expectedRole: '', expectedRevenue: '', stageId: stages[0]?._id || '',
+    expectedRole: '', expectedRevenue: '', requirementType: '', stageId: stages[0]?._id || '',
   });
   const [loading, setLoading] = useState(false);
   const [individualContacts, setIndividualContacts] = useState([]);
@@ -265,6 +265,20 @@ function CreateModal({ stages, orgSlug, onClose, onCreate }) {
               />
             </div>
             <div>
+              <label className="block text-xs text-dark-400 mb-1">Requirement Type</label>
+              <select
+                value={form.requirementType} onChange={e => setForm({ ...form, requirementType: e.target.value })}
+                className="w-full bg-dark-900 border border-dark-600 rounded-lg px-3 py-2 text-sm text-dark-100 focus:border-rivvra-500 focus:outline-none"
+              >
+                <option value="">Not set</option>
+                <option value="Staff Augmentation">Staff Augmentation</option>
+                <option value="Project Based">Project Based</option>
+                <option value="Full-time Hire">Full-time Hire</option>
+              </select>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
               <label className="block text-xs text-dark-400 mb-1">Expected Revenue</label>
               <input
                 value={form.expectedRevenue} onChange={e => setForm({ ...form, expectedRevenue: e.target.value })}
@@ -273,15 +287,15 @@ function CreateModal({ stages, orgSlug, onClose, onCreate }) {
                 type="number"
               />
             </div>
-          </div>
-          <div>
-            <label className="block text-xs text-dark-400 mb-1">Stage</label>
-            <select
-              value={form.stageId} onChange={e => setForm({ ...form, stageId: e.target.value })}
-              className="w-full bg-dark-900 border border-dark-600 rounded-lg px-3 py-2 text-sm text-dark-100 focus:border-rivvra-500 focus:outline-none"
-            >
-              {stages.map(s => <option key={s._id} value={s._id}>{s.name}</option>)}
-            </select>
+            <div>
+              <label className="block text-xs text-dark-400 mb-1">Stage</label>
+              <select
+                value={form.stageId} onChange={e => setForm({ ...form, stageId: e.target.value })}
+                className="w-full bg-dark-900 border border-dark-600 rounded-lg px-3 py-2 text-sm text-dark-100 focus:border-rivvra-500 focus:outline-none"
+              >
+                {stages.map(s => <option key={s._id} value={s._id}>{s.name}</option>)}
+              </select>
+            </div>
           </div>
           <div className="flex justify-end gap-2 pt-2">
             <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-dark-300 hover:text-dark-100 transition-colors">Cancel</button>

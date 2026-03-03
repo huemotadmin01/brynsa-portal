@@ -406,7 +406,22 @@ export default function CrmOpportunityDetail() {
             <h3 className="text-xs font-semibold text-dark-400 uppercase tracking-wider mb-3">Opportunity Details</h3>
             <div className="grid grid-cols-2 gap-x-6 gap-y-1">
               <EditableField label="Expected Role" field="expectedRole" value={opp.expectedRole} icon={Briefcase} />
-              <EditableField label="Requirement Type" field="requirementType" value={opp.requirementType} icon={Tag} />
+              <div className="flex items-start gap-2 py-1.5">
+                <Tag size={13} className="text-dark-500 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="text-[10px] text-dark-500 uppercase tracking-wider">Requirement Type</p>
+                  <select
+                    value={opp.requirementType || ''}
+                    onChange={e => handleFieldSave('requirementType', e.target.value || null)}
+                    className="bg-dark-900 border border-dark-600 rounded px-2 py-0.5 text-xs text-dark-200 focus:border-rivvra-500 focus:outline-none mt-0.5"
+                  >
+                    <option value="">Not set</option>
+                    <option value="Staff Augmentation">Staff Augmentation</option>
+                    <option value="Project Based">Project Based</option>
+                    <option value="Full-time Hire">Full-time Hire</option>
+                  </select>
+                </div>
+              </div>
               <EditableField label="Expected Revenue" field="expectedRevenue" value={opp.expectedRevenue} icon={IndianRupee} type="number" />
               <EditableField label="Probability (%)" field="probability" value={opp.probability} type="number" />
               <div className="flex items-start gap-2 py-1.5">

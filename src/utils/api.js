@@ -897,10 +897,14 @@ class ApiClient {
   }
 
   // Team Leads (admin/team_lead only)
-  async getTeamLeads(listName = null) {
-    const baseUrl = '/api/portal/leads/team?limit=10000';
-    const url = listName ? `${baseUrl}&list=${encodeURIComponent(listName)}` : baseUrl;
-    return this.request(url);
+  async getTeamLeads({ page = 1, limit = 50, search, owner, profileType, outreachStatus, listName } = {}) {
+    const params = new URLSearchParams({ page, limit });
+    if (search) params.set('search', search);
+    if (owner && owner !== 'all') params.set('owner', owner);
+    if (profileType && profileType !== 'all') params.set('profileType', profileType);
+    if (outreachStatus && outreachStatus !== 'all') params.set('outreachStatus', outreachStatus);
+    if (listName) params.set('listName', listName);
+    return this.request(`/api/portal/leads/team?${params.toString()}`);
   }
 
   async assignLeadOwner(leadId, newOwnerId) {

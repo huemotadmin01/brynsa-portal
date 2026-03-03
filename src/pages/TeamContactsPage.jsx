@@ -30,9 +30,11 @@ function TeamContactsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [leads, setLeads] = useState([]);
   const [totalCount, setTotalCount] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
   const [teamMembers, setTeamMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [selectedLeads, setSelectedLeads] = useState([]);
   const [showFilters, setShowFilters] = useState(false);
   const [profileTypeFilter, setProfileTypeFilter] = useState('all');
@@ -58,16 +60,34 @@ function TeamContactsPage() {
   const [assignTarget, setAssignTarget] = useState(null);
   const [setupComplete, setSetupComplete] = useState(null);
 
-  const leadsPerPage = 10;
+  const leadsPerPage = 50;
   const isPro = user?.plan === 'pro' || user?.plan === 'premium';
+
+  // Debounce search input - wait 400ms after user stops typing
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+      setCurrentPage(1); // Reset to page 1 on new search
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   const loadLeads = useCallback(async (showRefreshIndicator = false) => {
     if (showRefreshIndicator) setRefreshing(true);
+    else setLoading(true);
     try {
-      const response = await api.getTeamLeads();
+      const response = await api.getTeamLeads({
+        page: currentPage,
+        limit: leadsPerPage,
+        search: debouncedSearch || undefined,
+        owner: ownerFilter,
+        profileType: profileTypeFilter,
+        outreachStatus: outreachStatusFilter,
+      });
       if (response.success) {
         setLeads(response.leads || []);
-        setTotalCount(response.totalCount || response.leads?.length || 0);
+        setTotalCount(response.totalCount || 0);
+        setTotalPages(response.totalPages || 1);
         setTeamMembers(response.teamMembers || []);
       }
     } catch (err) {
@@ -77,7 +97,7 @@ function TeamContactsPage() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [currentPage, debouncedSearch, ownerFilter, profileTypeFilter, outreachStatusFilter]);
 
   // Auto-open filters and clear URL params when navigated with ?status= or ?owner=
   useEffect(() => {
@@ -91,12 +111,17 @@ function TeamContactsPage() {
     }
   }, []);
 
+  // Load leads whenever filters/page/search change
   useEffect(() => {
     loadLeads();
+  }, [loadLeads]);
+
+  // Load setup status once
+  useEffect(() => {
     api.getSetupStatus().then(res => {
       setSetupComplete(res.success ? res.allComplete : false);
     }).catch(() => setSetupComplete(false));
-  }, [loadLeads]);
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -131,10 +156,12 @@ function TeamContactsPage() {
       if (deleteTarget) {
         await api.deleteLead(deleteTarget._id);
         setLeads(leads.filter(l => l._id !== deleteTarget._id));
+        setTotalCount(prev => prev - 1);
         if (selectedLead?._id === deleteTarget._id) setSelectedLead(null);
       } else {
         await Promise.all(selectedLeads.map(id => api.deleteLead(id)));
         setLeads(leads.filter(l => !selectedLeads.includes(l._id)));
+        setTotalCount(prev => prev - selectedLeads.length);
         setSelectedLeads([]);
         if (selectedLead && selectedLeads.includes(selectedLead._id)) setSelectedLead(null);
       }
@@ -180,41 +207,20 @@ function TeamContactsPage() {
     }
   };
 
+  // Reset to page 1 when filters change
+  const handleFilterChange = (setter) => (value) => {
+    setter(value);
+    setCurrentPage(1);
+  };
+
   const activeFilterCount = (profileTypeFilter !== 'all' ? 1 : 0) + (outreachStatusFilter !== 'all' ? 1 : 0) + (ownerFilter !== 'all' ? 1 : 0);
-
-  const filteredLeads = leads.filter(lead => {
-    const searchLower = searchQuery.toLowerCase();
-    const matchesSearch = !searchQuery ||
-      lead.name?.toLowerCase().includes(searchLower) ||
-      lead.company?.toLowerCase().includes(searchLower) ||
-      lead.companyName?.toLowerCase().includes(searchLower) ||
-      lead.title?.toLowerCase().includes(searchLower) ||
-      lead.ownerName?.toLowerCase().includes(searchLower);
-
-    const matchesProfileType = profileTypeFilter === 'all' ||
-      (profileTypeFilter === 'candidate' && lead.profileType === 'candidate') ||
-      (profileTypeFilter === 'client' && lead.profileType === 'client');
-
-    const leadStatus = lead.outreachStatus || 'not_contacted';
-    const matchesOutreachStatus = outreachStatusFilter === 'all' || leadStatus === outreachStatusFilter;
-
-    const matchesOwner = ownerFilter === 'all' || lead.userId === ownerFilter;
-
-    return matchesSearch && matchesProfileType && matchesOutreachStatus && matchesOwner;
-  });
-
-  const totalPages = Math.ceil(filteredLeads.length / leadsPerPage);
-  const paginatedLeads = filteredLeads.slice(
-    (currentPage - 1) * leadsPerPage,
-    currentPage * leadsPerPage
-  );
 
   const toggleSelectAll = (e) => {
     e.stopPropagation();
-    if (selectedLeads.length === paginatedLeads.length) {
+    if (selectedLeads.length === leads.length) {
       setSelectedLeads([]);
     } else {
-      setSelectedLeads(paginatedLeads.map(l => l._id));
+      setSelectedLeads(leads.map(l => l._id));
     }
   };
 
@@ -279,7 +285,7 @@ function TeamContactsPage() {
                 onClick={() => {
                   const leadsToExport = selectedLeads.length > 0
                     ? leads.filter(l => selectedLeads.includes(l._id))
-                    : filteredLeads;
+                    : leads;
                   if (leadsToExport.length > 0) exportLeadsToCSV(leadsToExport, 'team-contacts', { includeOwner: true });
                 }}
                 className="flex items-center gap-2 px-4 py-2 rounded-lg bg-dark-800 text-white hover:bg-dark-700 transition-colors"
@@ -334,7 +340,7 @@ function TeamContactsPage() {
                         <span className="text-sm font-medium text-white">Filters</span>
                         {activeFilterCount > 0 && (
                           <button
-                            onClick={() => { setProfileTypeFilter('all'); setOutreachStatusFilter('all'); setOwnerFilter('all'); }}
+                            onClick={() => { handleFilterChange(setProfileTypeFilter)('all'); handleFilterChange(setOutreachStatusFilter)('all'); handleFilterChange(setOwnerFilter)('all'); }}
                             className="text-xs text-rivvra-400 hover:text-rivvra-300"
                           >
                             Clear all
@@ -346,7 +352,7 @@ function TeamContactsPage() {
                         <label className="block text-xs text-dark-400 mb-2">Contact Owner</label>
                         <select
                           value={ownerFilter}
-                          onChange={(e) => setOwnerFilter(e.target.value)}
+                          onChange={(e) => handleFilterChange(setOwnerFilter)(e.target.value)}
                           className="w-full px-3 py-2 bg-dark-900 border border-dark-600 rounded-lg text-sm text-white focus:outline-none focus:border-rivvra-500"
                         >
                           <option value="all">All Owners</option>
@@ -360,7 +366,7 @@ function TeamContactsPage() {
                         <label className="block text-xs text-dark-400 mb-2">Profile Type</label>
                         <select
                           value={profileTypeFilter}
-                          onChange={(e) => setProfileTypeFilter(e.target.value)}
+                          onChange={(e) => handleFilterChange(setProfileTypeFilter)(e.target.value)}
                           className="w-full px-3 py-2 bg-dark-900 border border-dark-600 rounded-lg text-sm text-white focus:outline-none focus:border-rivvra-500"
                         >
                           <option value="all">All Types</option>
@@ -373,7 +379,7 @@ function TeamContactsPage() {
                         <label className="block text-xs text-dark-400 mb-2">Outreach Status</label>
                         <select
                           value={outreachStatusFilter}
-                          onChange={(e) => setOutreachStatusFilter(e.target.value)}
+                          onChange={(e) => handleFilterChange(setOutreachStatusFilter)(e.target.value)}
                           className="w-full px-3 py-2 bg-dark-900 border border-dark-600 rounded-lg text-sm text-white focus:outline-none focus:border-rivvra-500"
                         >
                           <option value="all">All Statuses</option>
@@ -408,7 +414,7 @@ function TeamContactsPage() {
                   <p className="text-dark-400">Loading team contacts...</p>
                 </div>
               </div>
-            ) : leads.length === 0 ? (
+            ) : leads.length === 0 && !debouncedSearch && activeFilterCount === 0 ? (
               <div className="p-12 text-center flex-1 flex items-center justify-center">
                 <div>
                   <div className="w-16 h-16 rounded-2xl bg-dark-800 flex items-center justify-center mx-auto mb-4">
@@ -417,6 +423,18 @@ function TeamContactsPage() {
                   <h3 className="text-lg font-semibold text-white mb-2">No Team Contacts Yet</h3>
                   <p className="text-dark-400 mb-4">
                     Your team hasn't saved any contacts yet. Contacts saved by team members will appear here.
+                  </p>
+                </div>
+              </div>
+            ) : leads.length === 0 ? (
+              <div className="p-12 text-center flex-1 flex items-center justify-center">
+                <div>
+                  <div className="w-16 h-16 rounded-2xl bg-dark-800 flex items-center justify-center mx-auto mb-4">
+                    <Search className="w-8 h-8 text-dark-500" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-white mb-2">No Results Found</h3>
+                  <p className="text-dark-400 mb-4">
+                    Try adjusting your search or filters.
                   </p>
                 </div>
               </div>
@@ -429,7 +447,7 @@ function TeamContactsPage() {
                         <th className="sticky left-0 z-30 bg-dark-800 px-4 py-3 text-left w-12">
                           <input
                             type="checkbox"
-                            checked={selectedLeads.length === paginatedLeads.length && paginatedLeads.length > 0}
+                            checked={selectedLeads.length === leads.length && leads.length > 0}
                             onChange={toggleSelectAll}
                             className="w-4 h-4 rounded border-dark-600 bg-dark-700 text-rivvra-500 focus:ring-rivvra-500"
                           />
@@ -450,7 +468,7 @@ function TeamContactsPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {paginatedLeads.map((lead) => (
+                      {leads.map((lead) => (
                         <tr
                           key={lead._id}
                           onClick={() => handleRowClick(lead)}
@@ -602,7 +620,7 @@ function TeamContactsPage() {
                 {totalPages > 1 && (
                   <div className="flex items-center justify-between px-4 py-3 border-t border-dark-700 bg-dark-900">
                     <p className="text-sm text-dark-400">
-                      Showing {((currentPage - 1) * leadsPerPage) + 1} to {Math.min(currentPage * leadsPerPage, filteredLeads.length)} of {filteredLeads.length}
+                      Showing {((currentPage - 1) * leadsPerPage) + 1} to {Math.min(currentPage * leadsPerPage, totalCount)} of {totalCount.toLocaleString()}
                     </p>
                     <div className="flex items-center gap-2">
                       <button

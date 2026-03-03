@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { X, Upload, RefreshCw, CheckCircle, AlertTriangle, Pencil, Sparkles, Briefcase, ExternalLink } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useOrg } from '../context/OrgContext';
@@ -290,6 +291,14 @@ function ExportToCRMModal({ isOpen, onClose, lead, onSuccess }) {
                   <p className="text-dark-400 text-sm">Create an opportunity from this contact</p>
                 </div>
               </div>
+
+              {/* Already converted warning */}
+              {lead.outreachStatus === 'converted' && (
+                <div className="flex items-center gap-2 mb-4 px-3 py-2 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+                  <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0" />
+                  <span className="text-sm text-amber-300">This lead was already exported. A new opportunity will be created.</span>
+                </div>
+              )}
 
               {/* Name */}
               <div className="mb-4">
@@ -603,13 +612,14 @@ function ExportToCRMModal({ isOpen, onClose, lead, onSuccess }) {
               </div>
             )}
             {isRivvra && exportResult?.opportunityId && orgSlug && (
-              <a
-                href={`/#/org/${orgSlug}/crm/opportunities/${exportResult.opportunityId}`}
+              <Link
+                to={`/org/${orgSlug}/crm/opportunities/${exportResult.opportunityId}`}
                 className="inline-flex items-center gap-1.5 text-sm text-rivvra-400 hover:text-rivvra-300 mb-4"
+                onClick={handleClose}
               >
                 <ExternalLink className="w-3.5 h-3.5" />
                 View Opportunity
-              </a>
+              </Link>
             )}
             <div className="mt-2">
               <button onClick={handleClose}

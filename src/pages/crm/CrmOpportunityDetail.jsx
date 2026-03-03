@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useOrg } from '../../context/OrgContext';
 import { useToast } from '../../context/ToastContext';
 import crmApi from '../../utils/crmApi';
@@ -366,12 +366,12 @@ export default function CrmOpportunityDetail() {
                   <User size={13} className="text-dark-500 mt-0.5 flex-shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="text-[10px] text-dark-500 uppercase tracking-wider">Contact Name</p>
-                    <a
-                      href={`/#/org/${slug}/contacts/${opp.contactId}`}
+                    <Link
+                      to={`/org/${slug}/contacts/${opp.contactId}`}
                       className="text-xs text-rivvra-400 hover:text-rivvra-300 transition-colors flex items-center gap-1"
                     >
                       {opp.contactName || 'View Contact'} <ExternalLink size={10} />
-                    </a>
+                    </Link>
                   </div>
                 </div>
               ) : (
@@ -383,12 +383,12 @@ export default function CrmOpportunityDetail() {
                   <Building2 size={13} className="text-dark-500 mt-0.5 flex-shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="text-[10px] text-dark-500 uppercase tracking-wider">Company</p>
-                    <a
-                      href={`/#/org/${slug}/contacts/${opp.companyId}`}
+                    <Link
+                      to={`/org/${slug}/contacts/${opp.companyId}`}
                       className="text-xs text-rivvra-400 hover:text-rivvra-300 transition-colors flex items-center gap-1"
                     >
                       {opp.companyName || 'View Company'} <ExternalLink size={10} />
-                    </a>
+                    </Link>
                   </div>
                 </div>
               ) : (

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, Link } from 'react-router-dom';
 import { useOrg } from '../../context/OrgContext';
 import { usePlatform } from '../../context/PlatformContext';
 import { useToast } from '../../context/ToastContext';
@@ -402,9 +402,9 @@ function SignRequestsPanel({ orgSlug, applicationId, orgPath }) {
   return (
     <div className="space-y-2">
       {requests.map((r) => (
-        <a
+        <Link
           key={r._id}
-          href={`#${orgPath('/sign/requests/' + r._id)}`}
+          to={orgPath('/sign/requests/' + r._id)}
           className="flex items-center justify-between p-2.5 rounded-lg bg-dark-800/50 hover:bg-dark-800 transition-colors group"
         >
           <div className="min-w-0">
@@ -418,7 +418,7 @@ function SignRequestsPanel({ orgSlug, applicationId, orgPath }) {
           <span className={`px-2 py-0.5 rounded text-xs font-medium flex-shrink-0 ${stateColors[r.state] || stateColors.draft}`}>
             {r.state?.charAt(0).toUpperCase() + r.state?.slice(1)}
           </span>
-        </a>
+        </Link>
       ))}
     </div>
   );

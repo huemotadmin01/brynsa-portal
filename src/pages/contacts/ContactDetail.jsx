@@ -233,7 +233,7 @@ export default function ContactDetail() {
             ? `Company and ${count} related contact(s) deleted`
             : 'Contact deleted successfully',
         );
-        navigate(`${orgPath}/contacts/list`, { replace: true });
+        navigate(orgPath('/contacts/list'), { replace: true });
       } else {
         showToast(res.error || 'Failed to delete', 'error');
         setDeleting(false);

@@ -83,6 +83,7 @@ export default function CrmConfigStages() {
 
   // ── Save (create or update) ────────────────────────────────────────────
   const handleSave = async () => {
+    console.log('[handleSave] called, formName:', formName, 'editingStage:', !!editingStage);
     const trimmed = formName.trim();
     if (!trimmed) {
       setFormError('Stage name is required');
@@ -93,22 +94,30 @@ export default function CrmConfigStages() {
 
     try {
       if (editingStage) {
-        await crmApi.updateStage(orgSlug, editingStage._id, {
+        console.log('[handleSave] calling updateStage...');
+        const res = await crmApi.updateStage(orgSlug, editingStage._id, {
           name: trimmed,
           isWonStage: formIsWon,
         });
+        console.log('[handleSave] updateStage returned:', res);
         addToast('Stage updated', 'success');
       } else {
-        await crmApi.createStage(orgSlug, { name: trimmed });
+        console.log('[handleSave] calling createStage...');
+        const res = await crmApi.createStage(orgSlug, { name: trimmed });
+        console.log('[handleSave] createStage returned:', res);
         addToast('Stage created', 'success');
       }
+      console.log('[handleSave] about to close modal');
       // Directly reset state instead of closeModal() to avoid guard issues
       setModalOpen(false);
       setEditingStage(null);
+      console.log('[handleSave] modal closed, fetching stages');
       fetchStages();
     } catch (err) {
+      console.error('[handleSave] error:', err);
       addToast(err.message || 'Failed to save stage', 'error');
     } finally {
+      console.log('[handleSave] finally block');
       setSaving(false);
     }
   };

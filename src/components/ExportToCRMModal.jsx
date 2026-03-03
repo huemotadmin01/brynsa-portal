@@ -21,6 +21,7 @@ function ExportToCRMModal({ isOpen, onClose, lead, onSuccess }) {
   const [phone, setPhone] = useState('');
   const [expectedRole, setExpectedRole] = useState('');
   const [contactTitle, setContactTitle] = useState('');
+  const [requirementType, setRequirementType] = useState('');
   const [checking, setChecking] = useState(false);
   const [alreadyExported, setAlreadyExported] = useState(false);
   const [exportResult, setExportResult] = useState(null);
@@ -39,6 +40,7 @@ function ExportToCRMModal({ isOpen, onClose, lead, onSuccess }) {
       setPhone(lead.phone || '');
       setContactTitle(lead.title || lead.headline || lead.currentTitle || '');
       setExpectedRole('');
+      setRequirementType('');
       setAlreadyExported(false);
       setExportResult(null);
       setErrorMessage('');
@@ -167,6 +169,7 @@ function ExportToCRMModal({ isOpen, onClose, lead, onSuccess }) {
         contactPhone: phone.trim() || undefined,
         contactJobTitle: contactTitle.trim() || undefined,
         expectedRole: expectedRole.trim() || undefined,
+        requirementType: requirementType || undefined,
         linkedinUrl: lead.linkedinUrl || undefined,
         clientType: profileType === 'client' ? 'existing' : 'new',
         notes: lead.notes?.length ? lead.notes.map(n => typeof n === 'string' ? n : n.text || '').join('\n') : undefined,
@@ -349,7 +352,7 @@ function ExportToCRMModal({ isOpen, onClose, lead, onSuccess }) {
               </div>
 
               {/* Expected Role */}
-              <div className="mb-6">
+              <div className="mb-4">
                 <label className="block text-sm font-medium text-dark-300 mb-1.5">Expected Role</label>
                 <p className="text-[10px] text-dark-500 -mt-1 mb-1.5">Used as Job Position name when converting to ATS</p>
                 <div className="relative">
@@ -359,13 +362,32 @@ function ExportToCRMModal({ isOpen, onClose, lead, onSuccess }) {
                 </div>
               </div>
 
+              {/* Requirement Type */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-dark-300 mb-1.5">
+                  Requirement Type <span className="text-red-400">*</span>
+                </label>
+                <select
+                  value={requirementType}
+                  onChange={(e) => setRequirementType(e.target.value)}
+                  className={`w-full px-3 py-2.5 bg-dark-800 border rounded-xl text-white focus:outline-none focus:border-rivvra-500 ${
+                    !requirementType ? 'text-dark-500 border-dark-600' : 'border-dark-600'
+                  }`}
+                >
+                  <option value="" disabled>Select requirement type</option>
+                  <option value="Staff Augmentation">Staff Augmentation</option>
+                  <option value="Project Based">Project Based</option>
+                  <option value="Full-time Hire">Full-time Hire</option>
+                </select>
+              </div>
+
               {/* Actions */}
               <div className="flex gap-3">
                 <button onClick={() => setStep('choose')}
                   className="flex-1 px-4 py-2.5 rounded-xl bg-dark-800 text-white font-medium hover:bg-dark-700 transition-colors">
                   Back
                 </button>
-                <button onClick={handleRivvraExport} disabled={!name.trim() || !company.trim() || !contactTitle.trim()}
+                <button onClick={handleRivvraExport} disabled={!name.trim() || !company.trim() || !contactTitle.trim() || !requirementType}
                   className="flex-1 px-4 py-2.5 rounded-xl bg-rivvra-500 text-dark-950 font-semibold hover:bg-rivvra-400 transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
                   <Briefcase className="w-4 h-4" />
                   Create Opportunity

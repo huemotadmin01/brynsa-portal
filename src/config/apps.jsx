@@ -142,7 +142,13 @@ export const APP_REGISTRY = {
         { type: 'item', path: '/contacts/companies', label: 'Companies', icon: Building2 },
         { type: 'item', path: '/contacts/individuals', label: 'Individuals', icon: Users },
         ...(isAdmin ? [
-          { type: 'item', path: '/contacts/config', label: 'Configuration', icon: Settings },
+          {
+            type: 'group', label: 'Configuration', icon: Settings,
+            children: [
+              { path: '/settings/contacts', label: 'Settings', icon: Settings },
+              { path: '/contacts/config', label: 'Tags', icon: Tag },
+            ],
+          },
         ] : []),
       ];
     },
@@ -173,6 +179,7 @@ export const APP_REGISTRY = {
           {
             type: 'group', label: 'Configuration', icon: Settings,
             children: [
+              { path: '/settings/crm', label: 'Settings', icon: Settings },
               { path: '/crm/config/stages', label: 'Stages', icon: Layers },
               { path: '/crm/config/tags', label: 'Tags', icon: Tag },
               { path: '/crm/config/lost-reasons', label: 'Lost Reasons', icon: AlertTriangle },
@@ -206,7 +213,13 @@ export const APP_REGISTRY = {
         { type: 'item', path: '/ats/candidates', label: 'Candidates', icon: Users },
         ...(isAdmin ? [
           { type: 'item', path: '/ats/reporting', label: 'Reporting', icon: BarChart3 },
-          { type: 'item', path: '/ats/config', label: 'Configuration', icon: Settings },
+          {
+            type: 'group', label: 'Configuration', icon: Settings,
+            children: [
+              { path: '/settings/ats', label: 'Settings', icon: Settings },
+              { path: '/ats/config', label: 'Picklists', icon: Layers },
+            ],
+          },
         ] : []),
       ];
     },
@@ -232,7 +245,13 @@ export const APP_REGISTRY = {
         { type: 'item', path: '/sign/requests', label: 'Requests', icon: FileText },
         { type: 'item', path: '/sign/templates', label: 'Templates', icon: FileSignature },
         ...(isAdmin ? [
-          { type: 'item', path: '/sign/config', label: 'Configuration', icon: Settings },
+          {
+            type: 'group', label: 'Configuration', icon: Settings,
+            children: [
+              { path: '/settings/sign', label: 'Settings', icon: Settings },
+              { path: '/sign/config', label: 'Picklists', icon: Layers },
+            ],
+          },
         ] : []),
       ];
     },

@@ -43,6 +43,10 @@ const SettingsOutreach = lazy(() => import('./components/settings/SettingsOutrea
 const SettingsTimesheet = lazy(() => import('./components/settings/SettingsTimesheet'));
 const SettingsEmployee = lazy(() => import('./components/settings/SettingsEmployee'));
 const SettingsEmailLogs = lazy(() => import('./components/settings/SettingsEmailLogs'));
+const SettingsCrm = lazy(() => import('./components/settings/SettingsCrm'));
+const SettingsAts = lazy(() => import('./components/settings/SettingsAts'));
+const SettingsSign = lazy(() => import('./components/settings/SettingsSign'));
+const SettingsContacts = lazy(() => import('./components/settings/SettingsContacts'));
 
 // Lazy-loaded: Timesheet app pages
 const TimesheetDashboard = lazy(() => import('./pages/timesheet/TimesheetDashboard'));
@@ -201,6 +205,10 @@ function App() {
                 <Route path="/org/:slug/settings/timesheet" element={<SettingsPageWrapper><SettingsTimesheet /></SettingsPageWrapper>} />
                 <Route path="/org/:slug/settings/employee" element={<SettingsPageWrapper><SettingsEmployee /></SettingsPageWrapper>} />
                 <Route path="/org/:slug/settings/email-logs" element={<SettingsPageWrapper><SettingsEmailLogs /></SettingsPageWrapper>} />
+                <Route path="/org/:slug/settings/crm" element={<SettingsPageWrapper><SettingsCrm /></SettingsPageWrapper>} />
+                <Route path="/org/:slug/settings/ats" element={<SettingsPageWrapper><SettingsAts /></SettingsPageWrapper>} />
+                <Route path="/org/:slug/settings/sign" element={<SettingsPageWrapper><SettingsSign /></SettingsPageWrapper>} />
+                <Route path="/org/:slug/settings/contacts" element={<SettingsPageWrapper><SettingsContacts /></SettingsPageWrapper>} />
               </Route>
 
               {/* Timesheet app routes — gated by timesheet access */}

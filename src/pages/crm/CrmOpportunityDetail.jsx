@@ -140,6 +140,7 @@ export default function CrmOpportunityDetail() {
     }
   };
 
+
   const handleStageChange = async (stageId) => {
     if (opp?.stageId === stageId) return; // already on this stage
     try {
@@ -160,8 +161,8 @@ export default function CrmOpportunityDetail() {
   const handleWon = async () => {
     try {
       await crmApi.markWon(slug, opportunityId);
-      addToast('Marked as Won!', 'success');
       fetchAll();
+      addToast('Marked as Won!', 'success');
     } catch {
       addToast('Failed', 'error');
     }
@@ -170,9 +171,9 @@ export default function CrmOpportunityDetail() {
   const handleLost = async (reasonId) => {
     try {
       await crmApi.markLost(slug, opportunityId, reasonId);
-      addToast('Marked as Lost', 'success');
       setShowLostModal(false);
       fetchAll();
+      addToast('Marked as Lost', 'success');
     } catch {
       addToast('Failed', 'error');
     }
@@ -181,8 +182,8 @@ export default function CrmOpportunityDetail() {
   const handleRestore = async () => {
     try {
       await crmApi.restore(slug, opportunityId);
-      addToast('Restored', 'success');
       fetchAll();
+      addToast('Restored', 'success');
     } catch {
       addToast('Failed', 'error');
     }
@@ -213,32 +214,16 @@ export default function CrmOpportunityDetail() {
 
   const handleDelete = async () => {
     setDeleting(true);
-    let timeoutId;
     try {
-      const timeoutPromise = new Promise((_, reject) => {
-        timeoutId = setTimeout(() => reject(new Error('Request timed out')), 15000);
-      });
-      const res = await Promise.race([
-        crmApi.deleteOpportunity(slug, opportunityId),
-        timeoutPromise,
-      ]);
-      clearTimeout(timeoutId);
-      if (res.success) {
-        addToast('Opportunity deleted successfully', 'success');
-        setShowDeleteModal(false);
-        navigate(`/org/${slug}/crm/opportunities`, { replace: true });
-      } else {
-        addToast(res.error || 'Failed to delete', 'error');
-      }
+      await crmApi.deleteOpportunity(slug, opportunityId);
+      setShowDeleteModal(false);
+      setDeleting(false);
+      navigate(`/org/${slug}/crm/opportunities`, { replace: true });
+      addToast('Opportunity deleted successfully', 'success');
     } catch (err) {
-      clearTimeout(timeoutId);
-      console.error('Delete opportunity error:', err);
-      addToast(err.message === 'Request timed out'
-        ? 'Delete request timed out — please check if the API server is running'
-        : 'Failed to delete opportunity', 'error');
-    } finally {
       setDeleting(false);
       setShowDeleteModal(false);
+      addToast('Failed to delete opportunity', 'error');
     }
   };
 

@@ -203,14 +203,15 @@ export default function CrmOpportunityDetail() {
     try {
       const res = await crmApi.deleteOpportunity(slug, opportunityId);
       if (res.success) {
-        addToast('Opportunity deleted', 'success');
-        navigate(-1);
+        addToast('Opportunity deleted successfully', 'success');
+        navigate(`/org/${slug}/crm/opportunities`, { replace: true });
       } else {
         addToast(res.error || 'Failed to delete', 'error');
+        setDeleting(false);
+        setShowDeleteModal(false);
       }
     } catch {
       addToast('Failed to delete opportunity', 'error');
-    } finally {
       setDeleting(false);
       setShowDeleteModal(false);
     }

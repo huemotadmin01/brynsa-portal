@@ -1,8 +1,10 @@
+import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useOrg } from '../../context/OrgContext';
 import { usePlatform } from '../../context/PlatformContext';
-import { LayoutGrid, LogOut, Settings, Crown, Building2, UserCircle, Menu, X } from 'lucide-react';
+import { useCompany } from '../../context/CompanyContext';
+import { LayoutGrid, LogOut, Settings, Crown, Building2, UserCircle, Menu, X, ChevronDown, Check } from 'lucide-react';
 import RivvraLogo from '../BrynsaLogo';
 import api from '../../utils/api';
 
@@ -18,7 +20,21 @@ function TopBar({ onToggleSidebar, sidebarOpen }) {
   const { user, logout } = useAuth();
   const { currentOrg } = useOrg();
   const { currentApp, orgPath } = usePlatform();
+  const { companies, currentCompany, switchCompany, hasMultipleCompanies } = useCompany();
   const isPro = user?.plan === 'pro' || user?.plan === 'premium';
+  const [companyDropdownOpen, setCompanyDropdownOpen] = useState(false);
+  const companyDropdownRef = useRef(null);
+
+  // Close company dropdown on outside click
+  useEffect(() => {
+    const handler = (e) => {
+      if (companyDropdownRef.current && !companyDropdownRef.current.contains(e.target)) {
+        setCompanyDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
 
   const orgLogoUrl = currentOrg?.logoAvailable && currentOrg?.slug
     ? `${api.baseUrl}/api/org/${currentOrg.slug}/logo`
@@ -57,6 +73,42 @@ function TopBar({ onToggleSidebar, sidebarOpen }) {
             )}
             <span className="text-base font-bold text-white">{currentOrg?.name || 'Rivvra'}</span>
           </Link>
+
+          {/* Company Switcher */}
+          {hasMultipleCompanies && (
+            <div className="relative" ref={companyDropdownRef}>
+              <button
+                onClick={() => setCompanyDropdownOpen(!companyDropdownOpen)}
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-dark-800/50 hover:bg-dark-800 transition-colors text-sm"
+              >
+                <Building2 className="w-3.5 h-3.5 text-dark-400" />
+                <span className="text-dark-200 font-medium max-w-[160px] truncate">{currentCompany?.name || 'Select Company'}</span>
+                <ChevronDown className={`w-3.5 h-3.5 text-dark-500 transition-transform ${companyDropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {companyDropdownOpen && (
+                <div className="absolute left-0 top-full mt-1.5 w-72 bg-dark-900 border border-dark-700 rounded-xl p-1.5 shadow-xl z-50">
+                  <p className="px-3 py-1.5 text-[10px] uppercase tracking-wider text-dark-500 font-semibold">Companies</p>
+                  {companies.map((c) => (
+                    <button
+                      key={c._id}
+                      onClick={() => { setCompanyDropdownOpen(false); if (c._id !== currentCompany?._id) switchCompany(c._id); }}
+                      className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left text-sm transition-colors ${
+                        c._id === currentCompany?._id
+                          ? 'bg-rivvra-500/10 text-rivvra-400'
+                          : 'text-dark-300 hover:text-white hover:bg-dark-800/50'
+                      }`}
+                    >
+                      <Building2 className="w-4 h-4 flex-shrink-0" />
+                      <span className="flex-1 truncate">{c.name}</span>
+                      {c.currency && <span className="text-[10px] text-dark-500 font-mono">{c.currency}</span>}
+                      {c._id === currentCompany?._id && <Check className="w-4 h-4 text-rivvra-400 flex-shrink-0" />}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {currentApp && (
             <>

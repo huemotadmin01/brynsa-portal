@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useOrg } from '../context/OrgContext';
 import {
   Settings, Users, Mail, Clock, User, Shield,
-  Bell, CreditCard, ChevronRight, UserCircle
+  Bell, CreditCard, ChevronRight, UserCircle, Building2
 } from 'lucide-react';
 import { getActiveApps } from '../config/apps';
 
@@ -16,6 +16,7 @@ import SettingsOutreach from '../components/settings/SettingsOutreach';
 import SettingsTimesheet from '../components/settings/SettingsTimesheet';
 import SettingsEmployee from '../components/settings/SettingsEmployee';
 import SettingsEmailLogs from '../components/settings/SettingsEmailLogs';
+import SettingsCompanies from '../components/settings/SettingsCompanies';
 
 export default function PlatformSettingsPage() {
   const { user } = useAuth();
@@ -42,6 +43,7 @@ export default function PlatformSettingsPage() {
       items: [
         { id: 'profile', label: 'My Profile', icon: UserCircle, description: 'Your account & preferences' },
         { id: 'general', label: 'General Settings', icon: Settings, description: 'Organization & branding' },
+        { id: 'companies', label: 'Companies', icon: Building2, description: 'Manage legal entities', adminOnly: true },
         { id: 'users', label: 'Users & Teams', icon: Users, description: 'Manage members & roles', adminOnly: true },
         { id: 'email-logs', label: 'Email Logs', icon: Mail, description: 'View sent platform emails', adminOnly: true },
       ],
@@ -131,6 +133,7 @@ export default function PlatformSettingsPage() {
         <div className="flex-1 min-w-0">
           {activeTab === 'profile' && <SettingsProfile />}
           {activeTab === 'general' && <SettingsGeneral />}
+          {activeTab === 'companies' && isAdmin && <SettingsCompanies />}
           {activeTab === 'users' && isAdmin && <SettingsTeam />}
           {activeTab === 'email-logs' && isAdmin && <SettingsEmailLogs />}
           {activeTab === 'outreach' && <SettingsOutreach />}

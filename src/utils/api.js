@@ -56,6 +56,12 @@ class ApiClient {
       config.headers.Authorization = `Bearer ${token}`;
     }
 
+    // Add active company header (multi-company support)
+    const companyId = localStorage.getItem('rivvra_current_company');
+    if (companyId) {
+      config.headers['X-Company-Id'] = companyId;
+    }
+
     try {
       const response = await fetch(url, config);
 

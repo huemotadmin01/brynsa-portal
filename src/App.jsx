@@ -4,6 +4,7 @@ import { AuthProvider } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
 import { PlatformProvider } from './context/PlatformContext';
 import { OrgProvider } from './context/OrgContext';
+import { CompanyProvider } from './context/CompanyContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import PlatformLayout from './components/platform/PlatformLayout';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -129,7 +130,9 @@ function SettingsPageWrapper({ children }) {
 function OrgPlatformLayout() {
   return (
     <OrgProvider>
-      <PlatformLayout />
+      <CompanyProvider>
+        <PlatformLayout />
+      </CompanyProvider>
     </OrgProvider>
   );
 }

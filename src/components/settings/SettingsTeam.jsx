@@ -10,10 +10,11 @@ import { useAuth } from '../../context/AuthContext';
 import { usePlatform } from '../../context/PlatformContext';
 import { useOrg } from '../../context/OrgContext';
 import { useToast } from '../../context/ToastContext';
+import { useCompany } from '../../context/CompanyContext';
 import {
   Users, UserPlus, UserX, Mail, Loader2, Check,
   ChevronDown, Clock, X, ArrowLeftRight, Shield, ShieldCheck,
-  Crown, Link2, Unlink, Search, RotateCcw, Trash2,
+  Crown, Link2, Unlink, Search, RotateCcw, Trash2, Building2,
 } from 'lucide-react';
 import api from '../../utils/api';
 import employeeApi from '../../utils/employeeApi';
@@ -41,6 +42,7 @@ export default function SettingsTeam() {
   const { orgPath } = usePlatform();
   const { currentOrg, isOrgAdmin, isOrgOwner, refetchOrg } = useOrg();
   const { showToast } = useToast();
+  const { companies: allCompanies } = useCompany();
   const navigate = useNavigate();
   const orgSlug = currentOrg?.slug;
   const canManage = isOrgAdmin || isOrgOwner;
@@ -175,15 +177,20 @@ export default function SettingsTeam() {
     setSaving(true);
     setSaveError('');
     try {
-      const res = await api.updateOrgMember(orgSlug, member.userId, {
+      const payload = {
         orgRole: editData.orgRole,
         appAccess: editData.appAccess,
-      });
+      };
+      // Include allowedCompanyIds if it was modified
+      if (editData.allowedCompanyIds) {
+        payload.allowedCompanyIds = editData.allowedCompanyIds;
+      }
+      const res = await api.updateOrgMember(orgSlug, member.userId, payload);
       if (res.success) {
         // Update local state
         setMembers(prev => prev.map(m =>
           m.userId?.toString() === member.userId?.toString()
-            ? { ...m, orgRole: editData.orgRole, appAccess: editData.appAccess }
+            ? { ...m, orgRole: editData.orgRole, appAccess: editData.appAccess, allowedCompanyIds: editData.allowedCompanyIds || m.allowedCompanyIds }
             : m
         ));
         setExpandedMember(null);
@@ -687,6 +694,67 @@ export default function SettingsTeam() {
                           {member.linkedEmployee ? 'This user is linked to an employee record for timesheet access.' : 'Link to an employee record for timesheet & HR features.'}
                         </p>
                       </div>
+
+                      {/* Multi Companies */}
+                      {allCompanies && allCompanies.length > 1 && (
+                        <div>
+                          <label className="block text-[10px] uppercase text-dark-500 font-semibold mb-2 tracking-wider">Multi Companies</label>
+                          <div className="px-3 py-3 bg-dark-800/50 rounded-lg border border-dark-700/50 space-y-3">
+                            {/* Allowed Companies */}
+                            <div>
+                              <label className="block text-[10px] text-dark-400 mb-1.5">Allowed Companies</label>
+                              <div className="flex flex-wrap gap-1.5">
+                                {allCompanies.map(company => {
+                                  const memberAllowed = member.allowedCompanyIds?.map(id => id?.toString ? id.toString() : id) || [];
+                                  const isAllowed = memberAllowed.includes(company._id?.toString ? company._id.toString() : company._id);
+                                  return (
+                                    <button
+                                      key={company._id}
+                                      onClick={() => {
+                                        const currentIds = (member.allowedCompanyIds || []).map(id => id?.toString ? id.toString() : id);
+                                        const compId = company._id?.toString ? company._id.toString() : company._id;
+                                        let newIds;
+                                        if (isAllowed) {
+                                          // Don't allow removing if it's the only one
+                                          if (currentIds.length <= 1) return;
+                                          newIds = currentIds.filter(id => id !== compId);
+                                        } else {
+                                          newIds = [...currentIds, compId];
+                                        }
+                                        // Update member's allowedCompanyIds locally (saved on "Save Changes")
+                                        setEditData(prev => ({ ...prev, allowedCompanyIds: newIds }));
+                                        // Also update member object for immediate UI
+                                        member.allowedCompanyIds = newIds;
+                                      }}
+                                      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
+                                        isAllowed
+                                          ? 'bg-rivvra-500/15 text-rivvra-400 border border-rivvra-500/30'
+                                          : 'bg-dark-700/50 text-dark-500 border border-dark-600 hover:border-dark-500'
+                                      }`}
+                                    >
+                                      <Building2 className="w-3 h-3" />
+                                      <span className="truncate max-w-[180px]">{company.name}</span>
+                                      {isAllowed && <X className="w-3 h-3 ml-0.5 opacity-60" />}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+
+                            {/* Default Company */}
+                            <div>
+                              <label className="block text-[10px] text-dark-400 mb-1">Default Company</label>
+                              <span className="text-xs text-white">
+                                {(() => {
+                                  const currentId = member.currentCompanyId?.toString ? member.currentCompanyId.toString() : member.currentCompanyId;
+                                  const company = allCompanies.find(c => (c._id?.toString ? c._id.toString() : c._id) === currentId);
+                                  return company?.name || 'Not set';
+                                })()}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
 
                       {/* Actions */}
                       <div className="flex items-center justify-between pt-2">

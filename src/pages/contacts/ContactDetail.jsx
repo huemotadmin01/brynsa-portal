@@ -8,8 +8,19 @@ import { usePageTitle } from '../../hooks/usePageTitle';
 import {
   Edit2, Save, X, Loader2, Trash2,
   Building2, User, Mail, Phone, MapPin,
-  Globe, Briefcase, Tag, FileText, Users,
+  Globe, Briefcase, Tag, FileText, Users, Receipt,
 } from 'lucide-react';
+
+const GST_TREATMENT_OPTIONS = [
+  { value: '', label: 'Select GST Treatment' },
+  { value: 'Registered Business - Regular', label: 'Registered Business - Regular' },
+  { value: 'Registered Business - Composition', label: 'Registered Business - Composition' },
+  { value: 'Unregistered Business', label: 'Unregistered Business' },
+  { value: 'Consumer', label: 'Consumer' },
+  { value: 'Overseas', label: 'Overseas' },
+  { value: 'Special Economic Zone', label: 'Special Economic Zone' },
+  { value: 'Deemed Export', label: 'Deemed Export' },
+];
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -149,6 +160,7 @@ export default function ContactDetail() {
       jobTitle: contact.jobTitle || '',
       parentCompany: contact.parentCompanyId || '',
       street: addr.street || '',
+      street2: addr.street2 || '',
       city: addr.city || '',
       state: addr.state || '',
       zip: addr.zip || '',
@@ -158,6 +170,10 @@ export default function ContactDetail() {
       isCustomer: contact.isCustomer || false,
       isSupplier: contact.isSupplier || false,
       salespersonId: contact.salespersonId || '',
+      gstTreatment: contact.gstTreatment || '',
+      gstin: contact.gstin || '',
+      pan: contact.pan || '',
+      countryCode: contact.countryCode || '',
     });
     setEditing(true);
   };
@@ -186,6 +202,16 @@ export default function ContactDetail() {
       showToast('Name is required', 'error');
       return;
     }
+    // Tax field validation
+    if (form.gstin.trim() && (form.gstin.trim().length !== 15 || !/^[0-9A-Z]{15}$/.test(form.gstin.trim()))) {
+      showToast('GSTIN must be exactly 15 alphanumeric characters', 'error'); return;
+    }
+    if (form.pan.trim() && !/^[A-Z]{5}[0-9]{4}[A-Z]$/.test(form.pan.trim())) {
+      showToast('PAN must be in format ABCDE1234F', 'error'); return;
+    }
+    if (form.countryCode.trim() && !/^[A-Z]{2}$/.test(form.countryCode.trim())) {
+      showToast('Country code must be a 2-letter ISO code (e.g., IN)', 'error'); return;
+    }
 
     try {
       setSaving(true);
@@ -200,6 +226,7 @@ export default function ContactDetail() {
         parentCompanyId: contact.type === 'individual' ? form.parentCompany : '',
         address: {
           street: form.street.trim(),
+          street2: form.street2.trim(),
           city: form.city.trim(),
           state: form.state.trim(),
           zip: form.zip.trim(),
@@ -210,6 +237,10 @@ export default function ContactDetail() {
         isCustomer: form.isCustomer,
         isSupplier: form.isSupplier,
         salespersonId: form.salespersonId || '',
+        gstTreatment: form.gstTreatment,
+        gstin: form.gstin.trim(),
+        pan: form.pan.trim(),
+        countryCode: form.countryCode.trim(),
       };
 
       const res = await contactsApi.update(orgSlug, contactId, payload);
@@ -271,7 +302,7 @@ export default function ContactDetail() {
   }
 
   const addr = contact.address || {};
-  const addressLines = [addr.street, addr.city, addr.state, addr.zip, addr.country]
+  const addressLines = [addr.street, addr.street2, addr.city, addr.state, addr.zip, addr.country]
     .filter(Boolean)
     .join(', ');
 
@@ -550,6 +581,16 @@ export default function ContactDetail() {
                       className="input-field"
                     />
                   </div>
+                  <div>
+                    <label className="block text-sm text-dark-400 mb-1">Street 2</label>
+                    <input
+                      type="text"
+                      value={form.street2}
+                      onChange={(e) => handleChange('street2', e.target.value)}
+                      placeholder="Apt, Suite, Floor"
+                      className="input-field"
+                    />
+                  </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
                       <label className="block text-sm text-dark-400 mb-1">City</label>
@@ -684,6 +725,68 @@ export default function ContactDetail() {
                     label="Supplier"
                     value={contact.isSupplier ? 'Yes' : 'No'}
                   />
+                </>
+              )}
+            </SectionCard>
+
+            {/* Tax Information */}
+            <SectionCard title="Tax Information" icon={Receipt}>
+              {editing ? (
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-sm text-dark-400 mb-1">GST Treatment</label>
+                    <select
+                      value={form.gstTreatment}
+                      onChange={(e) => handleChange('gstTreatment', e.target.value)}
+                      className="input-field"
+                    >
+                      {GST_TREATMENT_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-sm text-dark-400 mb-1">GSTIN</label>
+                      <input
+                        type="text"
+                        value={form.gstin}
+                        onChange={(e) => handleChange('gstin', e.target.value.toUpperCase())}
+                        placeholder="29AALCR0152L1Z2"
+                        maxLength={15}
+                        className="input-field"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm text-dark-400 mb-1">PAN</label>
+                      <input
+                        type="text"
+                        value={form.pan}
+                        onChange={(e) => handleChange('pan', e.target.value.toUpperCase())}
+                        placeholder="AALCR0152L"
+                        maxLength={10}
+                        className="input-field"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm text-dark-400 mb-1">Country Code</label>
+                    <input
+                      type="text"
+                      value={form.countryCode}
+                      onChange={(e) => handleChange('countryCode', e.target.value.toUpperCase())}
+                      placeholder="IN"
+                      maxLength={2}
+                      className="input-field w-24"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <InfoRow label="GST Treatment" value={contact.gstTreatment || null} />
+                  <InfoRow label="GSTIN" value={contact.gstin || null} />
+                  <InfoRow label="PAN" value={contact.pan || null} />
+                  <InfoRow label="Country Code" value={contact.countryCode || null} />
                 </>
               )}
             </SectionCard>

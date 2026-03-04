@@ -70,6 +70,7 @@ const EMPTY_FORM = {
   jobTitle: '',
   parentCompany: '',
   street: '',
+  street2: '',
   city: '',
   state: '',
   zip: '',
@@ -79,7 +80,22 @@ const EMPTY_FORM = {
   isCustomer: false,
   isSupplier: false,
   salespersonId: '',
+  gstTreatment: '',
+  gstin: '',
+  pan: '',
+  countryCode: '',
 };
+
+const GST_TREATMENT_OPTIONS = [
+  { value: '', label: 'Select GST Treatment' },
+  { value: 'Registered Business - Regular', label: 'Registered Business - Regular' },
+  { value: 'Registered Business - Composition', label: 'Registered Business - Composition' },
+  { value: 'Unregistered Business', label: 'Unregistered Business' },
+  { value: 'Consumer', label: 'Consumer' },
+  { value: 'Overseas', label: 'Overseas' },
+  { value: 'Special Economic Zone', label: 'Special Economic Zone' },
+  { value: 'Deemed Export', label: 'Deemed Export' },
+];
 
 const TITLE_OPTIONS = ['Mr.', 'Mrs.', 'Miss', 'Ms.', 'Dr.', 'Prof.'];
 
@@ -113,6 +129,17 @@ function NewContactModal({ show, onClose, onSaved, orgSlug, companies, tags, sal
     e.preventDefault();
     if (!form.name.trim()) return;
 
+    // Tax field validation
+    if (form.gstin.trim() && (form.gstin.trim().length !== 15 || !/^[0-9A-Z]{15}$/.test(form.gstin.trim()))) {
+      showToast('GSTIN must be exactly 15 alphanumeric characters', 'error'); return;
+    }
+    if (form.pan.trim() && !/^[A-Z]{5}[0-9]{4}[A-Z]$/.test(form.pan.trim())) {
+      showToast('PAN must be in format ABCDE1234F', 'error'); return;
+    }
+    if (form.countryCode.trim() && !/^[A-Z]{2}$/.test(form.countryCode.trim())) {
+      showToast('Country code must be a 2-letter ISO code (e.g., IN)', 'error'); return;
+    }
+
     try {
       setSaving(true);
       const payload = {
@@ -127,6 +154,7 @@ function NewContactModal({ show, onClose, onSaved, orgSlug, companies, tags, sal
         parentCompanyId: form.type === 'individual' ? form.parentCompany : '',
         address: {
           street: form.street.trim(),
+          street2: form.street2.trim(),
           city: form.city.trim(),
           state: form.state.trim(),
           zip: form.zip.trim(),
@@ -137,6 +165,10 @@ function NewContactModal({ show, onClose, onSaved, orgSlug, companies, tags, sal
         isCustomer: form.isCustomer,
         isSupplier: form.isSupplier,
         salespersonId: form.salespersonId || '',
+        gstTreatment: form.gstTreatment,
+        gstin: form.gstin.trim(),
+        pan: form.pan.trim(),
+        countryCode: form.countryCode.trim(),
       };
       const res = await contactsApi.create(orgSlug, payload);
       if (res.success) {
@@ -319,6 +351,13 @@ function NewContactModal({ show, onClose, onSaved, orgSlug, companies, tags, sal
               placeholder="Street"
               className="input-field mb-2"
             />
+            <input
+              type="text"
+              value={form.street2}
+              onChange={(e) => handleChange('street2', e.target.value)}
+              placeholder="Street 2 (Apt, Suite, Floor)"
+              className="input-field mb-2"
+            />
             <div className="grid grid-cols-2 gap-2">
               <input
                 type="text"
@@ -414,6 +453,60 @@ function NewContactModal({ show, onClose, onSaved, orgSlug, companies, tags, sal
                   />
                   <span className="text-sm text-dark-300">Supplier</span>
                 </label>
+              </div>
+            </div>
+          </div>
+
+          {/* Tax Information */}
+          <div>
+            <label className="block text-sm font-medium text-dark-300 mb-1.5">Tax Information</label>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs text-dark-400 mb-1">GST Treatment</label>
+                <select
+                  value={form.gstTreatment}
+                  onChange={(e) => handleChange('gstTreatment', e.target.value)}
+                  className="input-field"
+                >
+                  {GST_TREATMENT_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-xs text-dark-400 mb-1">GSTIN</label>
+                  <input
+                    type="text"
+                    value={form.gstin}
+                    onChange={(e) => handleChange('gstin', e.target.value.toUpperCase())}
+                    placeholder="29AALCR0152L1Z2"
+                    maxLength={15}
+                    className="input-field"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-dark-400 mb-1">PAN</label>
+                  <input
+                    type="text"
+                    value={form.pan}
+                    onChange={(e) => handleChange('pan', e.target.value.toUpperCase())}
+                    placeholder="AALCR0152L"
+                    maxLength={10}
+                    className="input-field"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs text-dark-400 mb-1">Country Code</label>
+                <input
+                  type="text"
+                  value={form.countryCode}
+                  onChange={(e) => handleChange('countryCode', e.target.value.toUpperCase())}
+                  placeholder="IN"
+                  maxLength={2}
+                  className="input-field w-20"
+                />
               </div>
             </div>
           </div>

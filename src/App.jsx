@@ -48,6 +48,7 @@ const SettingsCrm = lazy(() => import('./components/settings/SettingsCrm'));
 const SettingsAts = lazy(() => import('./components/settings/SettingsAts'));
 const SettingsSign = lazy(() => import('./components/settings/SettingsSign'));
 const SettingsContacts = lazy(() => import('./components/settings/SettingsContacts'));
+const SettingsCompanies = lazy(() => import('./components/settings/SettingsCompanies'));
 
 // Lazy-loaded: Timesheet app pages
 const TimesheetDashboard = lazy(() => import('./pages/timesheet/TimesheetDashboard'));
@@ -212,6 +213,7 @@ function App() {
                 <Route path="/org/:slug/settings/ats" element={<SettingsPageWrapper><SettingsAts /></SettingsPageWrapper>} />
                 <Route path="/org/:slug/settings/sign" element={<SettingsPageWrapper><SettingsSign /></SettingsPageWrapper>} />
                 <Route path="/org/:slug/settings/contacts" element={<SettingsPageWrapper><SettingsContacts /></SettingsPageWrapper>} />
+                <Route path="/org/:slug/settings/companies" element={<SettingsPageWrapper><SettingsCompanies /></SettingsPageWrapper>} />
               </Route>
 
               {/* Timesheet app routes — gated by timesheet access */}

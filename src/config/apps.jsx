@@ -292,6 +292,7 @@ export const APP_REGISTRY = {
       const isAdmin = orgAppRole === 'admin' || user?.role === 'admin' || user?.role === 'team_lead';
       return [
         { type: 'item', path: '/settings/general', label: 'General Settings', icon: Settings },
+        ...(isAdmin ? [{ type: 'item', path: '/settings/companies', label: 'Companies', icon: Building2 }] : []),
         ...(isAdmin ? [{ type: 'item', path: '/settings/users', label: 'Users & Teams', icon: Users }] : []),
         ...(isAdmin ? [{ type: 'item', path: '/settings/email-logs', label: 'Email Logs', icon: Inbox }] : []),
         { type: 'item', path: '/settings/outreach', label: 'Outreach', icon: Mail },

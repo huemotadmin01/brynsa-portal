@@ -46,10 +46,15 @@ function AppLauncherPage() {
         <AppGrid />
 
         {/* Powered by Rivvra */}
-        <div className="flex items-center justify-center gap-1.5 mt-12 opacity-40">
-          <RivvraLogo className="w-3.5 h-3.5" />
+        <a
+          href="https://rivvra.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center justify-center gap-1.5 mt-12 opacity-40 hover:opacity-60 transition-opacity"
+        >
+          <RivvraLogo className="w-4 h-4" />
           <span className="text-xs text-dark-500">Powered by Rivvra</span>
-        </div>
+        </a>
       </div>
 
       {/* Keyframes for animations */}

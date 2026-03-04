@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { usePlatform } from '../../context/PlatformContext';
 import { useCompany } from '../../context/CompanyContext';
 import { LayoutGrid, LogOut, Settings, Building2, UserCircle, Menu, X, ChevronDown, Check } from 'lucide-react';
+import RivvraLogo from '../BrynsaLogo';
 
 const appColorMap = {
   rivvra: 'text-rivvra-400',
@@ -51,9 +52,10 @@ function TopBar({ onToggleSidebar, sidebarOpen }) {
               {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
           )}
-          <Link to={orgPath('/home')} className="flex items-center gap-2.5">
+          <Link to={orgPath('/home')} className="flex items-center gap-2">
+            <RivvraLogo className="w-7 h-7" />
             <span className="text-base font-bold text-white tracking-tight">Rivvra</span>
-            <div className="w-px h-4 bg-dark-700" />
+            <div className="w-px h-4 bg-dark-700 ml-0.5" />
             <LayoutGrid className="w-5 h-5 text-dark-400" />
           </Link>
 

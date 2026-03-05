@@ -206,6 +206,9 @@ function EarningsCard({ data, title, onDownload, downloading }) {
           <div className="mt-4 space-y-1.5">
             <div className="flex justify-between text-sm"><span className="text-dark-400">Total Hours</span><span className="font-medium text-white">{data.breakdown?.totalHours || 0}h</span></div>
             <div className="flex justify-between text-sm"><span className="text-dark-400">Working Days</span><span className="font-medium text-white">{data.breakdown?.totalWorkingDays || 0}</span></div>
+            {data.breakdown?.paidLeave > 0 && (
+              <div className="flex justify-between text-sm"><span className="text-dark-400">Paid Leave</span><span className="font-medium text-emerald-400">+{data.breakdown.paidLeave}</span></div>
+            )}
             <div className="flex justify-between text-sm"><span className="text-dark-400">Leaves</span><span className="font-medium text-white">{data.breakdown?.totalLeaves || 0}</span></div>
             <div className="flex justify-between text-sm"><span className="text-dark-400">Holidays</span><span className="font-medium text-white">{data.breakdown?.totalHolidays || 0}</span></div>
           </div>

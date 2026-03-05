@@ -143,7 +143,7 @@ async function downloadPayslipPDF(month, year, showToast) {
         <tr><td class="lbl">PAN No.</td><td class="val">${s.bankPan}</td></tr>
         <tr><td class="lbl">Pay Type</td><td class="val">${emp.payType === 'monthly' ? 'Monthly' : 'Daily'}</td></tr>
         ${rateDisplay ? `<tr><td class="lbl">Rate</td><td class="val">${rateDisplay}</td></tr>` : ''}
-        <tr><td class="lbl">Working Days</td><td class="val">${brk.totalWorkingDays} of ${brk.totalWorkingDaysInMonth}${brk.paidLeave ? ` (${brk.paidLeave} paid leave)` : ''}</td></tr>
+        <tr><td class="lbl">Working Days</td><td class="val">${brk.totalWorkingDays} of ${brk.totalWorkingDaysInMonth}${brk.holidays ? ` + ${brk.holidays} holiday${brk.holidays > 1 ? 's' : ''}` : ''}${brk.paidLeave ? ` + ${brk.paidLeave} paid leave` : ''}</td></tr>
       </table>
     </div>
   </div>

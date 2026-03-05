@@ -4,12 +4,7 @@ import { useTimesheetContext } from '../../context/TimesheetContext';
 import { usePlatform } from '../../context/PlatformContext';
 import { useToast } from '../../context/ToastContext';
 import timesheetApi from '../../utils/timesheetApi';
-import { API_BASE_URL } from '../../utils/config';
-import DOMPurify from 'dompurify';
 import { Clock, Loader2, Download, FileText } from 'lucide-react';
-
-/** Sanitize a string for safe HTML interpolation */
-const esc = (str) => DOMPurify.sanitize(String(str ?? ''), { ALLOWED_TAGS: [], ALLOWED_ATTR: [] });
 
 const monthNames = ['', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
@@ -41,9 +36,9 @@ function numberToWords(num) {
   return words + ' Only';
 }
 
-/** Download payslip as PDF */
+/** Download payslip as PDF using jsPDF (programmatic — no html2canvas) */
 async function downloadPayslipPDF(month, year, showToast) {
-  const html2pdf = (await import('html2pdf.js')).default;
+  const { jsPDF } = await import('jspdf');
   const res = await timesheetApi.get('/earnings/payslip', { params: { month, year } });
   const data = res.data;
 
@@ -55,164 +50,189 @@ async function downloadPayslipPDF(month, year, showToast) {
   const fmt = (n) => Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const joinDate = emp.joiningDate ? new Date(emp.joiningDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '\u2014';
 
-  // Sanitize all user/org-supplied strings to prevent stored XSS
   const s = {
-    coName: esc(co.name) || 'Company', coAddr: esc(co.address), coPhone: esc(co.phone), coWebsite: esc(co.website),
-    empName: esc(emp.name), empId: esc(emp.employeeId) || '\u2014',
-    empDesig: esc(emp.designation) || '\u2014', empDept: esc(emp.department) || '\u2014',
-    bankName: esc(emp.bankDetails?.bankName) || '\u2014', bankAcc: esc(emp.bankDetails?.accountNumber) || '\u2014',
-    bankPan: esc(emp.bankDetails?.pan) || '\u2014',
+    coName: (co.name) || 'Company', coAddr: co.address || '', coPhone: co.phone || '', coWebsite: co.website || '',
+    empName: emp.name || '', empId: emp.employeeId || '\u2014',
+    empDesig: emp.designation || '\u2014', empDept: emp.department || '\u2014',
+    bankName: emp.bankDetails?.bankName || '\u2014', bankAcc: emp.bankDetails?.accountNumber || '\u2014',
+    bankPan: emp.bankDetails?.pan || '\u2014',
   };
 
-  // Rate display: show per-day or per-month rate when > 0
   let rateDisplay = '';
-  if (emp.dailyRate > 0) rateDisplay = `\u20B9${Number(emp.dailyRate).toLocaleString('en-IN')}/day`;
-  else if (emp.monthlyRate > 0) rateDisplay = `\u20B9${Number(emp.monthlyRate).toLocaleString('en-IN')}/month`;
+  if (emp.dailyRate > 0) rateDisplay = `Rs.${Number(emp.dailyRate).toLocaleString('en-IN')}/day`;
+  else if (emp.monthlyRate > 0) rateDisplay = `Rs.${Number(emp.monthlyRate).toLocaleString('en-IN')}/month`;
 
-  // Logo: use org logo endpoint if available
-  const logoUrl = co.logoUrl ? `${API_BASE_URL}${co.logoUrl}` : '';
-  const logoImg = logoUrl ? `<img src="${logoUrl}" style="max-height:50px;max-width:160px;object-fit:contain;" crossorigin="anonymous" />` : '';
+  // --- Build PDF with jsPDF ---
+  const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+  const pageW = doc.internal.pageSize.getWidth();   // 210
+  const margin = 15;
+  const contentW = pageW - margin * 2;               // 180
+  let y = margin;
+  const primary = [26, 82, 118];  // #1a5276
+  const gray = [102, 102, 102];
+  const lightGray = [136, 136, 136];
+  const black = [26, 26, 26];
+  const white = [255, 255, 255];
+  const lineColor = [220, 220, 220];
+  const headerBg = [247, 249, 252];
 
-  const htmlContent = `
-<div style="font-family:'Segoe UI',Arial,sans-serif;color:#1a1a1a;background:#fff;padding:40px 50px;max-width:800px;margin:0 auto">
-<style>
-  .header{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:20px;border-bottom:3px solid #1a5276}
-  .header-left{display:flex;align-items:center;gap:16px}
-  .company-info h1{font-size:20px;font-weight:700;color:#1a5276;margin-bottom:2px}
-  .company-info p{font-size:10px;color:#666;line-height:1.5}
-  .header-right{text-align:right}
-  .slip-title{font-size:18px;font-weight:700;color:#1a5276;text-transform:uppercase;letter-spacing:1px}
-  .slip-period{font-size:12px;color:#555;margin-top:4px}
-  .section{margin-top:20px}
-  .section-title{font-size:11px;font-weight:700;color:#fff;background:#1a5276;padding:6px 12px;text-transform:uppercase;letter-spacing:0.5px}
-  .info-table{width:100%;border-collapse:collapse}
-  .info-table td{padding:7px 12px;font-size:11px;border-bottom:1px solid #eee}
-  .info-table .lbl{color:#888;width:140px;font-weight:500}
-  .info-table .val{color:#1a1a1a;font-weight:600}
-  .earn-table{width:100%;border-collapse:collapse;margin-top:0}
-  .earn-table th{background:#f7f9fc;color:#1a5276;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;padding:8px 12px;border-bottom:2px solid #1a5276;text-align:left}
-  .earn-table th:last-child{text-align:right}
-  .earn-table td{padding:8px 12px;font-size:11px;border-bottom:1px solid #eee}
-  .earn-table td:last-child{text-align:right;font-weight:600}
-  .earn-table .total-row{background:#f7f9fc;font-weight:700}
-  .earn-table .total-row td{border-top:2px solid #1a5276;border-bottom:2px solid #1a5276}
-  .net-box{background:#1a5276;color:#fff;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;margin-top:0}
-  .net-box .net-label{font-size:13px;font-weight:600}
-  .net-box .net-amount{font-size:20px;font-weight:700;letter-spacing:0.5px}
-  .words{font-size:10px;color:#555;padding:8px 12px;background:#f9f9f9;border:1px solid #eee;margin-top:10px;font-style:italic}
-  .footer{margin-top:30px;padding-top:15px;border-top:1px solid #ddd;text-align:center}
-  .footer-left{font-size:9px;color:#aaa;line-height:1.6}
-  .two-col{display:flex;gap:0}
-  .two-col > div{flex:1}
-</style>
+  // Helper: draw a filled rect
+  const fillRect = (x, yy, w, h, color) => { doc.setFillColor(...color); doc.rect(x, yy, w, h, 'F'); };
+  // Helper: draw a line
+  const drawLine = (x1, y1, x2, y2, color = lineColor, width = 0.3) => {
+    doc.setDrawColor(...color); doc.setLineWidth(width); doc.line(x1, y1, x2, y2);
+  };
 
-<!-- Header -->
-<div class="header">
-  <div class="header-left">
-    ${logoImg}
-    <div class="company-info">
-      <h1>${s.coName}</h1>
-      ${s.coAddr ? `<p>${s.coAddr}</p>` : ''}
-      ${s.coPhone ? `<p>Phone: ${s.coPhone}</p>` : ''}
-      ${s.coWebsite ? `<p>${s.coWebsite}</p>` : ''}
-    </div>
-  </div>
-  <div class="header-right">
-    <div class="slip-title">Payslip</div>
-    <div class="slip-period">${monthNames[data.month]} ${data.year}</div>
-  </div>
-</div>
+  // ===== HEADER =====
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(16); doc.setTextColor(...primary);
+  doc.text(s.coName, margin, y + 6);
+  // Payslip title on right
+  doc.setFontSize(15);
+  doc.text('PAYSLIP', pageW - margin, y + 6, { align: 'right' });
+  y += 10;
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(...gray);
+  if (s.coAddr) { doc.text(s.coAddr, margin, y); y += 3.5; }
+  if (s.coPhone) { doc.text('Phone: ' + s.coPhone, margin, y); y += 3.5; }
+  if (s.coWebsite) { doc.text(s.coWebsite, margin, y); y += 3.5; }
+  // Period on right
+  doc.setFontSize(10); doc.setTextColor(...gray);
+  doc.text(`${monthNames[data.month]} ${data.year}`, pageW - margin, margin + 12, { align: 'right' });
+  y = Math.max(y, margin + 16);
+  // Header border
+  drawLine(margin, y, pageW - margin, y, primary, 0.8);
+  y += 6;
 
-<!-- Employee Details -->
-<div class="section">
-  <div class="section-title">Employee Details</div>
-  <div class="two-col">
-    <div>
-      <table class="info-table">
-        <tr><td class="lbl">Employee Name</td><td class="val">${s.empName}</td></tr>
-        <tr><td class="lbl">Employee ID</td><td class="val">${s.empId}</td></tr>
-        <tr><td class="lbl">Designation</td><td class="val">${s.empDesig}</td></tr>
-        <tr><td class="lbl">Department</td><td class="val">${s.empDept}</td></tr>
-        <tr><td class="lbl">Date of Joining</td><td class="val">${joinDate}</td></tr>
-      </table>
-    </div>
-    <div>
-      <table class="info-table">
-        <tr><td class="lbl">Bank Name</td><td class="val">${s.bankName}</td></tr>
-        <tr><td class="lbl">Bank A/c No.</td><td class="val">${s.bankAcc}</td></tr>
-        <tr><td class="lbl">PAN No.</td><td class="val">${s.bankPan}</td></tr>
-        <tr><td class="lbl">Pay Type</td><td class="val">${emp.payType === 'monthly' ? 'Monthly' : 'Daily'}</td></tr>
-        ${rateDisplay ? `<tr><td class="lbl">Rate</td><td class="val">${rateDisplay}</td></tr>` : ''}
-        <tr><td class="lbl">Working Days</td><td class="val">${brk.totalWorkingDays} of ${brk.totalWorkingDaysInMonth}${brk.holidays ? ` + ${brk.holidays} holiday${brk.holidays > 1 ? 's' : ''}` : ''}${brk.paidLeave ? ` + ${brk.paidLeave} paid leave` : ''}</td></tr>
-      </table>
-    </div>
-  </div>
-</div>
+  // ===== EMPLOYEE DETAILS SECTION =====
+  fillRect(margin, y, contentW, 7, primary);
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(...white);
+  doc.text('EMPLOYEE DETAILS', margin + 4, y + 5);
+  y += 9;
 
-<!-- Earnings & Deductions -->
-<div class="section">
-  <div class="section-title">Earnings & Deductions</div>
-  <table class="earn-table">
-    <thead><tr><th style="width:50%">Earnings</th><th style="width:50%;text-align:right">Amount (\u20B9)</th></tr></thead>
-    <tbody>
-      <tr><td>Consultancy Fees</td><td>\u20B9 ${fmt(earn.grossAmount)}</td></tr>
-      <tr class="total-row"><td>Total Earnings (A)</td><td>\u20B9 ${fmt(earn.grossAmount)}</td></tr>
-    </tbody>
-  </table>
-  <table class="earn-table" style="margin-top:10px">
-    <thead><tr><th style="width:50%">Deductions</th><th style="width:50%;text-align:right">Amount (\u20B9)</th></tr></thead>
-    <tbody>
-      <tr><td>TDS (${(earn.tdsRate * 100)}%)</td><td>\u20B9 ${fmt(earn.tdsAmount)}</td></tr>
-      <tr class="total-row"><td>Total Deductions (B)</td><td>\u20B9 ${fmt(earn.tdsAmount)}</td></tr>
-    </tbody>
-  </table>
-</div>
+  // Two-column employee info
+  const col1X = margin;
+  const col2X = margin + contentW / 2;
+  const lblW = 32;
+  const rowH = 5.5;
 
-<!-- Net Pay -->
-<div class="net-box">
-  <span class="net-label">Net Pay (A \u2212 B)</span>
-  <span class="net-amount">\u20B9 ${fmt(earn.netAmount)}</span>
-</div>
-<div class="words"><strong>Amount in Words:</strong> ${numberToWords(earn.netAmount)}</div>
+  const drawInfoRow = (x, yy, label, value) => {
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(...lightGray);
+    doc.text(label, x + 3, yy);
+    doc.setFont('helvetica', 'bold'); doc.setTextColor(...black);
+    doc.text(String(value), x + lblW, yy);
+    drawLine(x, yy + 1.5, x + contentW / 2 - 2, yy + 1.5);
+  };
 
-<!-- Footer -->
-<div class="footer">
-  <div class="footer-left">
-    This is a system-generated payslip and does not require a physical signature.<br/>
-    Generated on ${new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
-  </div>
-</div>
-</div>`;
+  const leftRows = [
+    ['Employee Name', s.empName], ['Employee ID', s.empId], ['Designation', s.empDesig],
+    ['Department', s.empDept], ['Date of Joining', joinDate],
+  ];
 
-  // Build PDF filename: Payslip_EmployeeName_Month_Year.pdf
+  let workingDaysVal = `${brk.totalWorkingDays} of ${brk.totalWorkingDaysInMonth}`;
+  if (brk.holidays) workingDaysVal += ` + ${brk.holidays} holiday${brk.holidays > 1 ? 's' : ''}`;
+  if (brk.paidLeave) workingDaysVal += ` + ${brk.paidLeave} paid leave`;
+
+  const rightRows = [
+    ['Bank Name', s.bankName], ['Bank A/c No.', s.bankAcc], ['PAN No.', s.bankPan],
+    ['Pay Type', emp.payType === 'monthly' ? 'Monthly' : 'Daily'],
+  ];
+  if (rateDisplay) rightRows.push(['Rate', rateDisplay]);
+  rightRows.push(['Working Days', workingDaysVal]);
+
+  const maxRows = Math.max(leftRows.length, rightRows.length);
+  for (let i = 0; i < maxRows; i++) {
+    if (leftRows[i]) drawInfoRow(col1X, y, leftRows[i][0], leftRows[i][1]);
+    if (rightRows[i]) drawInfoRow(col2X, y, rightRows[i][0], rightRows[i][1]);
+    y += rowH;
+  }
+  y += 4;
+
+  // ===== EARNINGS & DEDUCTIONS =====
+  fillRect(margin, y, contentW, 7, primary);
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(...white);
+  doc.text('EARNINGS & DEDUCTIONS', margin + 4, y + 5);
+  y += 9;
+
+  // Earnings table header
+  fillRect(margin, y, contentW, 6, headerBg);
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(7.5); doc.setTextColor(...primary);
+  doc.text('EARNINGS', margin + 3, y + 4);
+  doc.text('AMOUNT (Rs.)', pageW - margin - 3, y + 4, { align: 'right' });
+  drawLine(margin, y + 6, pageW - margin, y + 6, primary, 0.5);
+  y += 8;
+
+  // Consultancy Fees row
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(...black);
+  doc.text('Consultancy Fees', margin + 3, y + 3);
+  doc.setFont('helvetica', 'bold');
+  doc.text(`Rs. ${fmt(earn.grossAmount)}`, pageW - margin - 3, y + 3, { align: 'right' });
+  drawLine(margin, y + 5, pageW - margin, y + 5);
+  y += 7;
+
+  // Total Earnings row
+  fillRect(margin, y, contentW, 6, headerBg);
+  drawLine(margin, y, pageW - margin, y, primary, 0.5);
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(8.5); doc.setTextColor(...black);
+  doc.text('Total Earnings (A)', margin + 3, y + 4);
+  doc.text(`Rs. ${fmt(earn.grossAmount)}`, pageW - margin - 3, y + 4, { align: 'right' });
+  drawLine(margin, y + 6, pageW - margin, y + 6, primary, 0.5);
+  y += 10;
+
+  // Deductions table header
+  fillRect(margin, y, contentW, 6, headerBg);
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(7.5); doc.setTextColor(...primary);
+  doc.text('DEDUCTIONS', margin + 3, y + 4);
+  doc.text('AMOUNT (Rs.)', pageW - margin - 3, y + 4, { align: 'right' });
+  drawLine(margin, y + 6, pageW - margin, y + 6, primary, 0.5);
+  y += 8;
+
+  // TDS row
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(...black);
+  doc.text(`TDS (${(earn.tdsRate * 100)}%)`, margin + 3, y + 3);
+  doc.setFont('helvetica', 'bold');
+  doc.text(`Rs. ${fmt(earn.tdsAmount)}`, pageW - margin - 3, y + 3, { align: 'right' });
+  drawLine(margin, y + 5, pageW - margin, y + 5);
+  y += 7;
+
+  // Total Deductions row
+  fillRect(margin, y, contentW, 6, headerBg);
+  drawLine(margin, y, pageW - margin, y, primary, 0.5);
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(8.5); doc.setTextColor(...black);
+  doc.text('Total Deductions (B)', margin + 3, y + 4);
+  doc.text(`Rs. ${fmt(earn.tdsAmount)}`, pageW - margin - 3, y + 4, { align: 'right' });
+  drawLine(margin, y + 6, pageW - margin, y + 6, primary, 0.5);
+  y += 10;
+
+  // ===== NET PAY BOX =====
+  fillRect(margin, y, contentW, 12, primary);
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(...white);
+  doc.text('Net Pay (A \u2212 B)', margin + 6, y + 8);
+  doc.setFontSize(14);
+  doc.text(`Rs. ${fmt(earn.netAmount)}`, pageW - margin - 6, y + 8, { align: 'right' });
+  y += 15;
+
+  // Amount in words
+  fillRect(margin, y, contentW, 8, [249, 249, 249]);
+  doc.setDrawColor(...lineColor); doc.setLineWidth(0.2);
+  doc.rect(margin, y, contentW, 8, 'S');
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(7); doc.setTextColor(...gray);
+  doc.text('Amount in Words:', margin + 3, y + 5);
+  doc.setFont('helvetica', 'italic');
+  doc.text(numberToWords(earn.netAmount), margin + 30, y + 5);
+  y += 14;
+
+  // ===== FOOTER =====
+  drawLine(margin, y, pageW - margin, y, lineColor, 0.3);
+  y += 5;
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(170, 170, 170);
+  doc.text('This is a system-generated payslip and does not require a physical signature.', pageW / 2, y, { align: 'center' });
+  y += 3.5;
+  doc.text(`Generated on ${new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}`, pageW / 2, y, { align: 'center' });
+
+  // Save PDF
   const safeName = (emp.name || 'Employee').replace(/[^a-zA-Z0-9 ]/g, '').replace(/\s+/g, '_');
   const filename = `Payslip_${safeName}_${monthNames[data.month]}_${data.year}.pdf`;
-
-  // Use an iframe so the payslip HTML renders in a clean, isolated document
-  const iframe = document.createElement('iframe');
-  Object.assign(iframe.style, { position: 'fixed', left: '0', top: '0', width: '800px', height: '1200px', opacity: '0', pointerEvents: 'none' });
-  document.body.appendChild(iframe);
-
-  try {
-    const doc = iframe.contentDocument || iframe.contentWindow.document;
-    doc.open();
-    doc.write(`<!DOCTYPE html><html><head><meta charset="utf-8"></head><body style="margin:0;padding:0;background:#fff">${htmlContent}</body></html>`);
-    doc.close();
-
-    // Wait for images (logo) to load
-    await new Promise(r => setTimeout(r, 500));
-
-    await html2pdf().set({
-      margin: [10, 0, 10, 0],
-      filename,
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true, logging: false },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-    }).from(doc.body).save();
-    showToast('Payslip downloaded');
-  } finally {
-    document.body.removeChild(iframe);
-  }
+  doc.save(filename);
+  showToast('Payslip downloaded');
 }
 
 function EarningsCard({ data, title, onDownload, downloading }) {

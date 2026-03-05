@@ -108,28 +108,31 @@ async function downloadPayslipPDF(month, year, showToast) {
   doc.text('EMPLOYEE DETAILS', margin + 4, y + 5);
   y += 9;
 
-  // Two-column employee info
+  // Two-column employee info with gap between columns
+  const colGap = 6;               // gap between left and right columns
   const col1X = margin;
-  const col2X = margin + contentW / 2;
-  const colW = contentW / 2 - 2;  // usable width per column
-  const lblW = 28;                 // label width
-  const valW = colW - lblW - 3;   // value max width (for text wrapping)
+  const halfW = (contentW - colGap) / 2;
+  const col2X = margin + halfW + colGap;
+  const lblW = 24;                 // label width
   const rowH = 5.5;
 
-  const drawInfoRow = (x, yy, label, value) => {
+  const drawInfoRow = (x, yy, label, value, maxColW) => {
     doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(...lightGray);
     doc.text(label, x + 3, yy);
     doc.setFont('helvetica', 'bold'); doc.setTextColor(...black);
-    // Truncate long values to fit within column
+    // Truncate long values to fit within column (including ".." suffix)
     const valStr = String(value);
-    const maxW = valW;
+    const valMaxW = maxColW - lblW - 3;
     let displayVal = valStr;
-    while (doc.getTextWidth(displayVal) > maxW && displayVal.length > 3) {
-      displayVal = displayVal.slice(0, -1);
+    const dotW = doc.getTextWidth('..');
+    if (doc.getTextWidth(displayVal) > valMaxW) {
+      while (doc.getTextWidth(displayVal) + dotW > valMaxW && displayVal.length > 1) {
+        displayVal = displayVal.slice(0, -1);
+      }
+      displayVal = displayVal.trim() + '..';
     }
-    if (displayVal !== valStr) displayVal = displayVal.trim() + '..';
     doc.text(displayVal, x + lblW, yy);
-    drawLine(x, yy + 1.5, x + colW, yy + 1.5);
+    drawLine(x, yy + 1.5, x + maxColW, yy + 1.5);
   };
 
   const leftRows = [
@@ -150,8 +153,8 @@ async function downloadPayslipPDF(month, year, showToast) {
 
   const maxRows = Math.max(leftRows.length, rightRows.length);
   for (let i = 0; i < maxRows; i++) {
-    if (leftRows[i]) drawInfoRow(col1X, y, leftRows[i][0], leftRows[i][1]);
-    if (rightRows[i]) drawInfoRow(col2X, y, rightRows[i][0], rightRows[i][1]);
+    if (leftRows[i]) drawInfoRow(col1X, y, leftRows[i][0], leftRows[i][1], halfW);
+    if (rightRows[i]) drawInfoRow(col2X, y, rightRows[i][0], rightRows[i][1], halfW);
     y += rowH;
   }
   y += 4;

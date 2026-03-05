@@ -41,8 +41,9 @@ function numberToWords(num) {
   return words + ' Only';
 }
 
-/** Professional HTML payslip — opens in new window for print-to-PDF */
-async function downloadPayslipHTML(month, year, showToast) {
+/** Download payslip as PDF */
+async function downloadPayslipPDF(month, year, showToast) {
+  const html2pdf = (await import('html2pdf.js')).default;
   const res = await timesheetApi.get('/earnings/payslip', { params: { month, year } });
   const data = res.data;
 
@@ -63,15 +64,18 @@ async function downloadPayslipHTML(month, year, showToast) {
     bankPan: esc(emp.bankDetails?.pan) || '\u2014',
   };
 
+  // Rate display: show per-day or per-month rate when > 0
+  let rateDisplay = '';
+  if (emp.dailyRate > 0) rateDisplay = `\u20B9${Number(emp.dailyRate).toLocaleString('en-IN')}/day`;
+  else if (emp.monthlyRate > 0) rateDisplay = `\u20B9${Number(emp.monthlyRate).toLocaleString('en-IN')}/month`;
+
   // Logo: use org logo endpoint if available
   const logoUrl = co.logoUrl ? `${API_BASE_URL}${co.logoUrl}` : '';
   const logoImg = logoUrl ? `<img src="${logoUrl}" style="max-height:50px;max-width:160px;object-fit:contain;" crossorigin="anonymous" />` : '';
 
-  const html = `<!DOCTYPE html>
-<html><head><meta charset="utf-8"><title>Payslip - ${monthNames[data.month]} ${data.year}</title>
+  const htmlContent = `
+<div style="font-family:'Segoe UI',Arial,sans-serif;color:#1a1a1a;background:#fff;padding:40px 50px;max-width:800px;margin:0 auto">
 <style>
-  *{margin:0;padding:0;box-sizing:border-box}
-  body{font-family:'Segoe UI',Arial,sans-serif;color:#1a1a1a;background:#fff;padding:40px 50px;max-width:800px;margin:0 auto}
   .header{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:20px;border-bottom:3px solid #1a5276}
   .header-left{display:flex;align-items:center;gap:16px}
   .company-info h1{font-size:20px;font-weight:700;color:#1a5276;margin-bottom:2px}
@@ -100,8 +104,7 @@ async function downloadPayslipHTML(month, year, showToast) {
   .footer-left{font-size:9px;color:#aaa;line-height:1.6}
   .two-col{display:flex;gap:0}
   .two-col > div{flex:1}
-  @media print{body{padding:20px 30px}}
-</style></head><body>
+</style>
 
 <!-- Header -->
 <div class="header">
@@ -139,6 +142,7 @@ async function downloadPayslipHTML(month, year, showToast) {
         <tr><td class="lbl">Bank A/c No.</td><td class="val">${s.bankAcc}</td></tr>
         <tr><td class="lbl">PAN No.</td><td class="val">${s.bankPan}</td></tr>
         <tr><td class="lbl">Pay Type</td><td class="val">${emp.payType === 'monthly' ? 'Monthly' : 'Daily'}</td></tr>
+        ${rateDisplay ? `<tr><td class="lbl">Rate</td><td class="val">${rateDisplay}</td></tr>` : ''}
         <tr><td class="lbl">Working Days</td><td class="val">${brk.totalWorkingDays} of ${brk.totalWorkingDaysInMonth}${brk.paidLeave ? ` (${brk.paidLeave} paid leave)` : ''}</td></tr>
       </table>
     </div>
@@ -178,16 +182,34 @@ async function downloadPayslipHTML(month, year, showToast) {
     Generated on ${new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
   </div>
 </div>
+</div>`;
 
-</body></html>`;
+  // Build PDF filename: Payslip_EmployeeName_Month_Year.pdf
+  const safeName = (emp.name || 'Employee').replace(/[^a-zA-Z0-9 ]/g, '').replace(/\s+/g, '_');
+  const filename = `Payslip_${safeName}_${monthNames[data.month]}_${data.year}.pdf`;
 
-  const blob = new Blob([html], { type: 'text/html' });
-  const url = URL.createObjectURL(blob);
-  const printWindow = window.open(url, '_blank', 'noopener');
-  if (printWindow) {
-    printWindow.onload = () => { printWindow.print(); };
+  // Render HTML into a hidden container, then convert to PDF
+  const container = document.createElement('div');
+  container.innerHTML = htmlContent;
+  container.style.position = 'fixed';
+  container.style.left = '-9999px';
+  container.style.top = '0';
+  container.style.width = '800px';
+  container.style.background = '#fff';
+  document.body.appendChild(container);
+
+  try {
+    await html2pdf().set({
+      margin: 0,
+      filename,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true, letterRendering: true },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+    }).from(container).save();
+    showToast('Payslip downloaded');
+  } finally {
+    document.body.removeChild(container);
   }
-  showToast('Payslip opened for printing');
 }
 
 function EarningsCard({ data, title, onDownload, downloading }) {
@@ -276,7 +298,7 @@ export default function TimesheetEarnings() {
 
   const handleDownloadPayslip = async (month, year) => {
     setDownloading(`${month}-${year}`);
-    await downloadPayslipHTML(month, year, showToast);
+    await downloadPayslipPDF(month, year, showToast);
     setDownloading(null);
   };
 

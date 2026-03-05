@@ -106,7 +106,7 @@ async function downloadPayslipPDF(month, year, showToast) {
   fillRect(margin, y, contentW, 7, primary);
   doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(...white);
   doc.text('EMPLOYEE DETAILS', margin + 4, y + 5);
-  y += 9;
+  y += 12;
 
   // Helpers
   const rowH = 5.5;

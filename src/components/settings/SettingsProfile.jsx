@@ -8,10 +8,10 @@ import { useAuth } from '../../context/AuthContext';
 import { useOrg } from '../../context/OrgContext';
 import {
   User, Shield, Trash2, AlertTriangle, Loader2, X, LogOut,
-  Mail, Building2, Crown, Briefcase, Check, BarChart3, Lock, Settings2
+  Mail, Building2, Crown, Briefcase, Check, BarChart3, Lock, Settings2,
+  Eye, EyeOff, CheckCircle
 } from 'lucide-react';
 import api from '../../utils/api';
-import ComingSoonModal from '../ComingSoonModal';
 
 export default function SettingsProfile() {
   const navigate = useNavigate();
@@ -105,9 +105,81 @@ export default function SettingsProfile() {
   const [message, setMessage] = useState({ type: '', text: '' });
   const CONFIRM_TEXT = 'DELETE MY ACCOUNT';
 
-  // Coming soon
-  const [showComingSoon, setShowComingSoon] = useState(false);
-  const [comingSoonFeature, setComingSoonFeature] = useState('');
+  // Password forms
+  const [showPasswordForm, setShowPasswordForm] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showCurrentPw, setShowCurrentPw] = useState(false);
+  const [showNewPw, setShowNewPw] = useState(false);
+  const [showConfirmPw, setShowConfirmPw] = useState(false);
+  const [savingPassword, setSavingPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState('');
+  const [passwordSuccess, setPasswordSuccess] = useState('');
+
+  const hasExistingPassword = !!user?.password;
+  const passwordAuthAllowed = (membership?.authMethods || []).includes('password') ||
+    (currentOrg?.authSettings?.allowedMethods || []).includes('password');
+
+  const getPasswordStrength = (pw) => {
+    if (!pw) return 0;
+    let s = 0;
+    if (pw.length >= 10) s++;
+    if (/[A-Z]/.test(pw)) s++;
+    if (/[0-9]/.test(pw)) s++;
+    if (/[^A-Za-z0-9]/.test(pw)) s++;
+    return s;
+  };
+
+  const handlePasswordSubmit = async () => {
+    setPasswordError('');
+    setPasswordSuccess('');
+
+    if (newPassword.length < 10) {
+      setPasswordError('Password must be at least 10 characters');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordError('Passwords do not match');
+      return;
+    }
+
+    setSavingPassword(true);
+    try {
+      let res;
+      if (hasExistingPassword) {
+        if (!currentPassword) {
+          setPasswordError('Current password is required');
+          setSavingPassword(false);
+          return;
+        }
+        res = await api.changePassword(currentPassword, newPassword);
+      } else {
+        res = await api.selfSetPassword(newPassword);
+      }
+
+      if (res.success) {
+        setPasswordSuccess(hasExistingPassword ? 'Password changed successfully' : 'Password set successfully');
+        setCurrentPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
+        setShowPasswordForm(false);
+        // Update user context to reflect they now have a password
+        if (!hasExistingPassword) updateUser({ password: true });
+        // If a new token was returned, store it
+        if (res.token) {
+          localStorage.setItem('rivvra_token', res.token);
+        }
+        setTimeout(() => setPasswordSuccess(''), 3000);
+      } else {
+        setPasswordError(res.error || 'Failed to update password');
+      }
+    } catch (err) {
+      setPasswordError(err.message || 'Failed to update password');
+    } finally {
+      setSavingPassword(false);
+    }
+  };
 
   const isPro = user?.plan === 'pro';
 
@@ -320,16 +392,122 @@ export default function SettingsProfile() {
                 <div className="flex-1">
                   <h3 className="text-sm font-semibold text-white mb-1">Password</h3>
                   <p className="text-xs text-dark-400 mb-3">
-                    {user?.googleId && !user?.password
+                    {!hasExistingPassword
                       ? 'You signed up with Google. You can set a password to enable email login.'
                       : 'Change your password to keep your account secure.'}
                   </p>
-                  <button
-                    onClick={() => { setComingSoonFeature('Change Password'); setShowComingSoon(true); }}
-                    className="px-3 py-1.5 bg-dark-800 text-dark-300 rounded-lg hover:bg-dark-700 hover:text-white transition-colors text-sm"
-                  >
-                    {user?.googleId && !user?.password ? 'Set Password' : 'Change Password'}
-                  </button>
+
+                  {passwordSuccess && (
+                    <div className="flex items-center gap-2 px-3 py-2 bg-green-500/10 border border-green-500/20 rounded-lg text-green-400 text-xs mb-3">
+                      <CheckCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                      {passwordSuccess}
+                    </div>
+                  )}
+
+                  {!showPasswordForm ? (
+                    <button
+                      onClick={() => { setShowPasswordForm(true); setPasswordError(''); setPasswordSuccess(''); }}
+                      disabled={!passwordAuthAllowed}
+                      className="px-3 py-1.5 bg-dark-800 text-dark-300 rounded-lg hover:bg-dark-700 hover:text-white transition-colors text-sm disabled:opacity-40 disabled:cursor-not-allowed"
+                      title={!passwordAuthAllowed ? 'Password auth is not enabled for your organization' : undefined}
+                    >
+                      {hasExistingPassword ? 'Change Password' : 'Set Password'}
+                    </button>
+                  ) : (
+                    <div className="space-y-3 max-w-sm">
+                      {passwordError && (
+                        <div className="px-3 py-2 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-xs">
+                          {passwordError}
+                        </div>
+                      )}
+
+                      {/* Current password — only when changing existing password */}
+                      {hasExistingPassword && (
+                        <div>
+                          <label className="block text-xs text-dark-400 mb-1">Current Password</label>
+                          <div className="relative">
+                            <input
+                              type={showCurrentPw ? 'text' : 'password'}
+                              value={currentPassword}
+                              onChange={(e) => setCurrentPassword(e.target.value)}
+                              className="w-full px-3 py-2 bg-dark-800 border border-dark-600 rounded-lg text-white text-sm focus:outline-none focus:border-rivvra-500 pr-10"
+                              placeholder="Enter current password"
+                            />
+                            <button type="button" onClick={() => setShowCurrentPw(!showCurrentPw)} className="absolute right-2 top-1/2 -translate-y-1/2 text-dark-500 hover:text-dark-300">
+                              {showCurrentPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* New password */}
+                      <div>
+                        <label className="block text-xs text-dark-400 mb-1">New Password</label>
+                        <div className="relative">
+                          <input
+                            type={showNewPw ? 'text' : 'password'}
+                            value={newPassword}
+                            onChange={(e) => setNewPassword(e.target.value)}
+                            className="w-full px-3 py-2 bg-dark-800 border border-dark-600 rounded-lg text-white text-sm focus:outline-none focus:border-rivvra-500 pr-10"
+                            placeholder="Minimum 10 characters"
+                          />
+                          <button type="button" onClick={() => setShowNewPw(!showNewPw)} className="absolute right-2 top-1/2 -translate-y-1/2 text-dark-500 hover:text-dark-300">
+                            {showNewPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </button>
+                        </div>
+                        {/* Strength meter */}
+                        {newPassword && (
+                          <div className="flex gap-1 mt-1.5">
+                            {[1, 2, 3, 4].map((level) => (
+                              <div key={level} className={`h-1 flex-1 rounded-full transition-colors ${
+                                getPasswordStrength(newPassword) >= level
+                                  ? level <= 1 ? 'bg-red-500' : level <= 2 ? 'bg-orange-500' : level <= 3 ? 'bg-yellow-500' : 'bg-green-500'
+                                  : 'bg-dark-700'
+                              }`} />
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Confirm password */}
+                      <div>
+                        <label className="block text-xs text-dark-400 mb-1">Confirm Password</label>
+                        <div className="relative">
+                          <input
+                            type={showConfirmPw ? 'text' : 'password'}
+                            value={confirmPassword}
+                            onChange={(e) => setConfirmPassword(e.target.value)}
+                            className="w-full px-3 py-2 bg-dark-800 border border-dark-600 rounded-lg text-white text-sm focus:outline-none focus:border-rivvra-500 pr-10"
+                            placeholder="Re-enter new password"
+                          />
+                          <button type="button" onClick={() => setShowConfirmPw(!showConfirmPw)} className="absolute right-2 top-1/2 -translate-y-1/2 text-dark-500 hover:text-dark-300">
+                            {showConfirmPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </button>
+                        </div>
+                        {confirmPassword && newPassword !== confirmPassword && (
+                          <p className="text-[10px] text-red-400 mt-1">Passwords do not match</p>
+                        )}
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex items-center gap-2 pt-1">
+                        <button
+                          onClick={handlePasswordSubmit}
+                          disabled={savingPassword || !newPassword || newPassword !== confirmPassword}
+                          className="px-4 py-2 bg-rivvra-500 text-dark-950 rounded-lg text-sm font-medium hover:bg-rivvra-400 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5"
+                        >
+                          {savingPassword ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                          {hasExistingPassword ? 'Change Password' : 'Set Password'}
+                        </button>
+                        <button
+                          onClick={() => { setShowPasswordForm(false); setCurrentPassword(''); setNewPassword(''); setConfirmPassword(''); setPasswordError(''); }}
+                          className="px-4 py-2 text-dark-400 hover:text-white text-sm transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -455,7 +633,6 @@ export default function SettingsProfile() {
         </div>
       )}
 
-      <ComingSoonModal isOpen={showComingSoon} onClose={() => setShowComingSoon(false)} feature={comingSoonFeature} />
     </>
   );
 }

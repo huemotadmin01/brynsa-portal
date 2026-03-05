@@ -138,9 +138,14 @@ export default function OrgLoginPage() {
     }
   }, [loginWithGoogle, checkMembership, logout]);
 
+  // Derive allowed auth methods from org info
+  const allowedMethods = orgInfo?.authSettings?.allowedMethods || ['google'];
+  const googleAuthEnabled = allowedMethods.includes('google');
+  const passwordAuthEnabled = allowedMethods.includes('password');
+
   // Initialize Google Sign-In
   useEffect(() => {
-    if (orgLoading || orgError || googleInitialized.current) return;
+    if (orgLoading || orgError || googleInitialized.current || !googleAuthEnabled) return;
 
     const loadGoogleScript = () => {
       if (window.google?.accounts) {
@@ -347,25 +352,29 @@ export default function OrgLoginPage() {
 
         <div className="animate-fade-in">
           <div className="space-y-6">
-            {/* Google Sign-In */}
-            <div className="relative">
-              {googleLoading && (
-                <div className="absolute inset-0 bg-dark-800 rounded-xl flex items-center justify-center z-10">
-                  <Loader2 className="w-5 h-5 animate-spin text-white" />
-                </div>
-              )}
-              <div id="org-google-signin-button" className="w-full flex justify-center" />
-            </div>
+            {/* Google Sign-In — only if org allows google */}
+            {googleAuthEnabled && (
+              <div className="relative">
+                {googleLoading && (
+                  <div className="absolute inset-0 bg-dark-800 rounded-xl flex items-center justify-center z-10">
+                    <Loader2 className="w-5 h-5 animate-spin text-white" />
+                  </div>
+                )}
+                <div id="org-google-signin-button" className="w-full flex justify-center" />
+              </div>
+            )}
 
-            {/* Divider */}
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-dark-700" />
+            {/* Divider — only if both methods enabled */}
+            {googleAuthEnabled && passwordAuthEnabled && (
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-dark-700" />
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-4 bg-dark-950 text-dark-500">Or</span>
+                </div>
               </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-4 bg-dark-950 text-dark-500">Or</span>
-              </div>
-            </div>
+            )}
 
             {/* Error Display */}
             {error && (
@@ -375,8 +384,8 @@ export default function OrgLoginPage() {
               </div>
             )}
 
-            {/* Login Form */}
-            <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Login Form — only if org allows password */}
+            {passwordAuthEnabled && <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-dark-300 mb-2">Email</label>
                 <div className="relative">
@@ -428,7 +437,16 @@ export default function OrgLoginPage() {
                   </>
                 )}
               </button>
-            </form>
+            </form>}
+
+            {/* Forgot password — only if password auth is shown */}
+            {passwordAuthEnabled && (
+              <div className="text-center">
+                <Link to="/forgot-password" className="text-sm text-dark-400 hover:text-rivvra-400 transition-colors">
+                  Forgot your password?
+                </Link>
+              </div>
+            )}
 
             {/* No signup — ask admin */}
             <div className="text-center">

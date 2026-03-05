@@ -23,6 +23,8 @@ import PrivacyPage from './pages/PrivacyPage';
 import FeaturesPage from './pages/FeaturesPage';
 import PricingPage from './pages/PricingPage';
 import FindWorkspacePage from './pages/FindWorkspacePage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import AppLauncherPage from './pages/AppLauncherPage';
 import UpgradePage from './pages/UpgradePage';
 
@@ -173,6 +175,8 @@ function App() {
             <Route path="/pricing" element={<PricingPage />} />
             <Route path="/privacy" element={<PrivacyPage />} />
             <Route path="/find-workspace" element={<FindWorkspacePage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
 
             {/* Org-specific login — public, no auth required */}
             <Route path="/org/:slug/login" element={<OrgLoginPage />} />

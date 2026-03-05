@@ -1002,6 +1002,53 @@ class ApiClient {
       method: 'POST',
     });
   }
+
+  // ─── Auth Settings & Password Management ────────────────────────────────────
+
+  async updateOrgAuthSettings(orgSlug, data) {
+    return this.request(`/api/org/${orgSlug}/settings/auth`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async sendPasswordReset(orgSlug, userId) {
+    return this.request(`/api/org/${orgSlug}/members/${userId}/send-password-reset`, {
+      method: 'POST',
+    });
+  }
+
+  async validateResetToken(token) {
+    return this.request(`/api/auth/validate-reset-token?token=${encodeURIComponent(token)}`);
+  }
+
+  async setPasswordWithToken(token, newPassword) {
+    return this.request('/api/auth/set-password-with-token', {
+      method: 'POST',
+      body: JSON.stringify({ token, newPassword }),
+    });
+  }
+
+  async selfSetPassword(newPassword) {
+    return this.request('/api/auth/self-set-password', {
+      method: 'POST',
+      body: JSON.stringify({ newPassword }),
+    });
+  }
+
+  async changePassword(currentPassword, newPassword) {
+    return this.request('/api/auth/change-password', {
+      method: 'POST',
+      body: JSON.stringify({ currentPassword, newPassword }),
+    });
+  }
+
+  async forgotPassword(email) {
+    return this.request('/api/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+  }
 }
 
 export const api = new ApiClient();

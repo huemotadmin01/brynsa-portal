@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Mail, UserPlus, Loader2, CheckCircle, AlertTriangle } from 'lucide-react';
+import { X, Mail, UserPlus, Loader2, CheckCircle, AlertTriangle, Lock } from 'lucide-react';
 import { APP_REGISTRY } from '../config/apps';
 import api from '../utils/api';
 
@@ -8,12 +8,27 @@ const INVITABLE_APPS = Object.values(APP_REGISTRY).filter(
   (app) => app.status === 'active' && app.roles && app.id !== 'settings'
 );
 
-function InviteTeamMemberModal({ isOpen, onClose, onInviteSent, licenses, orgSlug }) {
+function InviteTeamMemberModal({ isOpen, onClose, onInviteSent, licenses, orgSlug, orgAllowedAuthMethods = ['google'] }) {
   const [email, setEmail] = useState('');
   const [orgRole, setOrgRole] = useState('member');
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+
+  // Auth method selection (only show if org allows both methods)
+  const showAuthMethodSelector = orgAllowedAuthMethods.length > 1;
+  const [selectedAuthMethods, setSelectedAuthMethods] = useState(orgAllowedAuthMethods);
+
+  const toggleAuthMethod = (method) => {
+    setSelectedAuthMethods((prev) => {
+      if (prev.includes(method)) {
+        // Don't allow removing the last method
+        if (prev.length <= 1) return prev;
+        return prev.filter((m) => m !== method);
+      }
+      return [...prev, method];
+    });
+  };
 
   // Per-app access state: { outreach: { enabled: true, role: 'member' }, timesheet: { enabled: false, role: 'contractor' } }
   const [appAccess, setAppAccess] = useState(() => {
@@ -78,6 +93,7 @@ function InviteTeamMemberModal({ isOpen, onClose, onInviteSent, licenses, orgSlu
           email: trimmed,
           orgRole,
           appAccess: accessPayload,
+          authMethods: selectedAuthMethods,
         });
       } else {
         // Fallback to legacy team invite (standalone users)
@@ -228,6 +244,44 @@ function InviteTeamMemberModal({ isOpen, onClose, onInviteSent, licenses, orgSlu
               ))}
             </div>
           </div>
+
+          {/* Authentication Method — only show if org allows multiple methods */}
+          {showAuthMethodSelector && (
+            <div>
+              <label className="block text-sm font-medium text-dark-300 mb-1.5">Authentication Method</label>
+              <div className="flex gap-2">
+                {orgAllowedAuthMethods.includes('google') && (
+                  <button
+                    type="button"
+                    onClick={() => toggleAuthMethod('google')}
+                    className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+                      selectedAuthMethods.includes('google')
+                        ? 'bg-rivvra-500/10 border border-rivvra-500/30 text-rivvra-400'
+                        : 'bg-dark-800 border border-dark-600 text-dark-400 hover:text-white hover:border-dark-500'
+                    }`}
+                  >
+                    <svg className="w-4 h-4" viewBox="0 0 24 24"><path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/><path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/></svg>
+                    Google
+                  </button>
+                )}
+                {orgAllowedAuthMethods.includes('password') && (
+                  <button
+                    type="button"
+                    onClick={() => toggleAuthMethod('password')}
+                    className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+                      selectedAuthMethods.includes('password')
+                        ? 'bg-rivvra-500/10 border border-rivvra-500/30 text-rivvra-400'
+                        : 'bg-dark-800 border border-dark-600 text-dark-400 hover:text-white hover:border-dark-500'
+                    }`}
+                  >
+                    <Lock className="w-4 h-4" />
+                    Password
+                  </button>
+                )}
+              </div>
+              <p className="text-xs text-dark-500 mt-1">Select which sign-in methods this user can use.</p>
+            </div>
+          )}
 
           {/* App Access */}
           {orgSlug && INVITABLE_APPS.length > 0 && (

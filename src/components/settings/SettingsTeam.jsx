@@ -15,6 +15,7 @@ import {
   Users, UserPlus, UserX, Mail, Loader2, Check,
   ChevronDown, Clock, X, ArrowLeftRight, Shield, ShieldCheck,
   Crown, Link2, Unlink, Search, RotateCcw, Trash2, Building2,
+  Lock, KeyRound,
 } from 'lucide-react';
 import api from '../../utils/api';
 import employeeApi from '../../utils/employeeApi';
@@ -71,6 +72,9 @@ export default function SettingsTeam() {
 
   // Send workspace link
   const [sendingLink, setSendingLink] = useState(null); // userId being sent
+
+  // Send password reset link
+  const [sendingPasswordReset, setSendingPasswordReset] = useState(null); // userId
 
   // Related Employee linking
   const [employees, setEmployees] = useState([]);
@@ -286,6 +290,23 @@ export default function SettingsTeam() {
       showToast(err.message || 'Failed to send invitation', 'error');
     } finally {
       setSendingLink(null);
+    }
+  }
+
+  async function handleSendPasswordReset(userId) {
+    if (sendingPasswordReset) return;
+    setSendingPasswordReset(userId);
+    try {
+      const res = await api.sendPasswordReset(orgSlug, userId);
+      if (res.success) {
+        showToast(res.message || 'Password reset link sent', 'success');
+      } else {
+        showToast(res.error || 'Failed to send password reset', 'error');
+      }
+    } catch (err) {
+      showToast(err.message || 'Failed to send password reset', 'error');
+    } finally {
+      setSendingPasswordReset(null);
     }
   }
 
@@ -571,6 +592,33 @@ export default function SettingsTeam() {
                         </div>
                       </div>
 
+                      {/* Authentication Methods */}
+                      <div>
+                        <label className="block text-[10px] uppercase text-dark-500 font-semibold mb-2 tracking-wider">Authentication Methods</label>
+                        <div className="flex items-center gap-2">
+                          {member.hasGoogle && (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-dark-800/50 border border-dark-700/50 rounded-lg text-xs text-dark-300">
+                              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24"><path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/><path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/></svg>
+                              Google
+                            </span>
+                          )}
+                          {member.hasPassword && (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-dark-800/50 border border-dark-700/50 rounded-lg text-xs text-dark-300">
+                              <Lock className="w-3.5 h-3.5" />
+                              Password
+                            </span>
+                          )}
+                          {!member.hasGoogle && !member.hasPassword && (
+                            <span className="text-xs text-dark-500">No auth methods configured</span>
+                          )}
+                          {member.authMethods && (
+                            <span className="text-[10px] text-dark-500 ml-2">
+                              Allowed: {member.authMethods.join(', ')}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
                       {/* App Access */}
                       <div>
                         <label className="block text-[10px] uppercase text-dark-500 font-semibold mb-2 tracking-wider">App Access</label>
@@ -769,6 +817,17 @@ export default function SettingsTeam() {
                                 {sendingLink === member.userId?.toString() ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RotateCcw className="w-3.5 h-3.5" />}
                                 Resend Invitation
                               </button>
+                              {/* Send Password Reset — only if org allows password auth */}
+                              {(currentOrg?.authSettings?.allowedMethods || []).includes('password') && (
+                                <button
+                                  onClick={() => handleSendPasswordReset(member.userId?.toString())}
+                                  disabled={sendingPasswordReset === member.userId?.toString()}
+                                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-purple-400 hover:bg-purple-500/10 rounded-lg transition-colors"
+                                >
+                                  {sendingPasswordReset === member.userId?.toString() ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <KeyRound className="w-3.5 h-3.5" />}
+                                  {member.hasPassword ? 'Reset Password' : 'Set Password'}
+                                </button>
+                              )}
                               <button
                                 onClick={() => handleImpersonate(member.userId)}
                                 className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-amber-400 hover:bg-amber-500/10 rounded-lg transition-colors"
@@ -908,6 +967,7 @@ export default function SettingsTeam() {
         onClose={() => setInviteOpen(false)}
         onInviteSent={() => loadMembers()}
         orgSlug={orgSlug}
+        orgAllowedAuthMethods={currentOrg?.authSettings?.allowedMethods || ['google']}
       />
     </>
   );

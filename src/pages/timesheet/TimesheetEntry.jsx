@@ -101,7 +101,19 @@ export default function TimesheetEntry() {
   const cycleStatus = (day) => {
     if (!canEdit) return;
     const entry = entries[day] || { hours: '', status: null };
-    if (entry.status === 'weekend') return;
+    const dayOfWeek = new Date(year, month - 1, day).getDay();
+    const isWeekendDay = dayOfWeek === 0 || dayOfWeek === 6;
+
+    if (isWeekendDay) {
+      // Weekend: toggle between weekend (no work) and working (8h)
+      if (entry.status === 'working') {
+        setEntries(prev => ({ ...prev, [day]: { hours: 0, status: 'weekend' } }));
+      } else {
+        setEntries(prev => ({ ...prev, [day]: { hours: 8, status: 'working' } }));
+      }
+      return;
+    }
+    // Weekday: cycle working → leave → holiday
     const order = ['working', 'leave', 'holiday'];
     const currentIdx = entry.status ? order.indexOf(entry.status) : -1;
     const next = order[(currentIdx + 1) % order.length];
@@ -112,15 +124,23 @@ export default function TimesheetEntry() {
   const setHours = (day, value) => {
     if (!canEdit) return;
     const entry = entries[day] || { hours: '', status: null };
-    if (entry.status === 'weekend') return;
+    const dayOfWeek = new Date(year, month - 1, day).getDay();
+    const isWeekendDay = dayOfWeek === 0 || dayOfWeek === 6;
+
     if (value === '' || value === undefined) {
-      setEntries(prev => ({ ...prev, [day]: { hours: '', status: entry.status === 'leave' || entry.status === 'holiday' ? entry.status : null } }));
+      setEntries(prev => ({
+        ...prev,
+        [day]: {
+          hours: isWeekendDay ? 0 : '',
+          status: isWeekendDay ? 'weekend' : (entry.status === 'leave' || entry.status === 'holiday' ? entry.status : null)
+        }
+      }));
       return;
     }
     const num = parseFloat(value);
     if (isNaN(num)) return;
     const clamped = Math.min(24, Math.max(0, num));
-    const newStatus = clamped > 0 ? 'working' : (entry.status === 'leave' || entry.status === 'holiday' ? entry.status : null);
+    const newStatus = clamped > 0 ? 'working' : (isWeekendDay ? 'weekend' : (entry.status === 'leave' || entry.status === 'holiday' ? entry.status : null));
     setEntries(prev => ({ ...prev, [day]: { hours: clamped, status: newStatus } }));
   };
 
@@ -223,7 +243,8 @@ export default function TimesheetEntry() {
       const date = new Date(year, month - 1, d);
       if (date > today) continue; // skip future days
       const entry = entries[d] || { hours: '', status: null };
-      if (entry.status === 'weekend') continue;
+      const dow = new Date(year, month - 1, d).getDay();
+      if (dow === 0 || dow === 6) continue; // weekends are optional
       if (entry.status === 'leave' || entry.status === 'holiday') continue;
       if (entry.status === 'working' && (parseFloat(entry.hours) || 0) > 0) continue;
       // This day is unfilled or has 0 hours — needs attention
@@ -340,17 +361,21 @@ export default function TimesheetEntry() {
                 const day = i + 1;
                 const entry = entries[day] || { hours: '', status: null };
                 const isToday = day === now.getDate() && month === now.getMonth() + 1 && year === now.getFullYear();
-                const isWeekend = entry.status === 'weekend';
+                const dayOfWeek = new Date(year, month - 1, day).getDay();
+                const isWeekendDay = dayOfWeek === 0 || dayOfWeek === 6;
+                const isWeekendIdle = entry.status === 'weekend'; // weekend with no work logged
                 const isNonWorking = entry.status === 'leave' || entry.status === 'holiday';
                 const hasStatus = entry.status !== null;
                 const hoursNum = parseFloat(entry.hours) || 0;
                 const dateObj = new Date(year, month - 1, day);
-                const isPastUnfilled = dateObj < new Date(now.getFullYear(), now.getMonth(), now.getDate()) && !isWeekend && !hasStatus;
+                const isPastUnfilled = dateObj < new Date(now.getFullYear(), now.getMonth(), now.getDate()) && !isWeekendDay && !hasStatus;
+                const isWeekendWorking = isWeekendDay && entry.status === 'working' && hoursNum > 0;
 
                 return (
                   <div key={day} className={`p-1 sm:p-1.5 border-b border-r border-dark-800/50 min-h-[72px] sm:min-h-[88px] transition-colors ${
                     isPastUnfilled ? 'bg-amber-500/5 border-amber-500/20' :
-                    isWeekend ? 'bg-dark-800/30' :
+                    isWeekendWorking ? 'bg-blue-500/5' :
+                    isWeekendDay ? 'bg-dark-800/30' :
                     isNonWorking ? (entry.status === 'leave' ? 'bg-red-500/5' : 'bg-purple-500/5') :
                     entry.status === 'working' && hoursNum > 8 ? 'bg-blue-500/5' :
                     entry.status === 'working' && hoursNum > 0 ? 'bg-emerald-500/5' : ''
@@ -359,31 +384,49 @@ export default function TimesheetEntry() {
                       <span className={`text-xs font-medium ${isToday ? 'bg-rivvra-500 text-dark-950 w-5 h-5 rounded-full flex items-center justify-center' : 'text-dark-300'}`}>
                         {day}
                       </span>
+                      {isWeekendDay && (
+                        <span className="text-[7px] sm:text-[8px] font-medium text-dark-500 bg-dark-700/50 px-1 py-0.5 rounded">WE</span>
+                      )}
                     </div>
 
-                    {!isWeekend && !isNonWorking ? (
+                    {!isNonWorking ? (
                       <div className="flex items-center justify-center mb-1">
                         <input
                           type="number"
-                          value={entry.hours === '' || entry.hours === null || entry.hours === undefined ? '' : entry.hours}
+                          value={isWeekendIdle ? '' : (entry.hours === '' || entry.hours === null || entry.hours === undefined ? '' : entry.hours)}
                           onChange={e => setHours(day, e.target.value)}
                           onFocus={e => e.target.select()}
                           disabled={isReadOnly}
-                          min="0" max="24" step="0.5" placeholder="8"
+                          min="0" max="24" step="0.5" placeholder={isWeekendDay ? '0' : '8'}
                           className="w-9 sm:w-12 h-6 sm:h-7 text-center text-xs sm:text-sm font-semibold bg-dark-800 border border-dark-700 rounded text-white focus:outline-none focus:ring-1 focus:ring-rivvra-500 focus:border-rivvra-500 disabled:bg-dark-800/50 disabled:text-dark-500 placeholder:text-dark-600 placeholder:font-normal [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         />
                         <span className="text-[10px] text-dark-500 ml-0.5 hidden sm:inline">h</span>
                       </div>
                     ) : (
                       <div className="flex items-center justify-center mb-1">
-                        <span className="text-xs text-dark-500">{isWeekend ? '' : '0h'}</span>
+                        <span className="text-xs text-dark-500">0h</span>
                       </div>
                     )}
 
                     <div className="text-center min-h-[18px]">
-                      {hasStatus ? (
-                        <button onClick={() => cycleStatus(day)} disabled={isReadOnly || isWeekend}
-                          className={`inline-block px-1 sm:px-1.5 py-0.5 rounded text-[8px] sm:text-[9px] font-medium text-white ${statusColors[entry.status]} ${!isReadOnly && !isWeekend ? 'cursor-pointer hover:opacity-80' : 'cursor-default'}`}>
+                      {isWeekendDay ? (
+                        // Weekend: show working badge if hours logged, or clickable "status" to add hours
+                        isWeekendWorking ? (
+                          <button onClick={() => cycleStatus(day)} disabled={isReadOnly}
+                            className={`inline-block px-1 sm:px-1.5 py-0.5 rounded text-[8px] sm:text-[9px] font-medium text-white ${statusColors['working']} ${!isReadOnly ? 'cursor-pointer hover:opacity-80' : 'cursor-default'}`}>
+                            Working
+                          </button>
+                        ) : (
+                          !isReadOnly && (
+                            <button onClick={() => cycleStatus(day)}
+                              className="inline-block px-1 sm:px-1.5 py-0.5 rounded text-[8px] sm:text-[9px] font-medium text-dark-500 border border-dashed border-dark-700 cursor-pointer hover:border-dark-500 hover:text-dark-400">
+                              status
+                            </button>
+                          )
+                        )
+                      ) : hasStatus ? (
+                        <button onClick={() => cycleStatus(day)} disabled={isReadOnly}
+                          className={`inline-block px-1 sm:px-1.5 py-0.5 rounded text-[8px] sm:text-[9px] font-medium text-white ${statusColors[entry.status]} ${!isReadOnly ? 'cursor-pointer hover:opacity-80' : 'cursor-default'}`}>
                           {statusLabels[entry.status]}
                         </button>
                       ) : (

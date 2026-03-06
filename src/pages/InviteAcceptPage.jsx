@@ -572,17 +572,7 @@ function InviteAcceptPage() {
           </div>
         )}
 
-        {/* Footer link */}
-        {!(userExists && isLoggedInAsInvitee) && (
-          <p className="text-center text-dark-500 text-xs mt-6">
-            {userExists ? "Don't have access to this account?" : 'Already have an account?'}{' '}
-            <button onClick={() => navigate('/login')} className="text-rivvra-400 hover:text-rivvra-300">
-              Go to Login
-            </button>
-          </p>
-        )}
-
-        <p className="text-center text-xs text-dark-600 mt-4">
+        <p className="text-center text-xs text-dark-600 mt-6">
           Powered by <span className="text-dark-500">Rivvra</span>
         </p>
       </div>

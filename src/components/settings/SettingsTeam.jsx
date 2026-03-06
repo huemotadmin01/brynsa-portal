@@ -654,8 +654,8 @@ export default function SettingsTeam() {
                               </div>
                               <svg className="w-4 h-4 text-dark-400 flex-shrink-0" viewBox="0 0 24 24"><path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/><path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/></svg>
                               <span className={`text-sm font-medium flex-1 text-left ${editData.authMethods[0] === 'google' ? 'text-white' : 'text-dark-400'}`}>Google Sign-In</span>
-                              {member.hasGoogle && (
-                                <span className="text-[10px] text-rivvra-400 bg-rivvra-500/10 px-1.5 py-0.5 rounded">Active</span>
+                              {(member.authMethods || []).includes('google') && (
+                                <span className="text-[10px] text-rivvra-400 bg-rivvra-500/10 px-1.5 py-0.5 rounded">Current</span>
                               )}
                             </button>
                           )}
@@ -676,8 +676,8 @@ export default function SettingsTeam() {
                               </div>
                               <Lock className="w-4 h-4 text-dark-400 flex-shrink-0" />
                               <span className={`text-sm font-medium flex-1 text-left ${editData.authMethods[0] === 'password' ? 'text-white' : 'text-dark-400'}`}>Password</span>
-                              {member.hasPassword && (
-                                <span className="text-[10px] text-rivvra-400 bg-rivvra-500/10 px-1.5 py-0.5 rounded">Active</span>
+                              {(member.authMethods || []).includes('password') && (
+                                <span className="text-[10px] text-rivvra-400 bg-rivvra-500/10 px-1.5 py-0.5 rounded">Current</span>
                               )}
                             </button>
                           )}

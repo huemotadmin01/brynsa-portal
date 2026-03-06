@@ -633,70 +633,53 @@ export default function SettingsTeam() {
                         )}
                       </div>
 
-                      {/* Authentication Methods */}
+                      {/* Authentication Method (single selection) */}
                       <div>
-                        <label className="block text-[10px] uppercase text-dark-500 font-semibold mb-2 tracking-wider">Authentication Methods</label>
+                        <label className="block text-[10px] uppercase text-dark-500 font-semibold mb-2 tracking-wider">Authentication Method</label>
                         <div className="space-y-2">
-                          {/* Google toggle */}
+                          {/* Google radio */}
                           {(currentOrg?.authSettings?.allowedMethods || ['google']).includes('google') && (
-                            <div className="flex items-center gap-3 px-3 py-2.5 bg-dark-800/50 rounded-lg border border-dark-700/50">
+                            <button
+                              onClick={() => setEditData(prev => ({ ...prev, authMethods: ['google'] }))}
+                              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border transition-colors ${
+                                editData.authMethods[0] === 'google'
+                                  ? 'bg-rivvra-500/10 border-rivvra-500/30'
+                                  : 'bg-dark-800/50 border-dark-700/50 hover:border-dark-600'
+                              }`}
+                            >
+                              <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                                editData.authMethods[0] === 'google' ? 'border-rivvra-500' : 'border-dark-500'
+                              }`}>
+                                {editData.authMethods[0] === 'google' && <div className="w-2 h-2 rounded-full bg-rivvra-500" />}
+                              </div>
                               <svg className="w-4 h-4 text-dark-400 flex-shrink-0" viewBox="0 0 24 24"><path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/><path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/></svg>
-                              <span className="text-sm text-white font-medium flex-1">Google</span>
-                              <button
-                                onClick={() => {
-                                  const hasGoogle = editData.authMethods.includes('google');
-                                  if (hasGoogle && editData.authMethods.length <= 1) return; // Can't remove last method
-                                  setEditData(prev => ({
-                                    ...prev,
-                                    authMethods: hasGoogle
-                                      ? prev.authMethods.filter(m => m !== 'google')
-                                      : [...prev.authMethods, 'google'],
-                                  }));
-                                }}
-                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0 ${
-                                  editData.authMethods.includes('google') ? 'bg-rivvra-500' : 'bg-dark-600'
-                                }`}
-                              >
-                                <span className={`inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${
-                                  editData.authMethods.includes('google') ? 'translate-x-6' : 'translate-x-1'
-                                }`} />
-                              </button>
+                              <span className={`text-sm font-medium flex-1 text-left ${editData.authMethods[0] === 'google' ? 'text-white' : 'text-dark-400'}`}>Google Sign-In</span>
                               {member.hasGoogle && (
                                 <span className="text-[10px] text-rivvra-400 bg-rivvra-500/10 px-1.5 py-0.5 rounded">Active</span>
                               )}
-                            </div>
+                            </button>
                           )}
-                          {/* Password toggle */}
+                          {/* Password radio */}
                           {(currentOrg?.authSettings?.allowedMethods || ['google']).includes('password') && (
-                            <div className="flex items-center gap-3 px-3 py-2.5 bg-dark-800/50 rounded-lg border border-dark-700/50">
+                            <button
+                              onClick={() => setEditData(prev => ({ ...prev, authMethods: ['password'] }))}
+                              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border transition-colors ${
+                                editData.authMethods[0] === 'password'
+                                  ? 'bg-rivvra-500/10 border-rivvra-500/30'
+                                  : 'bg-dark-800/50 border-dark-700/50 hover:border-dark-600'
+                              }`}
+                            >
+                              <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                                editData.authMethods[0] === 'password' ? 'border-rivvra-500' : 'border-dark-500'
+                              }`}>
+                                {editData.authMethods[0] === 'password' && <div className="w-2 h-2 rounded-full bg-rivvra-500" />}
+                              </div>
                               <Lock className="w-4 h-4 text-dark-400 flex-shrink-0" />
-                              <span className="text-sm text-white font-medium flex-1">Password</span>
-                              <button
-                                onClick={() => {
-                                  const hasPassword = editData.authMethods.includes('password');
-                                  if (hasPassword && editData.authMethods.length <= 1) return; // Can't remove last method
-                                  setEditData(prev => ({
-                                    ...prev,
-                                    authMethods: hasPassword
-                                      ? prev.authMethods.filter(m => m !== 'password')
-                                      : [...prev.authMethods, 'password'],
-                                  }));
-                                }}
-                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0 ${
-                                  editData.authMethods.includes('password') ? 'bg-rivvra-500' : 'bg-dark-600'
-                                }`}
-                              >
-                                <span className={`inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${
-                                  editData.authMethods.includes('password') ? 'translate-x-6' : 'translate-x-1'
-                                }`} />
-                              </button>
+                              <span className={`text-sm font-medium flex-1 text-left ${editData.authMethods[0] === 'password' ? 'text-white' : 'text-dark-400'}`}>Password</span>
                               {member.hasPassword && (
                                 <span className="text-[10px] text-rivvra-400 bg-rivvra-500/10 px-1.5 py-0.5 rounded">Active</span>
                               )}
-                            </div>
-                          )}
-                          {editData.authMethods.length === 0 && (
-                            <p className="text-xs text-amber-400">At least one auth method must be enabled</p>
+                            </button>
                           )}
                         </div>
                       </div>

@@ -254,10 +254,10 @@ export default function OrgLoginPage() {
             </p>
           </div>
           <Link
-            to="/signup"
+            to="/find-workspace"
             className="inline-flex items-center gap-2 px-6 py-3 bg-dark-800 text-white rounded-xl hover:bg-dark-700 transition-colors"
           >
-            Go to Sign Up
+            Find Your Workspace
             <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
@@ -442,7 +442,7 @@ export default function OrgLoginPage() {
             {/* Forgot password — only if password auth is shown */}
             {passwordAuthEnabled && (
               <div className="text-center">
-                <Link to="/forgot-password" className="text-sm text-dark-400 hover:text-rivvra-400 transition-colors">
+                <Link to={`/forgot-password?workspace=${slug}`} className="text-sm text-dark-400 hover:text-rivvra-400 transition-colors">
                   Forgot your password?
                 </Link>
               </div>

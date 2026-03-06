@@ -4,10 +4,14 @@
  *
  * Self-service password reset is disabled. Only admins can send reset links.
  */
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { ShieldAlert, ArrowLeft, Mail } from 'lucide-react';
 
 export default function ForgotPasswordPage() {
+  const [searchParams] = useSearchParams();
+  const workspace = searchParams.get('workspace');
+  const backToLogin = workspace ? `/org/${workspace}/login` : '/login';
+
   return (
     <div className="min-h-screen bg-dark-950 flex items-center justify-center px-4">
       <div className="max-w-md w-full text-center">
@@ -33,7 +37,7 @@ export default function ForgotPasswordPage() {
         </div>
 
         <Link
-          to="/login"
+          to={backToLogin}
           className="inline-flex items-center gap-2 mt-6 text-sm text-dark-400 hover:text-white transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />

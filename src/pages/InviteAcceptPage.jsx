@@ -106,7 +106,7 @@ function InviteAcceptPage() {
     if (invite.userExists && isLoggedInAsInvitee) return;
 
     // Only load Google SDK if google auth is allowed
-    const methods = invite.authMethods || ['google', 'password'];
+    const methods = invite.authMethods || ['google'];
     if (!methods.includes('google')) return;
 
     const loadGoogleScript = () => {
@@ -264,7 +264,7 @@ function InviteAcceptPage() {
     'Member';
 
   // Auth method gating
-  const authMethods = invite?.authMethods || ['google', 'password'];
+  const authMethods = invite?.authMethods || ['google'];
   const showGoogle = authMethods.includes('google');
   const showPassword = authMethods.includes('password');
   const showDivider = showGoogle && showPassword;

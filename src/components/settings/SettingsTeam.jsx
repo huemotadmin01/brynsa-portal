@@ -157,7 +157,7 @@ export default function SettingsTeam() {
     setEditData({
       orgRole: member.orgRole,
       appAccess: { ...member.appAccess },
-      authMethods: member.authMethods ? [...member.authMethods] : [],
+      authMethods: member.authMethods?.length ? [...member.authMethods] : ['google'],
       email: member.email || '',
       editingEmail: false,
     });
@@ -201,7 +201,13 @@ export default function SettingsTeam() {
       }
       // Include email if changed
       if (editData.email && editData.email.trim().toLowerCase() !== (member.email || '').trim().toLowerCase()) {
-        payload.email = editData.email.trim().toLowerCase();
+        const trimmedEmail = editData.email.trim().toLowerCase();
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+          setSaveError('Please enter a valid email address');
+          setSaving(false);
+          return;
+        }
+        payload.email = trimmedEmail;
       }
       const res = await api.updateOrgMember(orgSlug, member.userId, payload);
       if (res.success) {
@@ -654,18 +660,18 @@ export default function SettingsTeam() {
                             <button
                               onClick={() => setEditData(prev => ({ ...prev, authMethods: ['google'] }))}
                               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border transition-colors ${
-                                editData.authMethods[0] === 'google'
+                                (editData.authMethods?.[0] || 'google') === 'google'
                                   ? 'bg-rivvra-500/10 border-rivvra-500/30'
                                   : 'bg-dark-800/50 border-dark-700/50 hover:border-dark-600'
                               }`}
                             >
                               <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
-                                editData.authMethods[0] === 'google' ? 'border-rivvra-500' : 'border-dark-500'
+                                (editData.authMethods?.[0] || 'google') === 'google' ? 'border-rivvra-500' : 'border-dark-500'
                               }`}>
-                                {editData.authMethods[0] === 'google' && <div className="w-2 h-2 rounded-full bg-rivvra-500" />}
+                                {(editData.authMethods?.[0] || 'google') === 'google' && <div className="w-2 h-2 rounded-full bg-rivvra-500" />}
                               </div>
                               <svg className="w-4 h-4 text-dark-400 flex-shrink-0" viewBox="0 0 24 24"><path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/><path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/></svg>
-                              <span className={`text-sm font-medium flex-1 text-left ${editData.authMethods[0] === 'google' ? 'text-white' : 'text-dark-400'}`}>Google Sign-In</span>
+                              <span className={`text-sm font-medium flex-1 text-left ${(editData.authMethods?.[0] || 'google') === 'google' ? 'text-white' : 'text-dark-400'}`}>Google Sign-In</span>
                               {(member.authMethods || []).includes('google') && (
                                 <span className="text-[10px] text-rivvra-400 bg-rivvra-500/10 px-1.5 py-0.5 rounded">Current</span>
                               )}
@@ -676,18 +682,18 @@ export default function SettingsTeam() {
                             <button
                               onClick={() => setEditData(prev => ({ ...prev, authMethods: ['password'] }))}
                               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border transition-colors ${
-                                editData.authMethods[0] === 'password'
+                                (editData.authMethods?.[0] || 'google') === 'password'
                                   ? 'bg-rivvra-500/10 border-rivvra-500/30'
                                   : 'bg-dark-800/50 border-dark-700/50 hover:border-dark-600'
                               }`}
                             >
                               <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
-                                editData.authMethods[0] === 'password' ? 'border-rivvra-500' : 'border-dark-500'
+                                (editData.authMethods?.[0] || 'google') === 'password' ? 'border-rivvra-500' : 'border-dark-500'
                               }`}>
-                                {editData.authMethods[0] === 'password' && <div className="w-2 h-2 rounded-full bg-rivvra-500" />}
+                                {(editData.authMethods?.[0] || 'google') === 'password' && <div className="w-2 h-2 rounded-full bg-rivvra-500" />}
                               </div>
                               <Lock className="w-4 h-4 text-dark-400 flex-shrink-0" />
-                              <span className={`text-sm font-medium flex-1 text-left ${editData.authMethods[0] === 'password' ? 'text-white' : 'text-dark-400'}`}>Password</span>
+                              <span className={`text-sm font-medium flex-1 text-left ${(editData.authMethods?.[0] || 'google') === 'password' ? 'text-white' : 'text-dark-400'}`}>Password</span>
                               {(member.authMethods || []).includes('password') && (
                                 <span className="text-[10px] text-rivvra-400 bg-rivvra-500/10 px-1.5 py-0.5 rounded">Current</span>
                               )}
@@ -892,7 +898,7 @@ export default function SettingsTeam() {
                                 className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors"
                               >
                                 {sendingLink === member.userId?.toString() ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RotateCcw className="w-3.5 h-3.5" />}
-                                Resend Invitation
+                                Send Login Link
                               </button>
                               {/* Send Password Reset — only if org allows password auth */}
                               {(currentOrg?.authSettings?.allowedMethods || []).includes('password') && (

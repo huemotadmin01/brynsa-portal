@@ -242,7 +242,57 @@ export default function TimesheetPayroll() {
     setExpandedEmployee(null);
   };
 
-  if (loading) return <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-dark-400" /></div>;
+  if (loading) return (
+    <div className="p-3 sm:p-6 space-y-4 sm:space-y-6 animate-pulse">
+      {/* Header skeleton */}
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="space-y-2">
+          <div className="h-7 w-28 bg-dark-800 rounded-lg" />
+          <div className="h-4 w-56 bg-dark-800/60 rounded" />
+        </div>
+        <div className="flex items-center">
+          <div className="h-10 w-10 bg-dark-800 rounded-l-xl" />
+          <div className="h-10 w-48 bg-dark-800/80 border-x border-dark-700" />
+          <div className="h-10 w-10 bg-dark-800 rounded-r-xl" />
+        </div>
+      </div>
+      {/* Summary cards skeleton */}
+      <div className="grid grid-cols-2 gap-3 sm:gap-4">
+        {[0, 1].map(i => (
+          <div key={i} className="card p-4 sm:p-5 space-y-3">
+            <div className="flex justify-between">
+              <div className="h-4 w-24 bg-dark-800 rounded" />
+              <div className="h-4 w-4 bg-dark-800 rounded" />
+            </div>
+            <div className="h-8 w-32 bg-dark-800 rounded-lg" />
+          </div>
+        ))}
+      </div>
+      {/* Filter tabs skeleton */}
+      <div className="flex gap-2">
+        {[72, 80, 64, 72, 56].map((w, i) => (
+          <div key={i} className="h-8 bg-dark-800 rounded-lg" style={{ width: w }} />
+        ))}
+      </div>
+      {/* Table skeleton */}
+      <div className="card overflow-hidden">
+        <div className="bg-dark-800/80 h-10" />
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div key={i} className="flex items-center gap-4 px-4 py-3.5 border-t border-dark-800/30">
+            <div className="flex-1 space-y-1.5">
+              <div className="h-4 bg-dark-800 rounded w-36" />
+              <div className="h-3 bg-dark-800/50 rounded w-24" />
+            </div>
+            <div className="h-5 w-16 bg-dark-800 rounded-full" />
+            <div className="h-4 w-12 bg-dark-800/60 rounded hidden sm:block" />
+            <div className="h-4 w-20 bg-dark-800 rounded hidden sm:block" />
+            <div className="h-4 w-20 bg-emerald-500/5 rounded hidden sm:block" />
+            <div className="h-5 w-14 bg-dark-800 rounded-full hidden sm:block" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 
   return (
     <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">

@@ -135,13 +135,13 @@ export default function TimesheetApprovals() {
                         return (
                           <div key={day} className="text-center">
                             <div className={`w-7 h-7 mx-auto rounded-full flex items-center justify-center text-[9px] font-medium ${
+                              isWorking && hours > 8 ? (isWeekend ? 'bg-blue-500 text-white ring-2 ring-blue-300' : 'bg-blue-500 text-white') :
+                              isWorking && hours > 0 ? (isWeekend ? 'bg-emerald-500 text-white ring-2 ring-emerald-300' : 'bg-emerald-500 text-white') :
                               isWeekend ? 'bg-dark-800 text-dark-500' :
-                              isWorking && hours > 8 ? 'bg-blue-500 text-white' :
-                              isWorking && hours > 0 ? 'bg-emerald-500 text-white' :
                               entry?.status === 'leave' ? 'bg-red-500 text-white' :
                               entry?.status === 'holiday' ? 'bg-purple-500 text-white' :
                               'bg-dark-700 text-dark-500'
-                            }`} title={isWeekend ? 'Weekend' : entry ? `${hours}h - ${entry.status}` : 'No entry'}>
+                            }`} title={isWeekend && isWorking && hours > 0 ? `${hours}h - Weekend work` : isWeekend ? 'Weekend' : entry ? `${hours}h - ${entry.status}` : 'No entry'}>
                               {isWorking && hours > 0 ? hours : day}
                             </div>
                           </div>
@@ -155,6 +155,14 @@ export default function TimesheetApprovals() {
                     <span>Days: {ts.totalWorkingDays}</span>
                     <span>Leaves: {ts.entries?.filter(e => e.status === 'leave').length || 0}</span>
                     <span>Holidays: {ts.entries?.filter(e => e.status === 'holiday').length || 0}</span>
+                    {(() => {
+                      const weekendWork = (ts.entries || []).filter(e => {
+                        if (e.status !== 'working' || !e.hours) return false;
+                        const d = new Date(e.date).getDay();
+                        return d === 0 || d === 6;
+                      }).length;
+                      return weekendWork > 0 ? <span className="text-blue-400">Weekend Work: {weekendWork} day{weekendWork > 1 ? 's' : ''}</span> : null;
+                    })()}
                   </div>
 
                   {ts.status === 'submitted' && (

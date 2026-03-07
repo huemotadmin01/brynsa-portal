@@ -178,7 +178,7 @@ export default function TimesheetPayConfig() {
           <table className="w-full min-w-[1100px]">
             <thead>
               <tr className="border-b border-dark-700">
-                <th className="text-left px-4 py-3 text-xs font-medium text-dark-400 uppercase tracking-wider sticky left-0 bg-dark-900 z-10 after:absolute after:right-0 after:top-0 after:bottom-0 after:w-4 after:pointer-events-none after:bg-gradient-to-r after:from-dark-900/80 after:to-transparent min-w-[240px]">Employee</th>
+                <th className="text-left px-4 py-3 text-xs font-medium text-dark-400 uppercase tracking-wider sticky left-0 bg-dark-900 z-10 min-w-[240px] border-r border-dark-700 shadow-[2px_0_8px_-2px_rgba(0,0,0,0.4)]">Employee</th>
                 <th className="text-left px-4 py-3 text-xs font-medium text-dark-400 uppercase tracking-wider">Status</th>
                 <th className="text-left px-4 py-3 text-xs font-medium text-dark-400 uppercase tracking-wider">Role</th>
                 <th className="text-left px-4 py-3 text-xs font-medium text-dark-400 uppercase tracking-wider">Pay Type</th>
@@ -271,7 +271,7 @@ const EmployeeRow = ({ emp }) => {
   return (
     <tr className="group transition-colors hover:bg-dark-800/30">
       {/* Employee Info — sticky */}
-      <td className="px-4 py-3 sticky left-0 bg-dark-900 group-hover:bg-dark-800/30 z-10 after:absolute after:right-0 after:top-0 after:bottom-0 after:w-4 after:pointer-events-none after:bg-gradient-to-r after:from-dark-900/80 after:to-transparent">
+      <td className="px-4 py-3 sticky left-0 bg-dark-900 group-hover:bg-dark-800 z-10 border-r border-dark-700 shadow-[2px_0_8px_-2px_rgba(0,0,0,0.4)]">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-400/20 to-blue-500/20 flex items-center justify-center flex-shrink-0">
             <span className="text-xs font-bold text-blue-300">

@@ -3,7 +3,7 @@ import {
   Clock, Briefcase, UserSearch, Mail, CalendarDays, IndianRupee,
   CheckCircle2, Download, Settings, Building2, UserPlus, Wallet,
   Contact, Kanban, FileText, GripVertical, PenTool, FileSignature, Inbox,
-  Tag, AlertTriangle,
+  Tag, AlertTriangle, Banknote,
 } from 'lucide-react';
 
 export const APP_REGISTRY = {
@@ -99,6 +99,7 @@ export const APP_REGISTRY = {
         // Admin only
         ...(isAdmin ? [
           { type: 'item', path: '/timesheet/pay-config', label: 'Pay Config', icon: Wallet },
+          { type: 'item', path: '/timesheet/payroll', label: 'Process Payroll', icon: Banknote },
           { type: 'item', path: '/timesheet/export', label: 'Export Data', icon: Download },
           {
             type: 'group', label: 'Configuration', icon: Settings,

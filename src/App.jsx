@@ -61,6 +61,7 @@ const TimesheetUsers = lazy(() => import('./pages/timesheet/TimesheetUsers'));
 const TimesheetPayConfig = lazy(() => import('./pages/timesheet/TimesheetPayConfig'));
 const TimesheetProjects = lazy(() => import('./pages/timesheet/TimesheetProjects'));
 const TimesheetExport = lazy(() => import('./pages/timesheet/TimesheetExport'));
+const TimesheetPayroll = lazy(() => import('./pages/timesheet/TimesheetPayroll'));
 
 // Lazy-loaded: Employee app pages
 const EmployeeDirectory = lazy(() => import('./pages/employee/EmployeeDirectory'));
@@ -231,6 +232,7 @@ function App() {
                 <Route path="/org/:slug/timesheet/pay-config" element={<ErrorBoundary><TimesheetPayConfig /></ErrorBoundary>} />
                 <Route path="/org/:slug/timesheet/projects" element={<ErrorBoundary><TimesheetProjects /></ErrorBoundary>} />
                 <Route path="/org/:slug/timesheet/export" element={<ErrorBoundary><TimesheetExport /></ErrorBoundary>} />
+                <Route path="/org/:slug/timesheet/payroll" element={<ErrorBoundary><TimesheetPayroll /></ErrorBoundary>} />
               </Route>
 
               {/* Employee app routes — gated by employee access */}

@@ -8,6 +8,7 @@ import {
   Loader2, Download, ChevronDown, ChevronUp,
   IndianRupee, Users, TrendingUp, Search, FileSpreadsheet, Package,
   ChevronLeft, ChevronRight, ShieldCheck, CalendarDays, FileDown,
+  X, AlertTriangle, UserX,
 } from 'lucide-react';
 
 const monthNames = ['', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -52,11 +53,24 @@ export default function TimesheetPayroll() {
     return <div className="p-6 text-center text-dark-400">Access denied. Admin only.</div>;
   }
 
+  // Missing submissions data + popup states
+  const [missingData, setMissingData] = useState(null);
+  const [showMissingPopup, setShowMissingPopup] = useState(false);
+  const [showApprovedPopup, setShowApprovedPopup] = useState(false);
+
   const loadPayroll = async () => {
     setLoading(true);
     try {
-      const res = await timesheetApi.get('/payroll/summary', { params: { month, year } });
-      setData(res.data);
+      const [payrollRes, missingRes] = await Promise.all([
+        timesheetApi.get('/payroll/summary', { params: { month, year } }),
+        timesheetApi.get('/dashboard/missing-submissions').catch(() => null),
+      ]);
+      setData(payrollRes.data);
+      if (missingRes?.data?.months) {
+        // Find the month matching current selection
+        const match = missingRes.data.months.find(m => m.month === month && m.year === year);
+        setMissingData(match || null);
+      }
     } catch (err) {
       showToast(err.response?.data?.error || 'Failed to load payroll', 'error');
     } finally {
@@ -64,7 +78,7 @@ export default function TimesheetPayroll() {
     }
   };
 
-  useEffect(() => { loadPayroll(); setCurrentPage(1); }, [month, year]);
+  useEffect(() => { loadPayroll(); setCurrentPage(1); setShowMissingPopup(false); setShowApprovedPopup(false); }, [month, year]);
   // Reset page on filter/search change
   useEffect(() => { setCurrentPage(1); }, [activeTab, searchQuery]);
 
@@ -483,11 +497,26 @@ export default function TimesheetPayroll() {
         </div>
       </div>
 
-      {/* Approved timesheets indicator */}
+      {/* Approved timesheets indicator + missing submissions link */}
       {data?.employees?.length > 0 && (
-        <div className="flex items-center gap-2 text-xs text-dark-400">
-          <ShieldCheck size={14} className="text-emerald-500" />
-          <span>Showing payroll data from <span className="text-emerald-400 font-medium">{data.employees.reduce((s, e) => s + e.projects.length, 0)} approved timesheet{data.employees.reduce((s, e) => s + e.projects.length, 0) !== 1 ? 's' : ''}</span> for {monthNames[month]} {year}</span>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-dark-400">
+          <div className="flex items-center gap-2">
+            <ShieldCheck size={14} className="text-emerald-500" />
+            <span>Showing payroll data from{' '}
+              <button onClick={() => setShowApprovedPopup(true)} className="text-emerald-400 font-medium hover:underline hover:text-emerald-300 transition-colors">
+                {data.employees.reduce((s, e) => s + e.projects.length, 0)} approved timesheet{data.employees.reduce((s, e) => s + e.projects.length, 0) !== 1 ? 's' : ''}
+              </button>
+              {' '}for {monthNames[month]} {year}
+            </span>
+          </div>
+          {missingData && missingData.missingCount > 0 && (
+            <div className="flex items-center gap-2">
+              <UserX size={14} className="text-amber-500" />
+              <button onClick={() => setShowMissingPopup(true)} className="text-amber-400 font-medium hover:underline hover:text-amber-300 transition-colors">
+                {missingData.missingCount} of {missingData.totalBillable} billable haven't submitted
+              </button>
+            </div>
+          )}
         </div>
       )}
 
@@ -771,6 +800,91 @@ export default function TimesheetPayroll() {
               className="p-1.5 rounded-lg bg-dark-800 border border-dark-700 text-dark-300 hover:bg-dark-700 transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
               <ChevronRight size={16} />
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Missing Submissions Popup */}
+      {showMissingPopup && missingData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setShowMissingPopup(false)}>
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+          <div className="relative bg-dark-900 border border-dark-700 rounded-2xl w-full max-w-lg max-h-[70vh] flex flex-col shadow-2xl" onClick={e => e.stopPropagation()}>
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-dark-800">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                  <UserX size={16} className="text-amber-400" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-white">Missing Timesheets</h3>
+                  <p className="text-[11px] text-dark-400">{missingData.missingCount} of {missingData.totalBillable} billable employees — {monthNames[month]} {year}</p>
+                </div>
+              </div>
+              <button onClick={() => setShowMissingPopup(false)} className="p-1.5 rounded-lg hover:bg-dark-800 text-dark-400 hover:text-white transition-colors">
+                <X size={16} />
+              </button>
+            </div>
+            {/* List */}
+            <div className="overflow-y-auto flex-1 px-2 py-2">
+              {(missingData.missingEmployees || []).map((emp, i) => (
+                <div key={i} className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-dark-800/50 transition-colors">
+                  <div className="w-8 h-8 rounded-full bg-red-500/10 text-red-400 flex items-center justify-center text-xs font-bold shrink-0">
+                    {(emp.name || '?')[0].toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-white truncate">{emp.name}</p>
+                    <p className="text-[11px] text-dark-500 truncate">{emp.employeeId || emp.email}</p>
+                  </div>
+                  {emp.employmentType && (
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium shrink-0 ${typeBadgeColors[emp.employmentType] || 'bg-dark-700 text-dark-300'}`}>
+                      {typeLabels[emp.employmentType] || emp.employmentType}
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Approved Timesheets Popup */}
+      {showApprovedPopup && data?.employees && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setShowApprovedPopup(false)}>
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+          <div className="relative bg-dark-900 border border-dark-700 rounded-2xl w-full max-w-lg max-h-[70vh] flex flex-col shadow-2xl" onClick={e => e.stopPropagation()}>
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-dark-800">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                  <ShieldCheck size={16} className="text-emerald-400" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-white">Approved Timesheets</h3>
+                  <p className="text-[11px] text-dark-400">{data.employees.length} employees — {monthNames[month]} {year}</p>
+                </div>
+              </div>
+              <button onClick={() => setShowApprovedPopup(false)} className="p-1.5 rounded-lg hover:bg-dark-800 text-dark-400 hover:text-white transition-colors">
+                <X size={16} />
+              </button>
+            </div>
+            {/* List */}
+            <div className="overflow-y-auto flex-1 px-2 py-2">
+              {data.employees.map((emp, i) => (
+                <div key={i} className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-dark-800/50 transition-colors">
+                  <div className="w-8 h-8 rounded-full bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-xs font-bold shrink-0">
+                    {(emp.name || '?')[0].toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-white truncate">{emp.name}</p>
+                    <p className="text-[11px] text-dark-500 truncate">{emp.employeeId || emp.email}</p>
+                  </div>
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium shrink-0 ${typeBadgeColors[emp.employmentType] || 'bg-dark-700 text-dark-300'}`}>
+                    {typeLabels[emp.employmentType] || emp.employmentType}
+                  </span>
+                  <span className="text-emerald-400 text-xs font-medium shrink-0">₹{fmt(emp.grossPay)}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       )}

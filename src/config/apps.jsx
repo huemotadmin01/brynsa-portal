@@ -313,8 +313,8 @@ export const APP_REGISTRY = {
     adminOnly: true,
     defaultRoute: '/settings/general',
     getSidebarItems: (user, timesheetUser, orgAppRole) => {
-      // For settings, check if user is org admin or has admin/team_lead role in outreach
-      const isAdmin = orgAppRole === 'admin' || user?.role === 'admin' || user?.role === 'team_lead';
+      // Settings admin items: only org-level admin role (no legacy user.role fallback)
+      const isAdmin = orgAppRole === 'admin';
       return [
         { type: 'item', path: '/settings/general', label: 'General Settings', icon: Settings },
         ...(isAdmin ? [{ type: 'item', path: '/settings/companies', label: 'Companies', icon: Building2 }] : []),
@@ -340,8 +340,9 @@ export function getAllApps(user, orgMembership) {
   // When no user given (e.g. from PlatformContext), return all apps
   if (!user) return Object.values(APP_REGISTRY);
   const orgRole = orgMembership?.orgRole;
+  // adminOnly apps visible if: org admin/owner OR user has explicit app access
   return Object.values(APP_REGISTRY).filter(app =>
-    !app.adminOnly || orgRole === 'admin' || orgRole === 'owner' || user?.role === 'admin' || user?.role === 'team_lead'
+    !app.adminOnly || orgRole === 'admin' || orgRole === 'owner'
     || orgMembership?.appAccess?.[app.id]?.enabled
   );
 }
@@ -350,8 +351,9 @@ export function getActiveApps(user, orgMembership) {
   // When no user given, return all active apps
   if (!user) return Object.values(APP_REGISTRY).filter(app => app.status === 'active');
   const orgRole = orgMembership?.orgRole;
+  // adminOnly apps visible if: org admin/owner OR user has explicit app access
   return Object.values(APP_REGISTRY).filter(app =>
-    app.status === 'active' && (!app.adminOnly || orgRole === 'admin' || orgRole === 'owner' || user?.role === 'admin' || user?.role === 'team_lead'
+    app.status === 'active' && (!app.adminOnly || orgRole === 'admin' || orgRole === 'owner'
     || orgMembership?.appAccess?.[app.id]?.enabled)
   );
 }

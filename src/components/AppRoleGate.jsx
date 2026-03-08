@@ -18,7 +18,7 @@ import { Loader2, ShieldAlert, Home } from 'lucide-react';
  *   - Not authorized → show access denied page
  */
 function AppRoleGate({ appId, requiredRole = 'admin' }) {
-  const { getAppRole, isOrgAdmin, isOrgOwner, loading, currentOrg } = useOrg();
+  const { getAppRole, isOrgAdmin, loading, currentOrg } = useOrg();
   const { orgPath } = usePlatform();
   const navigate = useNavigate();
 
@@ -36,8 +36,8 @@ function AppRoleGate({ appId, requiredRole = 'admin' }) {
     );
   }
 
-  // Org admins/owners always have access
-  if (isOrgAdmin || isOrgOwner) {
+  // Org admins/owners always have access (isOrgAdmin includes owners)
+  if (isOrgAdmin) {
     return <Outlet />;
   }
 

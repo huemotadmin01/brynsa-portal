@@ -149,6 +149,77 @@ const employeeApi = {
     return `${API_BASE_URL}/api/org/${orgSlug}/employee/employees/${employeeId}/documents/${docId}`;
   },
 
+  // ── Employee Documents (bank proof, education certificates, etc.) ──────────
+  async uploadEmployeeDoc(orgSlug, employeeId, file, category, subcategory = null, educationIndex = null) {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('category', category);
+    if (subcategory) formData.append('subcategory', subcategory);
+    if (educationIndex !== null && educationIndex !== undefined) formData.append('educationIndex', educationIndex);
+    const url = `${API_BASE_URL}/api/org/${orgSlug}/employee/employees/${employeeId}/documents`;
+    const token = localStorage.getItem('rivvra_token');
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: formData,
+    });
+    if (!res.ok) {
+      const ct = res.headers.get('content-type') || '';
+      if (ct.includes('application/json')) { const data = await res.json(); throw new Error(data.error || 'Upload failed'); }
+      throw new Error(`Upload failed with status ${res.status}`);
+    }
+    return res.json();
+  },
+
+  async uploadMyDoc(orgSlug, file, category, subcategory = null, educationIndex = null) {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('category', category);
+    if (subcategory) formData.append('subcategory', subcategory);
+    if (educationIndex !== null && educationIndex !== undefined) formData.append('educationIndex', educationIndex);
+    const url = `${API_BASE_URL}/api/org/${orgSlug}/employee/my-documents`;
+    const token = localStorage.getItem('rivvra_token');
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: formData,
+    });
+    if (!res.ok) {
+      const ct = res.headers.get('content-type') || '';
+      if (ct.includes('application/json')) { const data = await res.json(); throw new Error(data.error || 'Upload failed'); }
+      throw new Error(`Upload failed with status ${res.status}`);
+    }
+    return res.json();
+  },
+
+  listEmployeeDocs(orgSlug, employeeId, category = null, educationIndex = null) {
+    const params = new URLSearchParams();
+    if (category) params.set('category', category);
+    if (educationIndex !== null && educationIndex !== undefined) params.set('educationIndex', educationIndex);
+    const qs = params.toString() ? `?${params.toString()}` : '';
+    return api.request(`/api/org/${orgSlug}/employee/employees/${employeeId}/documents${qs}`);
+  },
+
+  listMyDocs(orgSlug, category = null, educationIndex = null) {
+    const params = new URLSearchParams();
+    if (category) params.set('category', category);
+    if (educationIndex !== null && educationIndex !== undefined) params.set('educationIndex', educationIndex);
+    const qs = params.toString() ? `?${params.toString()}` : '';
+    return api.request(`/api/org/${orgSlug}/employee/my-documents${qs}`);
+  },
+
+  getEmployeeDocUrl(orgSlug, employeeId, docId) {
+    return `${API_BASE_URL}/api/org/${orgSlug}/employee/employees/${employeeId}/emp-documents/${docId}`;
+  },
+
+  deleteEmployeeDoc(orgSlug, employeeId, docId) {
+    return api.request(`/api/org/${orgSlug}/employee/employees/${employeeId}/emp-documents/${docId}`, { method: 'DELETE' });
+  },
+
+  deleteMyDoc(orgSlug, docId) {
+    return api.request(`/api/org/${orgSlug}/employee/my-documents/${docId}`, { method: 'DELETE' });
+  },
+
   // ── Rate Revision ──────────────────────────────────────────────────────────
   reviseRate(orgSlug, employeeId, assignmentIndex, data) {
     return api.request(`/api/org/${orgSlug}/employee/employees/${employeeId}/assignments/${assignmentIndex}/revise-rate`, {

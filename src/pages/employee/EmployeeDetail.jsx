@@ -143,6 +143,8 @@ export default function EmployeeDetail() {
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showLaunchPlanModal, setShowLaunchPlanModal] = useState(false);
   const [sendingOnboardingLink, setSendingOnboardingLink] = useState(false);
+  const [employeeDocs, setEmployeeDocs] = useState([]);
+  const [docsLoading, setDocsLoading] = useState(false);
 
   const isAdmin = getAppRole('employee') === 'admin';
 
@@ -173,6 +175,16 @@ export default function EmployeeDetail() {
     return () => {
       cancelled = true;
     };
+  }, [currentOrg?.slug, employeeId]);
+
+  // Fetch employee documents
+  useEffect(() => {
+    if (!currentOrg?.slug || !employeeId) return;
+    setDocsLoading(true);
+    employeeApi.listEmployeeDocs(currentOrg.slug, employeeId)
+      .then(res => { if (res.success) setEmployeeDocs(res.documents || []); })
+      .catch(() => {})
+      .finally(() => setDocsLoading(false));
   }, [currentOrg?.slug, employeeId]);
 
   // ── Send Onboarding Form Link ────────────────────────────────────────────
@@ -446,6 +458,69 @@ export default function EmployeeDetail() {
                 </div>
               ))}
             </div>
+          </SectionCard>
+        </div>
+      )}
+
+      {/* ── Documents ────────────────────────────────────────────────────── */}
+      {employeeDocs.length > 0 && (
+        <div className="mt-5">
+          <SectionCard title={`Documents (${employeeDocs.length})`} icon={FileText}>
+            {docsLoading ? (
+              <div className="flex items-center gap-2 text-dark-500 text-sm py-2">
+                <Loader2 size={14} className="animate-spin" /> Loading...
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {[
+                  { key: 'bank_proof', label: 'Bank Proof' },
+                  { key: 'education_certificate', label: 'Education Certificates' },
+                  { key: 'id_document', label: 'ID Documents' },
+                  { key: 'other', label: 'Other' },
+                ].map(({ key, label }) => {
+                  const catDocs = employeeDocs.filter(d => d.category === key);
+                  if (catDocs.length === 0) return null;
+                  return (
+                    <div key={key}>
+                      <p className="text-[11px] text-dark-500 uppercase tracking-wider font-medium mb-2">{label}</p>
+                      <div className="space-y-1.5">
+                        {catDocs.map(doc => (
+                          <div key={doc._id} className="flex items-center gap-3 bg-dark-900/50 rounded-lg px-4 py-2.5">
+                            <FileText size={14} className="text-dark-400 flex-shrink-0" />
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                try {
+                                  const url = employeeApi.getEmployeeDocUrl(currentOrg.slug, employeeId, doc._id);
+                                  const token = localStorage.getItem('rivvra_token');
+                                  const res = await fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+                                  if (!res.ok) throw new Error();
+                                  const blob = await res.blob();
+                                  const blobUrl = URL.createObjectURL(blob);
+                                  const a = document.createElement('a');
+                                  a.href = blobUrl; a.download = doc.filename;
+                                  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+                                  URL.revokeObjectURL(blobUrl);
+                                } catch (_) {}
+                              }}
+                              className="text-sm text-blue-400 hover:underline truncate flex-1 text-left"
+                            >
+                              {doc.filename}
+                            </button>
+                            <span className="text-xs text-dark-500 flex-shrink-0">
+                              {doc.size < 1024 * 1024 ? `${(doc.size / 1024).toFixed(0)}KB` : `${(doc.size / (1024 * 1024)).toFixed(1)}MB`}
+                            </span>
+                            <span className="text-xs text-dark-600 flex-shrink-0">
+                              {new Date(doc.uploadedAt).toLocaleDateString('en-IN')}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </SectionCard>
         </div>
       )}

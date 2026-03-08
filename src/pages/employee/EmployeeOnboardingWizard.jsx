@@ -4,6 +4,7 @@ import { useOrg } from '../../context/OrgContext';
 import { usePlatform } from '../../context/PlatformContext';
 import employeeApi from '../../utils/employeeApi';
 import OnboardingStepper from '../../components/employee/OnboardingStepper';
+import DocumentUpload from '../../components/employee/DocumentUpload';
 import {
   Loader2, User, Users, Building2, GraduationCap, ClipboardCheck,
   Plus, Trash2, ChevronRight, ChevronLeft, CheckCircle,
@@ -76,6 +77,8 @@ export default function EmployeeOnboardingWizard() {
   const [form, setForm] = useState(INITIAL_FORM);
   const [step, setStep] = useState('personal');
   const [errors, setErrors] = useState({});
+  const [bankDocs, setBankDocs] = useState([]);
+  const [educationDocs, setEducationDocs] = useState({}); // { [index]: docs[] }
 
   // Load employee profile
   useEffect(() => {
@@ -169,11 +172,27 @@ export default function EmployeeOnboardingWizard() {
     });
   };
 
-  const removeEducation = (idx) => {
+  const removeEducation = async (idx) => {
+    // Delete uploaded docs for this education entry
+    const docsForIdx = educationDocs[idx] || [];
+    for (const doc of docsForIdx) {
+      try { await employeeApi.deleteMyDoc(currentOrg.slug, doc._id); } catch (_) {}
+    }
+    // Remove education entry
     setForm((prev) => ({
       ...prev,
       education: prev.education.filter((_, i) => i !== idx),
     }));
+    // Re-index educationDocs (shift indices down for entries after removed one)
+    setEducationDocs(prev => {
+      const next = {};
+      Object.keys(prev).forEach(key => {
+        const k = Number(key);
+        if (k < idx) next[k] = prev[k];
+        else if (k > idx) next[k - 1] = prev[k];
+      });
+      return next;
+    });
   };
 
   // ---------------------------------------------------------------------------
@@ -234,14 +253,18 @@ export default function EmployeeOnboardingWizard() {
       // Statutory — optional but validate format if provided
       const aadhaar = form.statutory.aadhaar?.trim();
       if (aadhaar && !AADHAAR_RE.test(aadhaar)) errs.aadhaar = 'Aadhaar must be 12 digits';
+
+      // Bank proof document required
+      if (bankDocs.length === 0) errs.bankDocs = 'Please upload a cancelled cheque or digital passbook';
     }
 
     if (step === 'education') {
       if (form.education.length === 0) errs.education = 'At least one education entry is required';
-      // Validate each entry has degree and institution
+      // Validate each entry has degree, institution, and at least one document
       form.education.forEach((ed, i) => {
         if (!ed.degree?.trim()) errs[`edu_degree_${i}`] = `Education ${i + 1}: Degree is required`;
         if (!ed.institution?.trim()) errs[`edu_institution_${i}`] = `Education ${i + 1}: Institution is required`;
+        if (!(educationDocs[i]?.length > 0)) errs[`edu_docs_${i}`] = `Education ${i + 1}: Please upload at least one certificate`;
       });
     }
 
@@ -589,6 +612,19 @@ export default function EmployeeOnboardingWizard() {
           </FormField>
         </div>
       </div>
+
+      {/* Bank Proof Document */}
+      <div className="card p-4">
+        <DocumentUpload
+          orgSlug={currentOrg?.slug}
+          category="bank_proof"
+          required
+          label="Bank Proof (Cancelled Cheque / Digital Passbook)"
+          hasError={!!errors.bankDocs}
+          onDocumentsChange={(docs) => setBankDocs(docs)}
+        />
+        {errors.bankDocs && <p className="text-red-400 text-xs mt-2">{errors.bankDocs}</p>}
+      </div>
     </div>
   );
 
@@ -646,6 +682,20 @@ export default function EmployeeOnboardingWizard() {
               <FormField label="Specialization" className="md:col-span-2">
                 <input type="text" value={ed.specialization} onChange={(e) => updateEducation(i, 'specialization', e.target.value)} className={inputCls} placeholder="e.g. Computer Science" />
               </FormField>
+
+              {/* Certificate Upload */}
+              <div className="md:col-span-2 mt-1 pt-3 border-t border-dark-800">
+                <DocumentUpload
+                  orgSlug={currentOrg?.slug}
+                  category="education_certificate"
+                  educationIndex={i}
+                  required
+                  label={`Certificate / Degree Document`}
+                  hasError={!!errors[`edu_docs_${i}`]}
+                  onDocumentsChange={(docs) => setEducationDocs(prev => ({ ...prev, [i]: docs }))}
+                />
+                {errors[`edu_docs_${i}`] && <p className="text-red-400 text-xs mt-1">{errors[`edu_docs_${i}`]}</p>}
+              </div>
             </div>
           </div>
         ))}
@@ -717,6 +767,7 @@ export default function EmployeeOnboardingWizard() {
           <Row label="Account Number" value={form.bankDetails.accountNumber} />
           <Row label="IFSC" value={form.bankDetails.ifscCode || form.bankDetails.ifsc} />
           <Row label="PAN" value={form.bankDetails.pan} />
+          <Row label="Bank Proof" value={`${bankDocs.length} document(s) uploaded`} />
         </Section>
 
         <Section title="Statutory Details">
@@ -729,7 +780,7 @@ export default function EmployeeOnboardingWizard() {
         {form.education.length > 0 && (
           <Section title={`Education (${form.education.length})`}>
             {form.education.map((ed, i) => (
-              <Row key={i} label={ed.degree || 'Qualification'} value={`${ed.institution || ''}${ed.yearOfPassing ? ` (${ed.yearOfPassing})` : ''}`} />
+              <Row key={i} label={ed.degree || 'Qualification'} value={`${ed.institution || ''}${ed.yearOfPassing ? ` (${ed.yearOfPassing})` : ''} — ${(educationDocs[i]?.length || 0)} doc(s)`} />
             ))}
           </Section>
         )}

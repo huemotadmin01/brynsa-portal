@@ -30,7 +30,7 @@ function TeamListsPage() {
   const orgRole = currentOrg ? getAppRole('outreach') : null;
   const effectiveRole = orgRole || user?.role || 'member';
   const isAdminOrLead = effectiveRole === 'admin' || effectiveRole === 'team_lead';
-  const canEditLead = (lead) => isAdminOrLead || lead.userId === user?._id;
+  const canEditLead = (lead) => isAdminOrLead || lead.userId === user?._id || lead.visitorId === user?._id;
   const [lists, setLists] = useState([]);
   const [teamMembers, setTeamMembers] = useState([]);
   const [selectedList, setSelectedList] = useState(searchParams.get('list') || null);

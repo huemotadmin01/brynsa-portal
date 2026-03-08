@@ -665,7 +665,7 @@ export default function TimesheetPayroll() {
             <div className="flex items-center gap-2">
               <UserX size={14} className="text-amber-500" />
               <button onClick={() => setShowMissingPopup(true)} className="text-amber-400 font-medium hover:underline hover:text-amber-300 transition-colors">
-                {missingData.missingCount} of {missingData.totalBillable} billable haven't submitted
+                {missingData.missingCount} of {missingData.totalBillable} billable not approved
               </button>
             </div>
           )}

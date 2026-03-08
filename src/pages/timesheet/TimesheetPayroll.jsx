@@ -6,9 +6,10 @@ import { generatePayslipPDF } from '../../utils/payslipPdf';
 import ExcelJS from 'exceljs';
 import {
   Loader2, Download, ChevronDown, ChevronUp,
-  IndianRupee, Users, TrendingUp, Search, FileSpreadsheet, Package,
+  IndianRupee, Users, TrendingUp, Search, FileSpreadsheet,
   ChevronLeft, ChevronRight, ShieldCheck, CalendarDays, FileDown,
   X, AlertTriangle, UserX, Lock, Unlock, Play, CheckCircle2, Circle,
+  Send, Mail,
 } from 'lucide-react';
 
 const monthNames = ['', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -44,7 +45,6 @@ export default function TimesheetPayroll() {
   const [activeTab, setActiveTab] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [downloadingPayslip, setDownloadingPayslip] = useState(null);
-  const [batchDownloading, setBatchDownloading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const PAGE_SIZE = 10;
 
@@ -57,6 +57,11 @@ export default function TimesheetPayroll() {
   const [payrollRun, setPayrollRun] = useState({ status: 'open' });
   const [actionLoading, setActionLoading] = useState(false);
   const [showFinalizeConfirm, setShowFinalizeConfirm] = useState(false);
+
+  // Release payslips modal
+  const [showReleaseModal, setShowReleaseModal] = useState(false);
+  const [selectedForRelease, setSelectedForRelease] = useState(new Set());
+  const [releasing, setReleasing] = useState(false);
 
   // Missing submissions data + popup states
   const [missingData, setMissingData] = useState(null);
@@ -149,45 +154,26 @@ export default function TimesheetPayroll() {
     }
   };
 
-  const handleBatchDownloadPayslips = async () => {
-    if (filteredEmployees.length === 0) return;
-    setBatchDownloading(true);
+  const handleReleasePayslips = async () => {
+    if (selectedForRelease.size === 0) return;
+    setReleasing(true);
     try {
-      const JSZip = (await import('jszip')).default;
-      const zip = new JSZip();
-      let count = 0;
-
-      for (const emp of filteredEmployees) {
-        try {
-          const res = await timesheetApi.get('/payroll/payslip-data', {
-            params: { month, year, employeeId: emp.employeeObjId },
-          });
-          const blob = await generatePayslipPDF(res.data, { download: false });
-          const safeName = (emp.name || 'Employee').replace(/[^a-zA-Z0-9 ]/g, '').replace(/\s+/g, '_');
-          zip.file(`Payslip_${safeName}_${shortMonths[month]}_${year}.pdf`, blob);
-          count++;
-        } catch {
-          // Skip individual failures
-        }
+      const res = await timesheetApi.post('/payroll/release-payslips', {
+        month, year,
+        employeeIds: [...selectedForRelease],
+      });
+      const { sent, failed } = res.data;
+      if (failed > 0) {
+        showToast(`${sent} payslip(s) sent, ${failed} failed`, 'error');
+      } else {
+        showToast(`${sent} payslip(s) released successfully`);
       }
-
-      if (count === 0) {
-        showToast('No payslips could be generated', 'error');
-        return;
-      }
-
-      const zipBlob = await zip.generateAsync({ type: 'blob' });
-      const url = URL.createObjectURL(zipBlob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `Payslips_${shortMonths[month]}_${year}.zip`;
-      a.click();
-      URL.revokeObjectURL(url);
-      showToast(`${count} payslip(s) downloaded as zip`);
+      setShowReleaseModal(false);
+      setSelectedForRelease(new Set());
     } catch (err) {
-      showToast('Batch download failed', 'error');
+      showToast(err.response?.data?.error || 'Failed to release payslips', 'error');
     } finally {
-      setBatchDownloading(false);
+      setReleasing(false);
     }
   };
 
@@ -707,17 +693,20 @@ export default function TimesheetPayroll() {
             className="w-full bg-dark-800/50 border border-dark-700 rounded-lg pl-10 pr-4 py-2 text-sm text-white placeholder-dark-500 outline-none focus:border-rivvra-500 focus:ring-2 focus:ring-rivvra-500/20" />
         </div>
         <div className="flex flex-wrap gap-2">
-          <button onClick={handleBatchDownloadPayslips} disabled={batchDownloading || filteredEmployees.length === 0}
-            className="bg-dark-800 border border-dark-700 text-dark-300 px-3 py-2 rounded-lg text-sm font-medium hover:bg-dark-700 flex items-center gap-1.5 transition-colors disabled:opacity-50">
-            {batchDownloading ? <Loader2 size={14} className="animate-spin" /> : <Package size={14} />}
-            All Payslips
+          <button onClick={() => { setSelectedForRelease(new Set(data?.employees?.map(e => e.employeeObjId) || [])); setShowReleaseModal(true); }}
+            disabled={!data?.employees?.length || !['processed', 'finalized'].includes(payrollRun?.status)}
+            title={!['processed', 'finalized'].includes(payrollRun?.status) ? 'Process payroll first to release payslips' : ''}
+            className="bg-rivvra-500 text-dark-950 px-3 py-2 rounded-lg text-sm font-semibold hover:bg-rivvra-400 flex items-center gap-1.5 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+            <Send size={14} /> Release Payslips
           </button>
-          <button onClick={handleExportCSV}
-            className="bg-dark-800 border border-dark-700 text-dark-300 px-3 py-2 rounded-lg text-sm font-medium hover:bg-dark-700 flex items-center gap-1.5 transition-colors">
+          <button onClick={handleExportCSV} disabled={!['processed', 'finalized'].includes(payrollRun?.status)}
+            title={!['processed', 'finalized'].includes(payrollRun?.status) ? 'Process payroll first to export' : ''}
+            className="bg-dark-800 border border-dark-700 text-dark-300 px-3 py-2 rounded-lg text-sm font-medium hover:bg-dark-700 flex items-center gap-1.5 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
             <FileSpreadsheet size={14} /> Export CSV
           </button>
-          <button onClick={handleProcessPayroll} disabled={processingPayroll || !data?.employees?.length}
-            className="bg-dark-800 border border-dark-700 text-dark-300 px-3 py-2 rounded-lg text-sm font-medium hover:bg-dark-700 flex items-center gap-1.5 transition-colors disabled:opacity-50">
+          <button onClick={handleProcessPayroll} disabled={processingPayroll || !data?.employees?.length || !['processed', 'finalized'].includes(payrollRun?.status)}
+            title={!['processed', 'finalized'].includes(payrollRun?.status) ? 'Process payroll first to export' : ''}
+            className="bg-dark-800 border border-dark-700 text-dark-300 px-3 py-2 rounded-lg text-sm font-medium hover:bg-dark-700 flex items-center gap-1.5 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
             {processingPayroll ? <Loader2 size={14} className="animate-spin" /> : <FileDown size={14} />}
             Export Excel
           </button>
@@ -1050,6 +1039,88 @@ export default function TimesheetPayroll() {
                   <span className="text-emerald-400 text-xs font-medium shrink-0">₹{fmt(emp.grossPay)}</span>
                 </div>
               ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Release Payslips Modal */}
+      {showReleaseModal && data?.employees && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setShowReleaseModal(false)}>
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+          <div className="relative bg-dark-900 border border-dark-700 rounded-2xl w-full max-w-lg max-h-[80vh] flex flex-col shadow-2xl" onClick={e => e.stopPropagation()}>
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-dark-800">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-rivvra-500/10 flex items-center justify-center">
+                  <Mail size={16} className="text-rivvra-400" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-white">Release Payslips</h3>
+                  <p className="text-[11px] text-dark-400">{monthNames[month]} {year} — {selectedForRelease.size} of {data.employees.length} selected</p>
+                </div>
+              </div>
+              <button onClick={() => setShowReleaseModal(false)} className="p-1.5 rounded-lg hover:bg-dark-800 text-dark-400 hover:text-white transition-colors">
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Select All */}
+            <div className="px-5 py-3 border-b border-dark-800/50 flex items-center gap-3">
+              <input type="checkbox" id="select-all-payslips"
+                checked={selectedForRelease.size === data.employees.length}
+                onChange={(e) => {
+                  if (e.target.checked) setSelectedForRelease(new Set(data.employees.map(emp => emp.employeeObjId)));
+                  else setSelectedForRelease(new Set());
+                }}
+                className="w-4 h-4 rounded border-dark-600 bg-dark-800 text-rivvra-500 focus:ring-rivvra-500/30"
+              />
+              <label htmlFor="select-all-payslips" className="text-sm text-dark-300 cursor-pointer select-none">Select All</label>
+            </div>
+
+            {/* Employee List */}
+            <div className="overflow-y-auto flex-1 px-2 py-2">
+              {data.employees.map((emp) => {
+                const isSelected = selectedForRelease.has(emp.employeeObjId);
+                return (
+                  <label key={emp.employeeObjId}
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-dark-800/50 transition-colors cursor-pointer">
+                    <input type="checkbox" checked={isSelected}
+                      onChange={() => {
+                        const next = new Set(selectedForRelease);
+                        if (isSelected) next.delete(emp.employeeObjId);
+                        else next.add(emp.employeeObjId);
+                        setSelectedForRelease(next);
+                      }}
+                      className="w-4 h-4 rounded border-dark-600 bg-dark-800 text-rivvra-500 focus:ring-rivvra-500/30 shrink-0"
+                    />
+                    <div className="w-8 h-8 rounded-full bg-rivvra-500/10 text-rivvra-400 flex items-center justify-center text-xs font-bold shrink-0">
+                      {(emp.name || '?')[0].toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-white truncate">{emp.name}</p>
+                      <p className="text-[11px] text-dark-500 truncate">{emp.email}</p>
+                    </div>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium shrink-0 ${typeBadgeColors[emp.employmentType] || 'bg-dark-700 text-dark-300'}`}>
+                      {typeLabels[emp.employmentType] || emp.employmentType}
+                    </span>
+                    <span className="text-emerald-400 text-xs font-medium shrink-0 w-16 text-right">{'\u20B9'}{fmt(emp.netPay)}</span>
+                  </label>
+                );
+              })}
+            </div>
+
+            {/* Footer */}
+            <div className="px-5 py-4 border-t border-dark-800 flex items-center gap-3">
+              <button onClick={() => setShowReleaseModal(false)}
+                className="flex-1 px-4 py-2.5 rounded-xl bg-dark-800 border border-dark-700 text-dark-300 text-sm font-medium hover:bg-dark-700 transition-colors">
+                Cancel
+              </button>
+              <button onClick={handleReleasePayslips} disabled={releasing || selectedForRelease.size === 0}
+                className="flex-1 px-4 py-2.5 rounded-xl bg-rivvra-500 text-dark-950 text-sm font-semibold hover:bg-rivvra-400 transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5">
+                {releasing ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+                Send {selectedForRelease.size} Payslip{selectedForRelease.size !== 1 ? 's' : ''}
+              </button>
             </div>
           </div>
         </div>

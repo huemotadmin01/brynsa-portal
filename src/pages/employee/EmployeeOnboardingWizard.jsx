@@ -179,21 +179,63 @@ export default function EmployeeOnboardingWizard() {
   // ---------------------------------------------------------------------------
   // Validation
   // ---------------------------------------------------------------------------
+  // Format patterns
+  const PHONE_RE = /^[6-9]\d{9}$/;                       // Indian 10-digit mobile
+  const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;         // basic email
+  const PAN_RE = /^[A-Z]{5}[0-9]{4}[A-Z]$/;             // ABCDE1234F
+  const AADHAAR_RE = /^\d{12}$/;                          // 12 digits
+  const IFSC_RE = /^[A-Z]{4}0[A-Z0-9]{6}$/;             // ABCD0XXXXXX
+  const ACCT_RE = /^\d{9,18}$/;                           // 9-18 digits
+
   const validateStep = () => {
     const errs = {};
+
     if (step === 'personal') {
-      if (!form.alternatePhone.trim()) errs.alternatePhone = 'Alternate phone is required';
+      // Alternate phone — required + format
+      const phone = form.alternatePhone.trim();
+      if (!phone) errs.alternatePhone = 'Alternate phone is required';
+      else if (!PHONE_RE.test(phone)) errs.alternatePhone = 'Enter a valid 10-digit mobile number';
+
+      // Personal email — optional but validate format if provided
+      const pEmail = form.personalEmail?.trim();
+      if (pEmail && !EMAIL_RE.test(pEmail)) errs.personalEmail = 'Enter a valid email address';
     }
+
     if (step === 'family') {
       if (!form.emergencyContact.name?.trim()) errs.emergencyName = 'Emergency contact name is required';
-      if (!form.emergencyContact.phone?.trim()) errs.emergencyPhone = 'Emergency contact phone is required';
+
+      const ePhone = form.emergencyContact.phone?.trim();
+      if (!ePhone) errs.emergencyPhone = 'Emergency contact phone is required';
+      else if (!PHONE_RE.test(ePhone)) errs.emergencyPhone = 'Enter a valid 10-digit mobile number';
+
+      // Validate family member phones (optional but must be valid if entered)
+      form.familyMembers.forEach((fm, i) => {
+        const fmPhone = fm.phone?.trim();
+        if (fmPhone && !PHONE_RE.test(fmPhone)) errs[`fm_phone_${i}`] = 'Enter a valid 10-digit number';
+      });
     }
+
     if (step === 'bank') {
+      // Bank details — all required + format
       if (!form.bankDetails.bankName?.trim()) errs.bankName = 'Bank name is required';
-      if (!form.bankDetails.accountNumber?.trim()) errs.accountNumber = 'Account number is required';
-      if (!form.bankDetails.ifscCode?.trim() && !form.bankDetails.ifsc?.trim()) errs.ifscCode = 'IFSC code is required';
-      if (!form.bankDetails.pan?.trim()) errs.pan = 'PAN number is required';
+
+      const acct = form.bankDetails.accountNumber?.trim();
+      if (!acct) errs.accountNumber = 'Account number is required';
+      else if (!ACCT_RE.test(acct)) errs.accountNumber = 'Account number must be 9-18 digits';
+
+      const ifsc = (form.bankDetails.ifscCode || form.bankDetails.ifsc || '').trim().toUpperCase();
+      if (!ifsc) errs.ifscCode = 'IFSC code is required';
+      else if (!IFSC_RE.test(ifsc)) errs.ifscCode = 'Invalid IFSC format (e.g. SBIN0001234)';
+
+      const pan = form.bankDetails.pan?.trim().toUpperCase();
+      if (!pan) errs.pan = 'PAN number is required';
+      else if (!PAN_RE.test(pan)) errs.pan = 'Invalid PAN format (e.g. ABCDE1234F)';
+
+      // Statutory — optional but validate format if provided
+      const aadhaar = form.statutory.aadhaar?.trim();
+      if (aadhaar && !AADHAAR_RE.test(aadhaar)) errs.aadhaar = 'Aadhaar must be 12 digits';
     }
+
     if (step === 'education') {
       if (form.education.length === 0) errs.education = 'At least one education entry is required';
       // Validate each entry has degree and institution
@@ -202,6 +244,7 @@ export default function EmployeeOnboardingWizard() {
         if (!ed.institution?.trim()) errs[`edu_institution_${i}`] = `Education ${i + 1}: Institution is required`;
       });
     }
+
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -343,7 +386,9 @@ export default function EmployeeOnboardingWizard() {
         </FormField>
 
         <FormField label="Personal Email">
-          <input type="email" value={form.personalEmail} onChange={(e) => updateField('personalEmail', e.target.value)} className={inputCls} placeholder="Personal email" />
+          <input type="email" value={form.personalEmail} onChange={(e) => updateField('personalEmail', e.target.value)}
+            className={`${inputCls} ${errors.personalEmail ? 'border-red-500' : ''}`} placeholder="Personal email" />
+          {errors.personalEmail && <p className="text-red-400 text-xs mt-1">{errors.personalEmail}</p>}
         </FormField>
       </div>
 
@@ -470,7 +515,9 @@ export default function EmployeeOnboardingWizard() {
                   <input type="date" value={fm.dateOfBirth} onChange={(e) => updateFamilyMember(i, 'dateOfBirth', e.target.value)} className={inputCls} />
                 </FormField>
                 <FormField label="Phone">
-                  <input type="tel" value={fm.phone} onChange={(e) => updateFamilyMember(i, 'phone', e.target.value)} className={inputCls} placeholder="Phone" />
+                  <input type="tel" value={fm.phone} onChange={(e) => updateFamilyMember(i, 'phone', e.target.value)}
+                    className={`${inputCls} ${errors[`fm_phone_${i}`] ? 'border-red-500' : ''}`} placeholder="Phone" />
+                  {errors[`fm_phone_${i}`] && <p className="text-red-400 text-xs mt-1">{errors[`fm_phone_${i}`]}</p>}
                 </FormField>
                 <FormField label="Dependent?">
                   <label className="flex items-center gap-2 py-2.5 cursor-pointer">
@@ -505,18 +552,18 @@ export default function EmployeeOnboardingWizard() {
             {errors.bankName && <p className="text-red-400 text-xs mt-1">{errors.bankName}</p>}
           </FormField>
           <FormField label="Account Number" required>
-            <input type="text" value={form.bankDetails.accountNumber} onChange={(e) => updateNested('bankDetails', 'accountNumber', e.target.value)}
-              className={`${inputCls} ${errors.accountNumber ? 'border-red-500' : ''}`} placeholder="Account number" />
+            <input type="text" value={form.bankDetails.accountNumber} onChange={(e) => updateNested('bankDetails', 'accountNumber', e.target.value.replace(/\D/g, ''))}
+              className={`${inputCls} ${errors.accountNumber ? 'border-red-500' : ''}`} placeholder="Account number" maxLength={18} />
             {errors.accountNumber && <p className="text-red-400 text-xs mt-1">{errors.accountNumber}</p>}
           </FormField>
           <FormField label="IFSC Code" required>
-            <input type="text" value={form.bankDetails.ifscCode || form.bankDetails.ifsc || ''} onChange={(e) => updateNested('bankDetails', 'ifscCode', e.target.value)}
-              className={`${inputCls} ${errors.ifscCode ? 'border-red-500' : ''}`} placeholder="IFSC code" />
+            <input type="text" value={form.bankDetails.ifscCode || form.bankDetails.ifsc || ''} onChange={(e) => updateNested('bankDetails', 'ifscCode', e.target.value.toUpperCase())}
+              className={`${inputCls} ${errors.ifscCode ? 'border-red-500' : ''}`} placeholder="SBIN0001234" maxLength={11} />
             {errors.ifscCode && <p className="text-red-400 text-xs mt-1">{errors.ifscCode}</p>}
           </FormField>
           <FormField label="PAN Number" required>
-            <input type="text" value={form.bankDetails.pan} onChange={(e) => updateNested('bankDetails', 'pan', e.target.value)}
-              className={`${inputCls} ${errors.pan ? 'border-red-500' : ''}`} placeholder="ABCDE1234F" />
+            <input type="text" value={form.bankDetails.pan} onChange={(e) => updateNested('bankDetails', 'pan', e.target.value.toUpperCase())}
+              className={`${inputCls} ${errors.pan ? 'border-red-500' : ''}`} placeholder="ABCDE1234F" maxLength={10} />
             {errors.pan && <p className="text-red-400 text-xs mt-1">{errors.pan}</p>}
           </FormField>
         </div>
@@ -527,7 +574,9 @@ export default function EmployeeOnboardingWizard() {
         <h3 className="text-sm font-semibold text-dark-300 mb-3">Statutory / ID Details</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <FormField label="Aadhaar Number">
-            <input type="text" value={form.statutory.aadhaar} onChange={(e) => updateNested('statutory', 'aadhaar', e.target.value)} className={inputCls} placeholder="12-digit Aadhaar" maxLength={12} />
+            <input type="text" value={form.statutory.aadhaar} onChange={(e) => updateNested('statutory', 'aadhaar', e.target.value.replace(/\D/g, ''))}
+              className={`${inputCls} ${errors.aadhaar ? 'border-red-500' : ''}`} placeholder="12-digit Aadhaar" maxLength={12} />
+            {errors.aadhaar && <p className="text-red-400 text-xs mt-1">{errors.aadhaar}</p>}
           </FormField>
           <FormField label="UAN (Universal Account Number)">
             <input type="text" value={form.statutory.uan} onChange={(e) => updateNested('statutory', 'uan', e.target.value)} className={inputCls} placeholder="UAN number" />

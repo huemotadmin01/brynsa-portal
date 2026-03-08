@@ -703,7 +703,7 @@ export default function EmployeeOnboardingWizard() {
   const isLast = step === STEP_ORDER[STEP_ORDER.length - 1];
 
   return (
-    <div className="min-h-screen bg-dark-950 flex items-start justify-center">
+    <div className="min-h-[calc(100vh-3.5rem)] flex flex-col items-center">
       <div className="w-full max-w-3xl px-6 py-10">
         {/* Header */}
         <div className="text-center mb-2">

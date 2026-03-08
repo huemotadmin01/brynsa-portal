@@ -63,24 +63,24 @@ export default function TimesheetPayroll() {
   const [selectedForRelease, setSelectedForRelease] = useState(new Set());
   const [releasing, setReleasing] = useState(false);
 
-  // Missing submissions data + popup states
-  const [missingData, setMissingData] = useState(null);
-  const [showMissingPopup, setShowMissingPopup] = useState(false);
+  // Not-approved data + popup states
+  const [notApprovedData, setNotApprovedData] = useState(null);
+  const [showNotApprovedPopup, setShowNotApprovedPopup] = useState(false);
   const [showApprovedPopup, setShowApprovedPopup] = useState(false);
 
   const loadPayroll = async () => {
     setLoading(true);
     try {
-      const [payrollRes, missingRes] = await Promise.all([
+      const [payrollRes, notApprovedRes] = await Promise.all([
         timesheetApi.get('/payroll/summary', { params: { month, year } }),
-        timesheetApi.get('/dashboard/missing-submissions').catch(() => null),
+        timesheetApi.get('/dashboard/not-approved').catch(() => null),
       ]);
       setData(payrollRes.data);
       setPayrollRun(payrollRes.data?.payrollRun || { status: 'open' });
-      if (missingRes?.data?.months) {
+      if (notApprovedRes?.data?.months) {
         // Find the month matching current selection
-        const match = missingRes.data.months.find(m => m.month === month && m.year === year);
-        setMissingData(match || null);
+        const match = notApprovedRes.data.months.find(m => m.month === month && m.year === year);
+        setNotApprovedData(match || null);
       }
     } catch (err) {
       showToast(err.response?.data?.error || 'Failed to load payroll', 'error');
@@ -89,7 +89,7 @@ export default function TimesheetPayroll() {
     }
   };
 
-  useEffect(() => { loadPayroll(); setCurrentPage(1); setShowMissingPopup(false); setShowApprovedPopup(false); }, [month, year]);
+  useEffect(() => { loadPayroll(); setCurrentPage(1); setShowNotApprovedPopup(false); setShowApprovedPopup(false); }, [month, year]);
   // Reset page on filter/search change
   useEffect(() => { setCurrentPage(1); }, [activeTab, searchQuery]);
 
@@ -661,11 +661,11 @@ export default function TimesheetPayroll() {
               {' '}for {monthNames[month]} {year}
             </span>
           </div>
-          {missingData && missingData.missingCount > 0 && (
+          {notApprovedData && notApprovedData.notApprovedCount > 0 && (
             <div className="flex items-center gap-2">
               <UserX size={14} className="text-amber-500" />
-              <button onClick={() => setShowMissingPopup(true)} className="text-amber-400 font-medium hover:underline hover:text-amber-300 transition-colors">
-                {missingData.missingCount} of {missingData.totalBillable} billable not approved
+              <button onClick={() => setShowNotApprovedPopup(true)} className="text-amber-400 font-medium hover:underline hover:text-amber-300 transition-colors">
+                {notApprovedData.notApprovedCount} of {notApprovedData.totalBillable} billable not approved
               </button>
             </div>
           )}
@@ -959,9 +959,9 @@ export default function TimesheetPayroll() {
         </div>
       )}
 
-      {/* Missing Submissions Popup */}
-      {showMissingPopup && missingData && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setShowMissingPopup(false)}>
+      {/* Not Approved Popup */}
+      {showNotApprovedPopup && notApprovedData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setShowNotApprovedPopup(false)}>
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
           <div className="relative bg-dark-900 border border-dark-700 rounded-2xl w-full max-w-lg max-h-[70vh] flex flex-col shadow-2xl" onClick={e => e.stopPropagation()}>
             {/* Header */}
@@ -971,17 +971,17 @@ export default function TimesheetPayroll() {
                   <UserX size={16} className="text-amber-400" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-semibold text-white">Missing Timesheets</h3>
-                  <p className="text-[11px] text-dark-400">{missingData.missingCount} of {missingData.totalBillable} billable employees — {monthNames[month]} {year}</p>
+                  <h3 className="text-sm font-semibold text-white">Not Approved</h3>
+                  <p className="text-[11px] text-dark-400">{notApprovedData.notApprovedCount} of {notApprovedData.totalBillable} billable employees — {monthNames[month]} {year}</p>
                 </div>
               </div>
-              <button onClick={() => setShowMissingPopup(false)} className="p-1.5 rounded-lg hover:bg-dark-800 text-dark-400 hover:text-white transition-colors">
+              <button onClick={() => setShowNotApprovedPopup(false)} className="p-1.5 rounded-lg hover:bg-dark-800 text-dark-400 hover:text-white transition-colors">
                 <X size={16} />
               </button>
             </div>
             {/* List */}
             <div className="overflow-y-auto flex-1 px-2 py-2">
-              {(missingData.missingEmployees || []).map((emp, i) => (
+              {(notApprovedData.notApprovedEmployees || []).map((emp, i) => (
                 <div key={i} className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-dark-800/50 transition-colors">
                   <div className="w-8 h-8 rounded-full bg-red-500/10 text-red-400 flex items-center justify-center text-xs font-bold shrink-0">
                     {(emp.name || '?')[0].toUpperCase()}
@@ -990,11 +990,15 @@ export default function TimesheetPayroll() {
                     <p className="text-sm text-white truncate">{emp.name}</p>
                     <p className="text-[11px] text-dark-500 truncate">{emp.employeeId || emp.email}</p>
                   </div>
-                  {emp.employmentType && (
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium shrink-0 ${typeBadgeColors[emp.employmentType] || 'bg-dark-700 text-dark-300'}`}>
-                      {typeLabels[emp.employmentType] || emp.employmentType}
-                    </span>
-                  )}
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium shrink-0 ${
+                    emp.timesheetStatus === 'submitted' ? 'bg-amber-500/10 text-amber-400' :
+                    emp.timesheetStatus === 'draft' ? 'bg-dark-700 text-dark-400' :
+                    emp.timesheetStatus === 'rejected' ? 'bg-red-500/10 text-red-400' :
+                    'bg-dark-700 text-dark-500'
+                  }`}>
+                    {emp.timesheetStatus === 'not_submitted' ? 'No Timesheet' :
+                     emp.timesheetStatus.charAt(0).toUpperCase() + emp.timesheetStatus.slice(1)}
+                  </span>
                 </div>
               ))}
             </div>

@@ -232,8 +232,8 @@ function App() {
                 <Route path="/org/:slug/timesheet/projects" element={<ErrorBoundary><TimesheetProjects /></ErrorBoundary>} />
               </Route>
 
-              {/* Payroll app routes — org admin only */}
-              <Route element={<OrgAdminGate />}>
+              {/* Payroll app routes — gated by payroll app admin role */}
+              <Route element={<AppRoleGate appId="payroll" requiredRole="admin" />}>
                 <Route path="/org/:slug/payroll/process" element={<ErrorBoundary><TimesheetPayroll /></ErrorBoundary>} />
                 <Route path="/org/:slug/payroll/pay-overview" element={<ErrorBoundary><TimesheetPayConfig /></ErrorBoundary>} />
                 <Route path="/org/:slug/payroll/export" element={<ErrorBoundary><TimesheetExport /></ErrorBoundary>} />

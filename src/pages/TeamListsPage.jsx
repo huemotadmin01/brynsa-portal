@@ -29,7 +29,8 @@ function TeamListsPage() {
   // Org membership role is the source of truth; user.role is fallback
   const orgRole = currentOrg ? getAppRole('outreach') : null;
   const effectiveRole = orgRole || user?.role || 'member';
-  const canEdit = effectiveRole === 'admin' || effectiveRole === 'team_lead';
+  const isAdminOrLead = effectiveRole === 'admin' || effectiveRole === 'team_lead';
+  const canEditLead = (lead) => isAdminOrLead || lead.userId === user?._id;
   const [lists, setLists] = useState([]);
   const [teamMembers, setTeamMembers] = useState([]);
   const [selectedList, setSelectedList] = useState(searchParams.get('list') || null);
@@ -519,7 +520,7 @@ function TeamListsPage() {
                                 Contact <ArrowUpDown className="w-3 h-3" />
                               </button>
                             </th>
-                            {canEdit && <th className="sticky left-[260px] z-30 bg-dark-800 px-4 py-3 text-left w-[110px] min-w-[110px] shadow-[2px_0_5px_-2px_rgba(0,0,0,0.3)]"></th>}
+                            <th className="sticky left-[260px] z-30 bg-dark-800 px-4 py-3 text-left w-[110px] min-w-[110px] shadow-[2px_0_5px_-2px_rgba(0,0,0,0.3)]"></th>
                             <th className="px-4 py-3 text-left text-sm font-medium text-dark-400 min-w-[140px]">Contact Owner</th>
                             <th className="px-4 py-3 text-left text-sm font-medium text-dark-400 min-w-[120px]">Profile Type</th>
                             <th className="px-4 py-3 text-left text-sm font-medium text-dark-400 min-w-[150px]">Status</th>
@@ -574,41 +575,41 @@ function TeamListsPage() {
                                   </div>
                                 </div>
                               </td>
-                              {canEdit && (
                               <td className="sticky left-[260px] z-10 bg-dark-900 px-4 py-3 w-[110px] min-w-[110px] shadow-[2px_0_5px_-2px_rgba(0,0,0,0.3)]" onClick={(e) => e.stopPropagation()}>
-                                <ManageDropdown
-                                  lead={lead}
-                                  onExportCRM={() => {
-                                    if (!isPro) {
-                                      setComingSoonFeature('Export to CRM');
-                                      setShowComingSoon(true);
-                                      return;
-                                    }
-                                    setExportCRMTarget(lead);
-                                    setShowExportCRM(true);
-                                  }}
-                                  onAddToSequence={() => {
-                                    if (setupComplete === false) {
-                                      showToast('Complete your setup on the Engage page first (connect Gmail + complete profile)', 'error');
-                                      return;
-                                    }
-                                    setSequenceTarget(lead);
-                                    setShowAddToSequence(true);
-                                  }}
-                                  onAddToList={() => {
-                                    setAddToListTarget(lead);
-                                    setShowAddToList(true);
-                                  }}
-                                  onEditContact={() => {
-                                    setEditContactTarget(lead);
-                                    setShowEditContact(true);
-                                  }}
-                                  onTagContact={() => handleFeatureClick('Tag Contact')}
-                                  onRemoveContact={() => handleRemoveFromList(lead)}
-                                  removeLabel="Remove from list"
-                                />
+                                {canEditLead(lead) && (
+                                  <ManageDropdown
+                                    lead={lead}
+                                    onExportCRM={() => {
+                                      if (!isPro) {
+                                        setComingSoonFeature('Export to CRM');
+                                        setShowComingSoon(true);
+                                        return;
+                                      }
+                                      setExportCRMTarget(lead);
+                                      setShowExportCRM(true);
+                                    }}
+                                    onAddToSequence={() => {
+                                      if (setupComplete === false) {
+                                        showToast('Complete your setup on the Engage page first (connect Gmail + complete profile)', 'error');
+                                        return;
+                                      }
+                                      setSequenceTarget(lead);
+                                      setShowAddToSequence(true);
+                                    }}
+                                    onAddToList={() => {
+                                      setAddToListTarget(lead);
+                                      setShowAddToList(true);
+                                    }}
+                                    onEditContact={() => {
+                                      setEditContactTarget(lead);
+                                      setShowEditContact(true);
+                                    }}
+                                    onTagContact={() => handleFeatureClick('Tag Contact')}
+                                    onRemoveContact={() => handleRemoveFromList(lead)}
+                                    removeLabel="Remove from list"
+                                  />
+                                )}
                               </td>
-                              )}
                               {/* Contact Owner */}
                               <td className="px-4 py-3">
                                 <div className="flex items-center gap-2">

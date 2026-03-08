@@ -210,14 +210,19 @@ export default function EmployeeOnboardingWizard() {
     const errs = {};
 
     if (step === 'personal') {
+      if (!form.gender) errs.gender = 'Gender is required';
+      if (!form.maritalStatus) errs.maritalStatus = 'Marital status is required';
+      if (!form.nationality?.trim()) errs.nationality = 'Nationality is required';
+
       // Alternate phone — required + format
       const phone = form.alternatePhone.trim();
       if (!phone) errs.alternatePhone = 'Alternate phone is required';
       else if (!PHONE_RE.test(phone)) errs.alternatePhone = 'Enter a valid 10-digit mobile number';
 
-      // Personal email — optional but validate format if provided
+      // Personal email — required + format
       const pEmail = form.personalEmail?.trim();
-      if (pEmail && !EMAIL_RE.test(pEmail)) errs.personalEmail = 'Enter a valid email address';
+      if (!pEmail) errs.personalEmail = 'Personal email is required';
+      else if (!EMAIL_RE.test(pEmail)) errs.personalEmail = 'Enter a valid email address';
     }
 
     if (step === 'family') {
@@ -226,6 +231,8 @@ export default function EmployeeOnboardingWizard() {
       const ePhone = form.emergencyContact.phone?.trim();
       if (!ePhone) errs.emergencyPhone = 'Emergency contact phone is required';
       else if (!PHONE_RE.test(ePhone)) errs.emergencyPhone = 'Enter a valid 10-digit mobile number';
+
+      if (!form.emergencyContact.relation) errs.emergencyRelation = 'Relation is required';
 
       // Validate family member phones (optional but must be valid if entered)
       form.familyMembers.forEach((fm, i) => {
@@ -353,13 +360,15 @@ export default function EmployeeOnboardingWizard() {
           <input type="email" value={employee.email || ''} readOnly className={readOnlyCls} />
         </FormField>
 
-        <FormField label="Gender">
-          <select value={form.gender} onChange={(e) => updateField('gender', e.target.value)} className={selectCls}>
+        <FormField label="Gender" required>
+          <select value={form.gender} onChange={(e) => updateField('gender', e.target.value)}
+            className={`${selectCls} ${errors.gender ? 'border-red-500' : ''}`}>
             <option value="">Select gender</option>
             <option value="male">Male</option>
             <option value="female">Female</option>
             <option value="other">Other</option>
           </select>
+          {errors.gender && <p className="text-red-400 text-xs mt-1">{errors.gender}</p>}
         </FormField>
 
         <FormField label="Date of Birth">
@@ -377,11 +386,13 @@ export default function EmployeeOnboardingWizard() {
           <input type="text" value={form.fatherName} onChange={(e) => updateField('fatherName', e.target.value)} className={inputCls} placeholder="Father's full name" />
         </FormField>
 
-        <FormField label="Marital Status">
-          <select value={form.maritalStatus} onChange={(e) => updateField('maritalStatus', e.target.value)} className={selectCls}>
+        <FormField label="Marital Status" required>
+          <select value={form.maritalStatus} onChange={(e) => updateField('maritalStatus', e.target.value)}
+            className={`${selectCls} ${errors.maritalStatus ? 'border-red-500' : ''}`}>
             <option value="">Select status</option>
             {MARITAL_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
           </select>
+          {errors.maritalStatus && <p className="text-red-400 text-xs mt-1">{errors.maritalStatus}</p>}
         </FormField>
 
         {form.maritalStatus === 'Married' && (
@@ -390,8 +401,10 @@ export default function EmployeeOnboardingWizard() {
           </FormField>
         )}
 
-        <FormField label="Nationality">
-          <input type="text" value={form.nationality} onChange={(e) => updateField('nationality', e.target.value)} className={inputCls} />
+        <FormField label="Nationality" required>
+          <input type="text" value={form.nationality} onChange={(e) => updateField('nationality', e.target.value)}
+            className={`${inputCls} ${errors.nationality ? 'border-red-500' : ''}`} />
+          {errors.nationality && <p className="text-red-400 text-xs mt-1">{errors.nationality}</p>}
         </FormField>
 
         <FormField label="Religion">
@@ -408,7 +421,7 @@ export default function EmployeeOnboardingWizard() {
           {errors.alternatePhone && <p className="text-red-400 text-xs mt-1">{errors.alternatePhone}</p>}
         </FormField>
 
-        <FormField label="Personal Email">
+        <FormField label="Personal Email" required>
           <input type="email" value={form.personalEmail} onChange={(e) => updateField('personalEmail', e.target.value)}
             className={`${inputCls} ${errors.personalEmail ? 'border-red-500' : ''}`} placeholder="Personal email" />
           {errors.personalEmail && <p className="text-red-400 text-xs mt-1">{errors.personalEmail}</p>}
@@ -494,11 +507,13 @@ export default function EmployeeOnboardingWizard() {
               className={`${inputCls} ${errors.emergencyPhone ? 'border-red-500' : ''}`} placeholder="Phone number" />
             {errors.emergencyPhone && <p className="text-red-400 text-xs mt-1">{errors.emergencyPhone}</p>}
           </FormField>
-          <FormField label="Relation">
-            <select value={form.emergencyContact.relation} onChange={(e) => updateNested('emergencyContact', 'relation', e.target.value)} className={selectCls}>
+          <FormField label="Relation" required>
+            <select value={form.emergencyContact.relation} onChange={(e) => updateNested('emergencyContact', 'relation', e.target.value)}
+              className={`${selectCls} ${errors.emergencyRelation ? 'border-red-500' : ''}`}>
               <option value="">Select</option>
               {RELATIONS.map((r) => <option key={r} value={r}>{r}</option>)}
             </select>
+            {errors.emergencyRelation && <p className="text-red-400 text-xs mt-1">{errors.emergencyRelation}</p>}
           </FormField>
         </div>
       </div>

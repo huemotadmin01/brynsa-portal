@@ -233,14 +233,21 @@ export default function TimesheetPayroll() {
       // Row 2: Title
       const titleRow = ws.addRow([`Salary Statement For The Month Of ${monthNames[month]} ${year}`]);
       titleRow.getCell(1).font = { bold: true, size: 14 };
-      ws.mergeCells(2, 1, 2, 14);
+      ws.mergeCells(2, 1, 2, 17);
 
       // Row 3: blank
       ws.addRow([]);
 
       // Row 4: Column headers
+      //  1          2       3                  4        5       6        7
+      //  Emp No     Name    Project Start Date Status   PAN No. Bank A/C IFSC
+      //  8              9     10                 11
+      //  Days In Month  LOP   Effective Workdays Gross Pay (highlighted)
+      //  12        13                14                 15         16                17
+      //  TDS (2%)  Other Deductions  Total Deductions   Net Pay    Disbursement Date Payment Status
       const headers = [
-        'Employee No', 'Name', 'Join Date', 'Status',
+        'Employee No', 'Name', 'Project Start Date', 'Status',
+        'PAN No.', 'Bank A/C', 'IFSC',
         'Days In Month', 'LOP', 'Effective Workdays',
         'Gross Pay', 'TDS (2%)', 'Other Deductions', 'Total Deductions', 'Net Pay',
         'Disbursement Date', 'Payment Status',
@@ -249,13 +256,18 @@ export default function TimesheetPayroll() {
       headerRow.eachCell((cell) => {
         cell.font = { bold: true, color: { argb: 'FFFFFF' }, size: 10 };
         cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '2D5F2D' } };
-        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+        cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
         cell.border = {
           top: { style: 'thin' }, bottom: { style: 'thin' },
           left: { style: 'thin' }, right: { style: 'thin' },
         };
       });
-      headerRow.height = 24;
+      headerRow.height = 28;
+
+      // Salary column indices (1-based): Gross=11, TDS=12, OtherDed=13, TotalDed=14, Net=15
+      const salaryColStart = 11;
+      const salaryColEnd = 15;
+      const salaryHighlight = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF9E6' } }; // light yellow
 
       // Data rows
       let totDaysInMonth = 0, totLOP = 0, totEffective = 0;
@@ -283,8 +295,11 @@ export default function TimesheetPayroll() {
         const row = ws.addRow([
           emp.employeeId || '',
           emp.name || '',
-          fmtDate(emp.joiningDate),
+          fmtDate(emp.projectStartDate || emp.joiningDate),
           statusLabel(emp.employmentType),
+          emp.bankDetails?.pan || '',
+          emp.bankDetails?.accountNumber || '',
+          emp.bankDetails?.ifscCode || '',
           daysInMonth,
           lop,
           effective,
@@ -304,17 +319,18 @@ export default function TimesheetPayroll() {
             left: { style: 'thin', color: { argb: 'DDDDDD' } },
             right: { style: 'thin', color: { argb: 'DDDDDD' } },
           };
-          // Currency columns (8-12)
-          if (colNumber >= 8 && colNumber <= 12) {
+          // Salary columns highlight
+          if (colNumber >= salaryColStart && colNumber <= salaryColEnd) {
             cell.numFmt = '#,##0.00';
             cell.alignment = { horizontal: 'right' };
+            cell.fill = salaryHighlight;
           }
-          // Number columns (5-7)
-          if (colNumber >= 5 && colNumber <= 7) {
+          // Number columns (Days, LOP, Effective)
+          if (colNumber >= 8 && colNumber <= 10) {
             cell.alignment = { horizontal: 'center' };
           }
-          // Status column
-          if (colNumber === 14) {
+          // Payment Status column
+          if (colNumber === 17) {
             cell.font = { color: { argb: cell.value === 'Paid' ? '228B22' : 'CC5500' }, bold: true };
             cell.alignment = { horizontal: 'center' };
           }
@@ -324,6 +340,7 @@ export default function TimesheetPayroll() {
       // Grand Total row
       const totalRow = ws.addRow([
         '', '', '', 'Grand Total',
+        '', '', '',
         totDaysInMonth, totLOP, totEffective,
         Math.round(totGross * 100) / 100,
         Math.round(totTDS * 100) / 100,
@@ -339,14 +356,16 @@ export default function TimesheetPayroll() {
           top: { style: 'medium' }, bottom: { style: 'medium' },
           left: { style: 'thin' }, right: { style: 'thin' },
         };
-        if (colNumber >= 8 && colNumber <= 12) {
+        if (colNumber >= salaryColStart && colNumber <= salaryColEnd) {
           cell.numFmt = '#,##0.00';
           cell.alignment = { horizontal: 'right' };
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF3CC' } }; // slightly darker yellow for total
         }
       });
 
       // Auto-width columns
-      const minWidths = [14, 30, 14, 20, 14, 8, 18, 14, 12, 16, 16, 14, 16, 14];
+      // 1:EmpNo 2:Name 3:ProjStart 4:Status 5:PAN 6:BankAC 7:IFSC 8:Days 9:LOP 10:Eff 11:Gross 12:TDS 13:Other 14:TotalDed 15:Net 16:Disb 17:PayStatus
+      const minWidths = [14, 28, 18, 20, 16, 18, 14, 14, 8, 18, 14, 12, 16, 16, 14, 16, 14];
       ws.columns.forEach((col, i) => {
         col.width = minWidths[i] || 14;
       });

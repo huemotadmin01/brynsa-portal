@@ -183,6 +183,13 @@ const employeeApi = {
     });
   },
 
+  // ── Send Onboarding Form Link ──────────────────────────────────────────────
+  sendOnboardingLink(orgSlug, employeeId) {
+    return api.request(`/api/org/${orgSlug}/employee/employees/${employeeId}/send-onboarding-link`, {
+      method: 'POST',
+    });
+  },
+
   // ── Onboarding ─────────────────────────────────────────────────────────────
   checkOnboarding(orgSlug) {
     return api.request(`/api/org/${orgSlug}/employee/onboarding-check`);

@@ -22,6 +22,7 @@ import {
   GraduationCap,
   Users,
   FileText,
+  Send,
 } from 'lucide-react';
 import InviteEmployeeModal from '../../components/employee/InviteEmployeeModal';
 import LaunchPlanModal from '../../components/employee/LaunchPlanModal';
@@ -141,6 +142,7 @@ export default function EmployeeDetail() {
   const [notFound, setNotFound] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showLaunchPlanModal, setShowLaunchPlanModal] = useState(false);
+  const [sendingOnboardingLink, setSendingOnboardingLink] = useState(false);
 
   const isAdmin = getAppRole('employee') === 'admin';
 
@@ -172,6 +174,24 @@ export default function EmployeeDetail() {
       cancelled = true;
     };
   }, [currentOrg?.slug, employeeId]);
+
+  // ── Send Onboarding Form Link ────────────────────────────────────────────
+  const handleSendOnboardingLink = async () => {
+    if (!currentOrg?.slug || !employeeId || sendingOnboardingLink) return;
+    setSendingOnboardingLink(true);
+    try {
+      const res = await employeeApi.sendOnboardingLink(currentOrg.slug, employeeId);
+      if (res.success) {
+        alert('Onboarding form link sent successfully to ' + employee?.email);
+      } else {
+        alert(res.error || 'Failed to send onboarding link');
+      }
+    } catch (err) {
+      alert(err.message || 'Failed to send onboarding link');
+    } finally {
+      setSendingOnboardingLink(false);
+    }
+  };
 
   // ── Loading state ────────────────────────────────────────────────────────
   if (loading) {
@@ -252,6 +272,17 @@ export default function EmployeeDetail() {
                     >
                       <UserPlus size={14} />
                       Invite to Workspace
+                    </button>
+                  )}
+                  {/* Request Onboarding Details — for employees already on portal */}
+                  {emp.linkedUserId && emp.email && emp.status === 'active' && (
+                    <button
+                      onClick={handleSendOnboardingLink}
+                      disabled={sendingOnboardingLink}
+                      className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition-colors disabled:opacity-50"
+                    >
+                      {sendingOnboardingLink ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+                      {sendingOnboardingLink ? 'Sending...' : 'Request Details'}
                     </button>
                   )}
                   {/* Launch Plan */}

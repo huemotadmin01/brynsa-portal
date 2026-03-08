@@ -34,7 +34,7 @@ const INITIAL_FORM = {
   familyMembers: [],
 
   // Step 3 — Bank & Statutory
-  bankDetails: { bankName: '', accountNumber: '', ifscCode: '', pan: '' },
+  bankDetails: { bankName: '', accountNumber: '', ifsc: '', pan: '' },
   statutory: { aadhaar: '', uan: '', pfNumber: '', esicNumber: '' },
 
   // Step 4 — Education
@@ -108,7 +108,7 @@ export default function EmployeeOnboardingWizard() {
             permanentAddress: emp.permanentAddress || prev.permanentAddress,
             emergencyContact: emp.emergencyContact || prev.emergencyContact,
             familyMembers: emp.familyMembers?.length ? emp.familyMembers : [],
-            bankDetails: emp.bankDetails || prev.bankDetails,
+            bankDetails: emp.bankDetails ? { ...prev.bankDetails, ...emp.bankDetails, ifsc: emp.bankDetails.ifsc || emp.bankDetails.ifscCode || '' } : prev.bankDetails,
             statutory: emp.statutory || prev.statutory,
             education: emp.education?.length ? emp.education : [],
           }));
@@ -211,6 +211,7 @@ export default function EmployeeOnboardingWizard() {
 
     if (step === 'personal') {
       if (!form.gender) errs.gender = 'Gender is required';
+      if (!form.dateOfBirth) errs.dateOfBirth = 'Date of birth is required';
       if (!form.maritalStatus) errs.maritalStatus = 'Marital status is required';
       if (!form.nationality?.trim()) errs.nationality = 'Nationality is required';
 
@@ -223,6 +224,12 @@ export default function EmployeeOnboardingWizard() {
       const pEmail = form.personalEmail?.trim();
       if (!pEmail) errs.personalEmail = 'Personal email is required';
       else if (!EMAIL_RE.test(pEmail)) errs.personalEmail = 'Enter a valid email address';
+
+      // Current address — required
+      if (!form.address.street?.trim()) errs.addressStreet = 'Street address is required';
+      if (!form.address.city?.trim()) errs.addressCity = 'City is required';
+      if (!form.address.state?.trim()) errs.addressState = 'State is required';
+      if (!form.address.zip?.trim()) errs.addressZip = 'PIN code is required';
     }
 
     if (step === 'family') {
@@ -249,9 +256,8 @@ export default function EmployeeOnboardingWizard() {
       if (!acct) errs.accountNumber = 'Account number is required';
       else if (!ACCT_RE.test(acct)) errs.accountNumber = 'Account number must be 9-18 digits';
 
-      const ifsc = (form.bankDetails.ifscCode || form.bankDetails.ifsc || '').trim().toUpperCase();
-      if (!ifsc) errs.ifscCode = 'IFSC code is required';
-      else if (!IFSC_RE.test(ifsc)) errs.ifscCode = 'Invalid IFSC format (e.g. SBIN0001234)';
+      const ifsc = (form.bankDetails.ifsc || '').trim().toUpperCase();
+      if (!ifsc) errs.ifsc = 'IFSC code is required';
 
       const pan = form.bankDetails.pan?.trim().toUpperCase();
       if (!pan) errs.pan = 'PAN number is required';
@@ -371,8 +377,10 @@ export default function EmployeeOnboardingWizard() {
           {errors.gender && <p className="text-red-400 text-xs mt-1">{errors.gender}</p>}
         </FormField>
 
-        <FormField label="Date of Birth">
-          <input type="date" value={form.dateOfBirth} onChange={(e) => updateField('dateOfBirth', e.target.value)} className={inputCls} />
+        <FormField label="Date of Birth" required>
+          <input type="date" value={form.dateOfBirth} onChange={(e) => updateField('dateOfBirth', e.target.value)}
+            className={`${inputCls} ${errors.dateOfBirth ? 'border-red-500' : ''}`} />
+          {errors.dateOfBirth && <p className="text-red-400 text-xs mt-1">{errors.dateOfBirth}</p>}
         </FormField>
 
         <FormField label="Blood Group">
@@ -430,19 +438,27 @@ export default function EmployeeOnboardingWizard() {
 
       {/* Address */}
       <div className="pt-2">
-        <h3 className="text-sm font-semibold text-dark-300 mb-3">Current Address</h3>
+        <h3 className="text-sm font-semibold text-dark-300 mb-3">Current Address <span className="text-red-400">*</span></h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <FormField label="Street" className="md:col-span-2">
-            <input type="text" value={form.address.street} onChange={(e) => updateNested('address', 'street', e.target.value)} className={inputCls} placeholder="Street address" />
+          <FormField label="Street" required className="md:col-span-2">
+            <input type="text" value={form.address.street} onChange={(e) => updateNested('address', 'street', e.target.value)}
+              className={`${inputCls} ${errors.addressStreet ? 'border-red-500' : ''}`} placeholder="Street address" />
+            {errors.addressStreet && <p className="text-red-400 text-xs mt-1">{errors.addressStreet}</p>}
           </FormField>
-          <FormField label="City">
-            <input type="text" value={form.address.city} onChange={(e) => updateNested('address', 'city', e.target.value)} className={inputCls} placeholder="City" />
+          <FormField label="City" required>
+            <input type="text" value={form.address.city} onChange={(e) => updateNested('address', 'city', e.target.value)}
+              className={`${inputCls} ${errors.addressCity ? 'border-red-500' : ''}`} placeholder="City" />
+            {errors.addressCity && <p className="text-red-400 text-xs mt-1">{errors.addressCity}</p>}
           </FormField>
-          <FormField label="State">
-            <input type="text" value={form.address.state} onChange={(e) => updateNested('address', 'state', e.target.value)} className={inputCls} placeholder="State" />
+          <FormField label="State" required>
+            <input type="text" value={form.address.state} onChange={(e) => updateNested('address', 'state', e.target.value)}
+              className={`${inputCls} ${errors.addressState ? 'border-red-500' : ''}`} placeholder="State" />
+            {errors.addressState && <p className="text-red-400 text-xs mt-1">{errors.addressState}</p>}
           </FormField>
-          <FormField label="PIN Code">
-            <input type="text" value={form.address.zip} onChange={(e) => updateNested('address', 'zip', e.target.value)} className={inputCls} placeholder="PIN code" />
+          <FormField label="PIN Code" required>
+            <input type="text" value={form.address.zip} onChange={(e) => updateNested('address', 'zip', e.target.value)}
+              className={`${inputCls} ${errors.addressZip ? 'border-red-500' : ''}`} placeholder="PIN code" />
+            {errors.addressZip && <p className="text-red-400 text-xs mt-1">{errors.addressZip}</p>}
           </FormField>
           <FormField label="Country">
             <input type="text" value={form.address.country} onChange={(e) => updateNested('address', 'country', e.target.value)} className={inputCls} />
@@ -595,9 +611,9 @@ export default function EmployeeOnboardingWizard() {
             {errors.accountNumber && <p className="text-red-400 text-xs mt-1">{errors.accountNumber}</p>}
           </FormField>
           <FormField label="IFSC Code" required>
-            <input type="text" value={form.bankDetails.ifscCode || form.bankDetails.ifsc || ''} onChange={(e) => updateNested('bankDetails', 'ifscCode', e.target.value.toUpperCase())}
-              className={`${inputCls} ${errors.ifscCode ? 'border-red-500' : ''}`} placeholder="SBIN0001234" maxLength={11} />
-            {errors.ifscCode && <p className="text-red-400 text-xs mt-1">{errors.ifscCode}</p>}
+            <input type="text" value={form.bankDetails.ifsc} onChange={(e) => updateNested('bankDetails', 'ifsc', e.target.value.toUpperCase())}
+              className={`${inputCls} ${errors.ifsc ? 'border-red-500' : ''}`} placeholder="SBIN0001234" maxLength={11} />
+            {errors.ifsc && <p className="text-red-400 text-xs mt-1">{errors.ifsc}</p>}
           </FormField>
           <FormField label="PAN Number" required>
             <input type="text" value={form.bankDetails.pan} onChange={(e) => updateNested('bankDetails', 'pan', e.target.value.toUpperCase())}
@@ -780,7 +796,7 @@ export default function EmployeeOnboardingWizard() {
         <Section title="Bank Details">
           <Row label="Bank Name" value={form.bankDetails.bankName} />
           <Row label="Account Number" value={form.bankDetails.accountNumber} />
-          <Row label="IFSC" value={form.bankDetails.ifscCode || form.bankDetails.ifsc} />
+          <Row label="IFSC" value={form.bankDetails.ifsc} />
           <Row label="PAN" value={form.bankDetails.pan} />
           <Row label="Bank Proof" value={`${bankDocs.length} document(s) uploaded`} />
         </Section>

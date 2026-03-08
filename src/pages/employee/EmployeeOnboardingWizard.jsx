@@ -188,6 +188,20 @@ export default function EmployeeOnboardingWizard() {
       if (!form.emergencyContact.name?.trim()) errs.emergencyName = 'Emergency contact name is required';
       if (!form.emergencyContact.phone?.trim()) errs.emergencyPhone = 'Emergency contact phone is required';
     }
+    if (step === 'bank') {
+      if (!form.bankDetails.bankName?.trim()) errs.bankName = 'Bank name is required';
+      if (!form.bankDetails.accountNumber?.trim()) errs.accountNumber = 'Account number is required';
+      if (!form.bankDetails.ifscCode?.trim() && !form.bankDetails.ifsc?.trim()) errs.ifscCode = 'IFSC code is required';
+      if (!form.bankDetails.pan?.trim()) errs.pan = 'PAN number is required';
+    }
+    if (step === 'education') {
+      if (form.education.length === 0) errs.education = 'At least one education entry is required';
+      // Validate each entry has degree and institution
+      form.education.forEach((ed, i) => {
+        if (!ed.degree?.trim()) errs[`edu_degree_${i}`] = `Education ${i + 1}: Degree is required`;
+        if (!ed.institution?.trim()) errs[`edu_institution_${i}`] = `Education ${i + 1}: Institution is required`;
+      });
+    }
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -483,19 +497,27 @@ export default function EmployeeOnboardingWizard() {
 
       {/* Bank Details */}
       <div className="card p-4">
-        <h3 className="text-sm font-semibold text-dark-300 mb-3">Bank Account</h3>
+        <h3 className="text-sm font-semibold text-dark-300 mb-3">Bank Account <span className="text-red-400">*</span></h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <FormField label="Bank Name">
-            <input type="text" value={form.bankDetails.bankName} onChange={(e) => updateNested('bankDetails', 'bankName', e.target.value)} className={inputCls} placeholder="Bank name" />
+          <FormField label="Bank Name" required>
+            <input type="text" value={form.bankDetails.bankName} onChange={(e) => updateNested('bankDetails', 'bankName', e.target.value)}
+              className={`${inputCls} ${errors.bankName ? 'border-red-500' : ''}`} placeholder="Bank name" />
+            {errors.bankName && <p className="text-red-400 text-xs mt-1">{errors.bankName}</p>}
           </FormField>
-          <FormField label="Account Number">
-            <input type="text" value={form.bankDetails.accountNumber} onChange={(e) => updateNested('bankDetails', 'accountNumber', e.target.value)} className={inputCls} placeholder="Account number" />
+          <FormField label="Account Number" required>
+            <input type="text" value={form.bankDetails.accountNumber} onChange={(e) => updateNested('bankDetails', 'accountNumber', e.target.value)}
+              className={`${inputCls} ${errors.accountNumber ? 'border-red-500' : ''}`} placeholder="Account number" />
+            {errors.accountNumber && <p className="text-red-400 text-xs mt-1">{errors.accountNumber}</p>}
           </FormField>
-          <FormField label="IFSC Code">
-            <input type="text" value={form.bankDetails.ifscCode || form.bankDetails.ifsc || ''} onChange={(e) => updateNested('bankDetails', 'ifscCode', e.target.value)} className={inputCls} placeholder="IFSC code" />
+          <FormField label="IFSC Code" required>
+            <input type="text" value={form.bankDetails.ifscCode || form.bankDetails.ifsc || ''} onChange={(e) => updateNested('bankDetails', 'ifscCode', e.target.value)}
+              className={`${inputCls} ${errors.ifscCode ? 'border-red-500' : ''}`} placeholder="IFSC code" />
+            {errors.ifscCode && <p className="text-red-400 text-xs mt-1">{errors.ifscCode}</p>}
           </FormField>
-          <FormField label="PAN Number">
-            <input type="text" value={form.bankDetails.pan} onChange={(e) => updateNested('bankDetails', 'pan', e.target.value)} className={inputCls} placeholder="ABCDE1234F" />
+          <FormField label="PAN Number" required>
+            <input type="text" value={form.bankDetails.pan} onChange={(e) => updateNested('bankDetails', 'pan', e.target.value)}
+              className={`${inputCls} ${errors.pan ? 'border-red-500' : ''}`} placeholder="ABCDE1234F" />
+            {errors.pan && <p className="text-red-400 text-xs mt-1">{errors.pan}</p>}
           </FormField>
         </div>
       </div>
@@ -526,7 +548,7 @@ export default function EmployeeOnboardingWizard() {
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <GraduationCap size={18} className="text-rivvra-400" />
-          <h2 className="text-lg font-semibold text-white">Education</h2>
+          <h2 className="text-lg font-semibold text-white">Education <span className="text-red-400 text-sm">*</span></h2>
         </div>
         <button type="button" onClick={addEducation}
           className="flex items-center gap-1.5 text-xs text-rivvra-400 hover:text-rivvra-300 transition-colors px-3 py-1.5 rounded-lg bg-rivvra-500/10">
@@ -534,11 +556,17 @@ export default function EmployeeOnboardingWizard() {
         </button>
       </div>
 
+      {errors.education && (
+        <div className="px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm">
+          {errors.education}
+        </div>
+      )}
+
       {form.education.length === 0 && (
-        <div className="text-center py-10">
+        <div className={`text-center py-10 rounded-xl border border-dashed ${errors.education ? 'border-red-500/40 bg-red-500/5' : 'border-dark-700'}`}>
           <GraduationCap size={40} className="mx-auto mb-3 text-dark-600" />
           <p className="text-dark-500 text-sm">No education entries added yet.</p>
-          <p className="text-dark-600 text-xs mt-1">Click "Add Education" to add your qualifications.</p>
+          <p className="text-dark-600 text-xs mt-1">Click "Add Education" to add your qualifications. <span className="text-red-400">*</span></p>
         </div>
       )}
 
@@ -550,11 +578,15 @@ export default function EmployeeOnboardingWizard() {
               <Trash2 size={14} />
             </button>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <FormField label="Degree / Qualification">
-                <input type="text" value={ed.degree} onChange={(e) => updateEducation(i, 'degree', e.target.value)} className={inputCls} placeholder="e.g. B.Tech, MBA" />
+              <FormField label="Degree / Qualification" required>
+                <input type="text" value={ed.degree} onChange={(e) => updateEducation(i, 'degree', e.target.value)}
+                  className={`${inputCls} ${errors[`edu_degree_${i}`] ? 'border-red-500' : ''}`} placeholder="e.g. B.Tech, MBA" />
+                {errors[`edu_degree_${i}`] && <p className="text-red-400 text-xs mt-1">{errors[`edu_degree_${i}`]}</p>}
               </FormField>
-              <FormField label="Institution / University">
-                <input type="text" value={ed.institution} onChange={(e) => updateEducation(i, 'institution', e.target.value)} className={inputCls} placeholder="Institution name" />
+              <FormField label="Institution / University" required>
+                <input type="text" value={ed.institution} onChange={(e) => updateEducation(i, 'institution', e.target.value)}
+                  className={`${inputCls} ${errors[`edu_institution_${i}`] ? 'border-red-500' : ''}`} placeholder="Institution name" />
+                {errors[`edu_institution_${i}`] && <p className="text-red-400 text-xs mt-1">{errors[`edu_institution_${i}`]}</p>}
               </FormField>
               <FormField label="Year of Passing">
                 <input type="number" value={ed.yearOfPassing} onChange={(e) => updateEducation(i, 'yearOfPassing', e.target.value)} className={inputCls} placeholder="e.g. 2020" min={1950} max={2030} />
@@ -671,60 +703,62 @@ export default function EmployeeOnboardingWizard() {
   const isLast = step === STEP_ORDER[STEP_ORDER.length - 1];
 
   return (
-    <div className="p-6 max-w-3xl mx-auto">
-      {/* Header */}
-      <div className="text-center mb-2">
-        <h1 className="text-2xl font-bold text-white">Welcome to {currentOrg?.name || 'your workspace'}!</h1>
-        <p className="text-dark-400 mt-1">Let's set up your profile. This will only take a few minutes.</p>
-      </div>
+    <div className="min-h-screen bg-dark-950 flex items-start justify-center">
+      <div className="w-full max-w-3xl px-6 py-10">
+        {/* Header */}
+        <div className="text-center mb-2">
+          <h1 className="text-2xl font-bold text-white">Welcome to {currentOrg?.name || 'your workspace'}!</h1>
+          <p className="text-dark-400 mt-1">Let's set up your profile. This will only take a few minutes.</p>
+        </div>
 
-      {/* Stepper */}
-      <OnboardingStepper currentStep={step} />
+        {/* Stepper */}
+        <OnboardingStepper currentStep={step} />
 
-      {/* Content */}
-      <div className="mt-6 min-h-[300px]">
-        {stepContent[step]?.()}
-      </div>
+        {/* Content */}
+        <div className="mt-6 min-h-[300px]">
+          {stepContent[step]?.()}
+        </div>
 
-      {/* Navigation */}
-      <div className="flex items-center justify-between mt-8 pt-4 border-t border-dark-800">
-        <button
-          type="button"
-          onClick={goPrev}
-          disabled={isFirst}
-          className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm transition-colors ${
-            isFirst ? 'text-dark-600 cursor-not-allowed' : 'text-dark-300 hover:text-white hover:bg-dark-800'
-          }`}
-        >
-          <ChevronLeft size={16} /> Previous
-        </button>
-
-        {isLast ? (
+        {/* Navigation */}
+        <div className="flex items-center justify-between mt-8 pt-4 border-t border-dark-800">
           <button
             type="button"
-            onClick={handleSubmit}
-            disabled={submitting}
-            className="flex items-center gap-2 px-6 py-2.5 bg-rivvra-500 text-dark-950 rounded-xl text-sm font-semibold hover:bg-rivvra-400 transition-colors disabled:opacity-50"
+            onClick={goPrev}
+            disabled={isFirst}
+            className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm transition-colors ${
+              isFirst ? 'text-dark-600 cursor-not-allowed' : 'text-dark-300 hover:text-white hover:bg-dark-800'
+            }`}
           >
-            {submitting ? (
-              <>
-                <Loader2 size={16} className="animate-spin" /> Submitting...
-              </>
-            ) : (
-              <>
-                <CheckCircle size={16} /> Submit & Continue
-              </>
-            )}
+            <ChevronLeft size={16} /> Previous
           </button>
-        ) : (
-          <button
-            type="button"
-            onClick={goNext}
-            className="flex items-center gap-1.5 px-5 py-2.5 bg-rivvra-500 text-dark-950 rounded-xl text-sm font-semibold hover:bg-rivvra-400 transition-colors"
-          >
-            Next <ChevronRight size={16} />
-          </button>
-        )}
+
+          {isLast ? (
+            <button
+              type="button"
+              onClick={handleSubmit}
+              disabled={submitting}
+              className="flex items-center gap-2 px-6 py-2.5 bg-rivvra-500 text-dark-950 rounded-xl text-sm font-semibold hover:bg-rivvra-400 transition-colors disabled:opacity-50"
+            >
+              {submitting ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" /> Submitting...
+                </>
+              ) : (
+                <>
+                  <CheckCircle size={16} /> Submit & Continue
+                </>
+              )}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={goNext}
+              className="flex items-center gap-1.5 px-5 py-2.5 bg-rivvra-500 text-dark-950 rounded-xl text-sm font-semibold hover:bg-rivvra-400 transition-colors"
+            >
+              Next <ChevronRight size={16} />
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

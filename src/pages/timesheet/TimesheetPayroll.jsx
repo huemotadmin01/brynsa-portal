@@ -90,6 +90,12 @@ export default function TimesheetPayroll() {
   // Excluded employees section
   const [showExcluded, setShowExcluded] = useState(false);
 
+  // Salary hold modal
+  const [holdModal, setHoldModal] = useState(null); // { employeeObjId, name }
+  const [holdForm, setHoldForm] = useState({ reason: '', holdUntil: '' });
+  const [holdLoading, setHoldLoading] = useState(false);
+  const [releaseHoldLoading, setReleaseHoldLoading] = useState(null);
+
   // Adjustment modal
   const [adjustmentModal, setAdjustmentModal] = useState(null); // { employeeObjId, name }
   const [adjForm, setAdjForm] = useState({ type: 'bonus', category: '', customLabel: '', amount: '' });
@@ -154,11 +160,13 @@ export default function TimesheetPayroll() {
   const filteredSummary = useMemo(() => {
     const totalPayable = filteredEmployees.reduce((s, e) => s + e.grossPay, 0);
     const paidCount = filteredEmployees.filter(e => e.paymentStatus === 'paid').length;
+    const onHoldCount = filteredEmployees.filter(e => e.paymentStatus === 'on_hold').length;
     return {
       totalPayable: Math.round(totalPayable),
       employeeCount: filteredEmployees.length,
       paidCount,
-      unpaidCount: filteredEmployees.length - paidCount,
+      onHoldCount,
+      unpaidCount: filteredEmployees.length - paidCount - onHoldCount,
     };
   }, [filteredEmployees]);
 
@@ -269,6 +277,41 @@ export default function TimesheetPayroll() {
       showToast(err.response?.data?.error || 'Failed to remove adjustment', 'error');
     } finally {
       setAdjDeleting(null);
+    }
+  };
+
+  // Salary hold handlers
+  const handleHoldSalary = async () => {
+    if (!holdModal) return;
+    if (!holdForm.reason.trim()) { showToast('Please enter a reason', 'error'); return; }
+    if (!holdForm.holdUntil) { showToast('Please select a Hold Until date', 'error'); return; }
+    setHoldLoading(true);
+    try {
+      await timesheetApi.post('/payroll/salary-hold', {
+        month, year, employeeId: holdModal.employeeObjId,
+        reason: holdForm.reason.trim(), holdUntil: holdForm.holdUntil,
+      });
+      showToast(`Salary held for ${holdModal.name}`);
+      setHoldModal(null);
+      setHoldForm({ reason: '', holdUntil: '' });
+      await loadPayroll();
+    } catch (err) {
+      showToast(err.response?.data?.error || 'Failed to hold salary', 'error');
+    } finally {
+      setHoldLoading(false);
+    }
+  };
+
+  const handleReleaseSalaryHold = async (holdId, empName) => {
+    setReleaseHoldLoading(holdId);
+    try {
+      await timesheetApi.post(`/payroll/salary-hold/${holdId}/release`);
+      showToast(`Salary hold released for ${empName}`);
+      await loadPayroll();
+    } catch (err) {
+      showToast(err.response?.data?.error || 'Failed to release hold', 'error');
+    } finally {
+      setReleaseHoldLoading(null);
     }
   };
 
@@ -389,7 +432,7 @@ export default function TimesheetPayroll() {
           Math.round(totalDed * 100) / 100,
           Math.round(net * 100) / 100,
           fmtDate(emp.disbursementDate),
-          emp.paymentStatus === 'paid' ? 'Paid' : 'Unpaid',
+          emp.paymentStatus === 'on_hold' ? 'On Hold' : emp.paymentStatus === 'paid' ? 'Paid' : 'Unpaid',
         ]);
 
         row.eachCell((cell, colNumber) => {
@@ -411,7 +454,7 @@ export default function TimesheetPayroll() {
           }
           // Payment Status column
           if (colNumber === 18) {
-            cell.font = { color: { argb: cell.value === 'Paid' ? '228B22' : 'CC5500' }, bold: true };
+            cell.font = { color: { argb: cell.value === 'Paid' ? '228B22' : cell.value === 'On Hold' ? 'CC0000' : 'CC5500' }, bold: true };
             cell.alignment = { horizontal: 'center' };
           }
         });
@@ -639,6 +682,7 @@ export default function TimesheetPayroll() {
           <p className="text-xs text-dark-500 mt-1">
             <span className="text-emerald-400">{filteredSummary.paidCount} paid</span>
             {filteredSummary.unpaidCount > 0 && <span className="text-amber-400 ml-2">{filteredSummary.unpaidCount} unpaid</span>}
+            {filteredSummary.onHoldCount > 0 && <span className="text-red-400 ml-2">{filteredSummary.onHoldCount} on hold</span>}
           </p>
         </div>
       </div>
@@ -865,9 +909,10 @@ export default function TimesheetPayroll() {
                       </td>
                       <td className="px-3 py-3 text-center">
                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
+                          emp.paymentStatus === 'on_hold' ? 'bg-red-500/10 text-red-400' :
                           emp.paymentStatus === 'paid' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400'
                         }`}>
-                          {emp.paymentStatus === 'paid' ? 'Paid' : 'Unpaid'}
+                          {emp.paymentStatus === 'on_hold' ? 'On Hold' : emp.paymentStatus === 'paid' ? 'Paid' : 'Unpaid'}
                         </span>
                       </td>
                       <td className="px-2 py-3 text-dark-500">
@@ -941,6 +986,24 @@ export default function TimesheetPayroll() {
                               </div>
                             </div>
 
+                            {/* Salary Hold Banner */}
+                            {emp.salaryHold && (
+                              <div className="bg-red-500/5 border border-red-500/20 rounded-lg p-3 flex items-start gap-2">
+                                <Ban size={14} className="text-red-400 mt-0.5 shrink-0" />
+                                <div className="flex-1 text-sm">
+                                  <p className="text-red-400 font-medium">Salary On Hold</p>
+                                  <p className="text-dark-400 text-xs mt-0.5"><span className="font-medium text-dark-300">Reason:</span> {emp.salaryHold.reason}</p>
+                                  <p className="text-dark-400 text-xs mt-0.5">
+                                    <span className="font-medium text-dark-300">Hold Until:</span>{' '}
+                                    {new Date(emp.salaryHold.holdUntil).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                  </p>
+                                  <p className="text-dark-500 text-[10px] mt-1">
+                                    Placed on {new Date(emp.salaryHold.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                  </p>
+                                </div>
+                              </div>
+                            )}
+
                             {/* Multi-project breakdown */}
                             {emp.projects.length > 1 && (
                               <div className="space-y-2">
@@ -1006,6 +1069,21 @@ export default function TimesheetPayroll() {
                                   className="bg-dark-800 border border-dark-700 text-dark-300 px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-dark-700 flex items-center gap-1.5 transition-colors">
                                   <PlusCircle size={12} />
                                   Adjustments{emp.adjustments?.length > 0 ? ` (${emp.adjustments.length})` : ''}
+                                </button>
+                              )}
+                              {!emp.salaryHold && payrollRun?.status !== 'finalized' && (
+                                <button onClick={(e) => { e.stopPropagation(); setHoldModal({ employeeObjId: emp.employeeObjId, name: emp.name }); setHoldForm({ reason: '', holdUntil: '' }); }}
+                                  className="bg-dark-800 border border-red-500/30 text-red-400 px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-red-500/10 flex items-center gap-1.5 transition-colors">
+                                  <Ban size={12} />
+                                  Hold Salary
+                                </button>
+                              )}
+                              {emp.salaryHold && payrollRun?.status !== 'finalized' && (
+                                <button onClick={(e) => { e.stopPropagation(); handleReleaseSalaryHold(emp.salaryHold._id, emp.name); }}
+                                  disabled={releaseHoldLoading === emp.salaryHold._id}
+                                  className="bg-dark-800 border border-emerald-500/30 text-emerald-400 px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-emerald-500/10 flex items-center gap-1.5 transition-colors disabled:opacity-50">
+                                  {releaseHoldLoading === emp.salaryHold._id ? <Loader2 size={12} className="animate-spin" /> : <CheckCircle2 size={12} />}
+                                  Release Hold
                                 </button>
                               )}
                             </div>
@@ -1246,26 +1324,35 @@ export default function TimesheetPayroll() {
 
             {/* Select All */}
             <div className="px-5 py-3 border-b border-dark-800/50 flex items-center gap-3">
-              <input type="checkbox" id="select-all-payslips"
-                checked={selectedForRelease.size === processableEmployees.length}
-                onChange={(e) => {
-                  if (e.target.checked) setSelectedForRelease(new Set(processableEmployees.map(emp => emp.employeeObjId)));
-                  else setSelectedForRelease(new Set());
-                }}
-                className="w-4 h-4 rounded border-dark-600 bg-dark-800 text-rivvra-500 focus:ring-rivvra-500/30"
-              />
-              <label htmlFor="select-all-payslips" className="text-sm text-dark-300 cursor-pointer select-none">Select All</label>
+              {(() => {
+                const releasable = processableEmployees.filter(e => e.paymentStatus !== 'on_hold');
+                return (
+                  <>
+                    <input type="checkbox" id="select-all-payslips"
+                      checked={releasable.length > 0 && releasable.every(e => selectedForRelease.has(e.employeeObjId))}
+                      onChange={(e) => {
+                        if (e.target.checked) setSelectedForRelease(new Set(releasable.map(emp => emp.employeeObjId)));
+                        else setSelectedForRelease(new Set());
+                      }}
+                      className="w-4 h-4 rounded border-dark-600 bg-dark-800 text-rivvra-500 focus:ring-rivvra-500/30"
+                    />
+                    <label htmlFor="select-all-payslips" className="text-sm text-dark-300 cursor-pointer select-none">Select All</label>
+                  </>
+                );
+              })()}
             </div>
 
             {/* Employee List */}
             <div className="overflow-y-auto flex-1 px-2 py-2">
               {processableEmployees.map((emp) => {
                 const isSelected = selectedForRelease.has(emp.employeeObjId);
+                const isHeld = emp.paymentStatus === 'on_hold';
                 return (
                   <label key={emp.employeeObjId}
-                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-dark-800/50 transition-colors cursor-pointer">
-                    <input type="checkbox" checked={isSelected}
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-dark-800/50 transition-colors ${isHeld ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}>
+                    <input type="checkbox" checked={isSelected} disabled={isHeld}
                       onChange={() => {
+                        if (isHeld) return;
                         const next = new Set(selectedForRelease);
                         if (isSelected) next.delete(emp.employeeObjId);
                         else next.add(emp.employeeObjId);
@@ -1283,7 +1370,10 @@ export default function TimesheetPayroll() {
                     <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium shrink-0 ${typeBadgeColors[emp.employmentType] || 'bg-dark-700 text-dark-300'}`}>
                       {typeLabels[emp.employmentType] || emp.employmentType}
                     </span>
-                    <span className="text-emerald-400 text-xs font-medium shrink-0 w-16 text-right">{'\u20B9'}{fmt(emp.netPay)}</span>
+                    {isHeld
+                      ? <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-red-500/10 text-red-400 shrink-0">On Hold</span>
+                      : <span className="text-emerald-400 text-xs font-medium shrink-0 w-16 text-right">{'\u20B9'}{fmt(emp.netPay)}</span>
+                    }
                   </label>
                 );
               })}
@@ -1405,6 +1495,53 @@ export default function TimesheetPayroll() {
               <button onClick={() => setAdjustmentModal(null)}
                 className="w-full px-4 py-2.5 rounded-xl bg-dark-800 border border-dark-700 text-dark-300 text-sm font-medium hover:bg-dark-700 transition-colors">
                 Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Hold Salary Modal */}
+      {holdModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setHoldModal(null)}>
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+          <div className="relative bg-dark-900 border border-dark-700 rounded-2xl w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="px-5 py-4 border-b border-dark-800 flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-semibold text-white flex items-center gap-2">
+                  <Ban size={16} className="text-red-400" /> Hold Salary
+                </h3>
+                <p className="text-xs text-dark-400">{holdModal.name} &mdash; {monthNames[month]} {year}</p>
+              </div>
+              <button onClick={() => setHoldModal(null)} className="text-dark-500 hover:text-white transition-colors"><X size={18} /></button>
+            </div>
+            <div className="p-5 space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-dark-400 mb-1.5">Reason for Hold</label>
+                <textarea value={holdForm.reason}
+                  onChange={e => setHoldForm(f => ({ ...f, reason: e.target.value }))}
+                  placeholder="e.g., LWD in this month, FnF pending..."
+                  rows={3} maxLength={500}
+                  className="w-full bg-dark-800 border border-dark-700 rounded-lg px-3 py-2 text-sm text-dark-200 placeholder:text-dark-500 focus:outline-none focus:border-rivvra-500/50 resize-none" />
+                <p className="text-[10px] text-dark-500 mt-1 text-right">{holdForm.reason.length}/500</p>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-dark-400 mb-1.5">Hold Until</label>
+                <input type="date" value={holdForm.holdUntil}
+                  onChange={e => setHoldForm(f => ({ ...f, holdUntil: e.target.value }))}
+                  min={new Date().toISOString().split('T')[0]}
+                  className="w-full bg-dark-800 border border-dark-700 rounded-lg px-3 py-2 text-sm text-dark-200 focus:outline-none focus:border-rivvra-500/50" />
+              </div>
+              <button onClick={handleHoldSalary} disabled={holdLoading || !holdForm.reason.trim() || !holdForm.holdUntil}
+                className="w-full px-4 py-2 rounded-lg bg-red-500 text-white text-sm font-semibold hover:bg-red-400 transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5">
+                {holdLoading ? <Loader2 size={14} className="animate-spin" /> : <Ban size={14} />}
+                Confirm Hold
+              </button>
+            </div>
+            <div className="px-5 py-4 border-t border-dark-800">
+              <button onClick={() => setHoldModal(null)}
+                className="w-full px-4 py-2.5 rounded-xl bg-dark-800 border border-dark-700 text-dark-300 text-sm font-medium hover:bg-dark-700 transition-colors">
+                Cancel
               </button>
             </div>
           </div>

@@ -106,15 +106,33 @@ export default function ForgotPasswordPage() {
     }
   };
 
-  const handleOtpSubmit = (e) => {
+  const handleOtpSubmit = async (e) => {
     e.preventDefault();
     const otpString = otp.join('');
     if (otpString.length !== 6) {
       setError('Please enter the complete 6-digit code');
       return;
     }
+
+    setLoading(true);
     setError('');
-    setStep(STEPS.PASSWORD);
+
+    try {
+      const result = await api.verifyOtpOnly(email, otpString);
+      if (result.success) {
+        setStep(STEPS.PASSWORD);
+      } else {
+        setError(result.error || 'Invalid or expired code. Please try again.');
+        setOtp(['', '', '', '', '', '']);
+        document.getElementById('reset-otp-0')?.focus();
+      }
+    } catch (err) {
+      setError(err.message || 'Invalid or expired code. Please try again.');
+      setOtp(['', '', '', '', '', '']);
+      document.getElementById('reset-otp-0')?.focus();
+    } finally {
+      setLoading(false);
+    }
   };
 
   // ---------- Step 3: Reset password ----------
@@ -296,11 +314,17 @@ export default function ForgotPasswordPage() {
 
                 <button
                   type="submit"
-                  disabled={otp.join('').length !== 6}
+                  disabled={loading || otp.join('').length !== 6}
                   className="btn-primary w-full flex items-center justify-center gap-2"
                 >
-                  Verify code
-                  <Check className="w-5 h-5" />
+                  {loading ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <>
+                      Verify code
+                      <Check className="w-5 h-5" />
+                    </>
+                  )}
                 </button>
               </form>
 

@@ -6,6 +6,7 @@ import { useCompany } from '../../context/CompanyContext';
 import { useOrg } from '../../context/OrgContext';
 import { LayoutGrid, LogOut, Settings, Building2, UserCircle, Menu, X, ChevronDown, Check, Clock, Calendar } from 'lucide-react';
 import RivvraLogo from '../BrynsaLogo';
+import { API_BASE_URL } from '../../utils/config';
 import activityApi from '../../utils/activityApi';
 
 const ACT_TYPE_BADGES = {
@@ -219,7 +220,7 @@ function TopBar({ onToggleSidebar, sidebarOpen }) {
           <div className="relative group">
             <button className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-dark-800/50 transition-colors">
               {user?.picture ? (
-                <img src={user.picture} alt="" className="w-8 h-8 rounded-full object-cover" referrerPolicy="no-referrer" />
+                <img src={user.picture?.startsWith('/api/') ? `${API_BASE_URL}${user.picture}` : user.picture} alt="" className="w-8 h-8 rounded-full object-cover" referrerPolicy="no-referrer" />
               ) : (
                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-rivvra-400 to-rivvra-600 flex items-center justify-center">
                   <span className="text-sm font-bold text-dark-950">
@@ -242,7 +243,7 @@ function TopBar({ onToggleSidebar, sidebarOpen }) {
                   </span>
                 </div>
                 <Link
-                  to={orgPath('/settings/profile')}
+                  to={orgPath('/my-profile')}
                   className="flex items-center gap-2 px-3 py-2 text-dark-300 hover:text-white hover:bg-dark-800/50 rounded-lg transition-colors text-sm"
                 >
                   <UserCircle className="w-4 h-4" />

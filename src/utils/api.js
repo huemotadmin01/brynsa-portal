@@ -181,6 +181,26 @@ class ApiClient {
     });
   }
 
+  async uploadProfilePhoto(file) {
+    const formData = new FormData();
+    formData.append('photo', file);
+    const token = localStorage.getItem('rivvra_token');
+    const companyId = localStorage.getItem('rivvra_current_company');
+    const headers = {};
+    if (token) headers.Authorization = `Bearer ${token}`;
+    if (companyId) headers['X-Company-Id'] = companyId;
+    const response = await fetch(`${this.baseUrl}/api/user/profile/photo`, {
+      method: 'POST',
+      body: formData,
+      headers,
+    });
+    return response.json();
+  }
+
+  async deleteProfilePhoto() {
+    return this.request('/api/user/profile/photo', { method: 'DELETE' });
+  }
+
   async updateOnboarding(data) {
     return this.request('/api/user/onboarding', {
       method: 'POST',

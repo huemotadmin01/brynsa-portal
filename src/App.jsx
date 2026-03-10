@@ -40,8 +40,10 @@ const TeamDashboardPage = lazy(() => import('./pages/TeamDashboardPage'));
 const TeamContactsPage = lazy(() => import('./pages/TeamContactsPage'));
 const TeamListsPage = lazy(() => import('./pages/TeamListsPage'));
 
+// Lazy-loaded: Standalone pages
+const MyProfilePage = lazy(() => import('./pages/MyProfilePage'));
+
 // Lazy-loaded: Platform settings
-const SettingsProfile = lazy(() => import('./components/settings/SettingsProfile'));
 const SettingsGeneral = lazy(() => import('./components/settings/SettingsGeneral'));
 const SettingsTeam = lazy(() => import('./components/settings/SettingsTeam'));
 const SettingsOutreach = lazy(() => import('./components/settings/SettingsOutreach'));
@@ -148,7 +150,13 @@ function OrgPlatformLayout() {
 // Helper: redirect from /org/:slug/settings to /org/:slug/settings/general
 function OrgSettingsRedirect() {
   const { slug } = useParams();
-  return <Navigate to={`/org/${slug}/settings/profile`} replace />;
+  return <Navigate to={`/org/${slug}/settings/general`} replace />;
+}
+
+// Helper: redirect old /settings/profile to /my-profile
+function SettingsProfileRedirect() {
+  const { slug } = useParams();
+  return <Navigate to={`/org/${slug}/my-profile`} replace />;
 }
 
 // Helper: redirect from /org/:slug/outreach/settings to /org/:slug/settings
@@ -193,6 +201,7 @@ function App() {
             {/* ============================================================ */}
             <Route element={<ProtectedRoute><OrgPlatformLayout /></ProtectedRoute>}>
               <Route path="/org/:slug/home" element={<OnboardingGate><AppLauncherPage /></OnboardingGate>} />
+              <Route path="/org/:slug/my-profile" element={<MyProfilePage />} />
 
               {/* Employee onboarding wizard — outside AppAccessGate (any authenticated employee can access) */}
               <Route path="/org/:slug/employee/onboarding" element={<ErrorBoundary><EmployeeOnboardingWizard /></ErrorBoundary>} />
@@ -214,7 +223,7 @@ function App() {
 
               {/* Platform settings — profile is accessible to all, rest gated by admin */}
               <Route path="/org/:slug/settings" element={<OrgSettingsRedirect />} />
-              <Route path="/org/:slug/settings/profile" element={<SettingsPageWrapper><SettingsProfile /></SettingsPageWrapper>} />
+              <Route path="/org/:slug/settings/profile" element={<SettingsProfileRedirect />} />
               <Route element={<OrgAdminGate />}>
                 <Route path="/org/:slug/settings/general" element={<SettingsPageWrapper><SettingsGeneral /></SettingsPageWrapper>} />
                 <Route path="/org/:slug/settings/users" element={<SettingsPageWrapper><SettingsTeam /></SettingsPageWrapper>} />

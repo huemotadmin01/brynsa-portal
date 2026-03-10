@@ -11,7 +11,7 @@ import { useCompany } from '../context/CompanyContext';
 import { API_BASE_URL } from '../utils/config';
 import {
   User, Shield, Trash2, AlertTriangle, Loader2, X, LogOut,
-  Mail, Building2, Crown, Briefcase, Check, BarChart3, Lock, Settings2,
+  Mail, Building2, Crown, Briefcase, Check, Lock, Settings2,
   Eye, EyeOff, CheckCircle, Camera, Phone, Smartphone, MapPin, Pencil
 } from 'lucide-react';
 import api from '../utils/api';
@@ -218,10 +218,12 @@ export default function MyProfilePage() {
   const isPro = user?.plan === 'pro';
   const photoUrl = resolvePhotoUrl(user?.picture);
 
+  // Show Account Security only if user has a password (hide for Google-only users)
+  const showSecurityTab = hasExistingPassword;
+
   const tabs = [
     { id: 'preferences', label: 'Preferences', icon: Settings2 },
-    ...(passwordAuthAllowed ? [{ id: 'security', label: 'Account Security', icon: Lock }] : []),
-    { id: 'statistics', label: 'Statistics', icon: BarChart3 },
+    ...(showSecurityTab ? [{ id: 'security', label: 'Account Security', icon: Lock }] : []),
   ];
 
   return (
@@ -491,7 +493,7 @@ export default function MyProfilePage() {
           )}
 
           {/* --- Account Security Tab --- */}
-          {activeTab === 'security' && passwordAuthAllowed && (
+          {activeTab === 'security' && showSecurityTab && (
             <div className="space-y-6">
               {/* Password */}
               <div className="card p-5">
@@ -658,27 +660,6 @@ export default function MyProfilePage() {
             </div>
           )}
 
-          {/* --- Statistics Tab --- */}
-          {activeTab === 'statistics' && (
-            <div>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {[
-                  { label: 'Contacts Saved', value: user?.usage?.leadsScraped || 0, icon: User },
-                  { label: 'Emails Generated', value: user?.usage?.emailsGenerated || 0, icon: Mail },
-                  { label: 'DMs Generated', value: user?.usage?.dmsGenerated || 0, icon: Mail },
-                  { label: 'CRM Exports', value: user?.usage?.crmExports || 0, icon: BarChart3 },
-                ].map((stat, i) => (
-                  <div key={i} className="card p-5 text-center">
-                    <div className="w-10 h-10 rounded-xl bg-dark-800 flex items-center justify-center mx-auto mb-3">
-                      <stat.icon className="w-5 h-5 text-dark-400" />
-                    </div>
-                    <p className="text-2xl font-bold text-white">{stat.value}</p>
-                    <p className="text-xs text-dark-400 mt-1">{stat.label}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       </div>
 

@@ -9,8 +9,24 @@ import {
   IndianRupee, Users, TrendingUp, Search, FileSpreadsheet,
   ChevronLeft, ChevronRight, ShieldCheck, CalendarDays, FileDown,
   X, AlertTriangle, UserX, Lock, Unlock, Play, CheckCircle2, Circle,
-  Send, Mail,
+  Send, Mail, PlusCircle, Trash2,
 } from 'lucide-react';
+
+const ADJUSTMENT_CATEGORIES = {
+  bonus: [
+    { value: 'performance_bonus', label: 'Performance Bonus' },
+    { value: 'referral_bonus', label: 'Referral Bonus' },
+    { value: 'festival_bonus', label: 'Festival Bonus' },
+    { value: 'overtime_pay', label: 'Overtime Pay' },
+    { value: 'other', label: 'Other' },
+  ],
+  deduction: [
+    { value: 'salary_advance', label: 'Salary Advance Recovery' },
+    { value: 'previous_month_adj', label: 'Previous Month Adjustment' },
+    { value: 'equipment', label: 'Equipment Deduction' },
+    { value: 'other', label: 'Other' },
+  ],
+};
 
 const monthNames = ['', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 const shortMonths = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -67,6 +83,12 @@ export default function TimesheetPayroll() {
   const [notApprovedData, setNotApprovedData] = useState(null);
   const [showNotApprovedPopup, setShowNotApprovedPopup] = useState(false);
   const [showApprovedPopup, setShowApprovedPopup] = useState(false);
+
+  // Adjustment modal
+  const [adjustmentModal, setAdjustmentModal] = useState(null); // { employeeObjId, name }
+  const [adjForm, setAdjForm] = useState({ type: 'bonus', category: '', customLabel: '', amount: '' });
+  const [adjLoading, setAdjLoading] = useState(false);
+  const [adjDeleting, setAdjDeleting] = useState(null);
 
   const loadPayroll = async () => {
     setLoading(true);
@@ -192,6 +214,45 @@ export default function TimesheetPayroll() {
       showToast('CSV exported');
     } catch (err) {
       showToast('Export failed', 'error');
+    }
+  };
+
+  // Adjustment handlers
+  const handleAddAdjustment = async () => {
+    if (!adjustmentModal) return;
+    const category = adjForm.category;
+    const catObj = ADJUSTMENT_CATEGORIES[adjForm.type].find(c => c.value === category);
+    const label = category === 'other' ? adjForm.customLabel.trim() : (catObj?.label || adjForm.customLabel.trim());
+    if (!label) { showToast('Please enter a label', 'error'); return; }
+    if (!adjForm.amount || parseFloat(adjForm.amount) <= 0) { showToast('Please enter a valid amount', 'error'); return; }
+
+    setAdjLoading(true);
+    try {
+      await timesheetApi.post('/payroll/adjustments', {
+        month, year, employeeId: adjustmentModal.employeeObjId,
+        type: adjForm.type, category, label,
+        amount: parseFloat(adjForm.amount),
+      });
+      showToast(`${adjForm.type === 'bonus' ? 'Bonus' : 'Deduction'} added`);
+      setAdjForm({ type: adjForm.type, category: '', customLabel: '', amount: '' });
+      await loadPayroll();
+    } catch (err) {
+      showToast(err.response?.data?.error || 'Failed to add adjustment', 'error');
+    } finally {
+      setAdjLoading(false);
+    }
+  };
+
+  const handleDeleteAdjustment = async (adjustmentId) => {
+    setAdjDeleting(adjustmentId);
+    try {
+      await timesheetApi.delete(`/payroll/adjustments/${adjustmentId}`);
+      showToast('Adjustment removed');
+      await loadPayroll();
+    } catch (err) {
+      showToast(err.response?.data?.error || 'Failed to remove adjustment', 'error');
+    } finally {
+      setAdjDeleting(null);
     }
   };
 
@@ -824,7 +885,13 @@ export default function TimesheetPayroll() {
                                   )}
                                   <hr className="border-dark-800 my-1" />
                                   <div className="flex justify-between font-medium"><span className="text-dark-300">Gross Pay</span><span className="text-white">{'\u20B9'}{fmtDecimal(emp.grossPay)}</span></div>
+                                  {emp.adjustments?.filter(a => a.type === 'bonus').map((a, i) => (
+                                    <div key={`b-${i}`} className="flex justify-between"><span className="text-dark-400 text-xs">{a.label}</span><span className="text-emerald-400 text-xs">+{'\u20B9'}{fmtDecimal(a.amount)}</span></div>
+                                  ))}
                                   <div className="flex justify-between"><span className="text-dark-400">TDS ({(emp.tdsRate * 100)}%)</span><span className="text-red-400">-{'\u20B9'}{fmtDecimal(emp.tdsAmount)}</span></div>
+                                  {emp.adjustments?.filter(a => a.type === 'deduction').map((a, i) => (
+                                    <div key={`d-${i}`} className="flex justify-between"><span className="text-dark-400 text-xs">{a.label}</span><span className="text-red-400 text-xs">-{'\u20B9'}{fmtDecimal(a.amount)}</span></div>
+                                  ))}
                                   <div className="flex justify-between font-bold text-base"><span className="text-dark-200">Net Pay</span><span className="text-emerald-400">{'\u20B9'}{fmtDecimal(emp.netPay)}</span></div>
                                 </div>
                               </div>
@@ -914,6 +981,13 @@ export default function TimesheetPayroll() {
                                 {downloadingPayslip === emp.employeeObjId ? <Loader2 size={12} className="animate-spin" /> : <Download size={12} />}
                                 Download Payslip
                               </button>
+                              {['open', 'locked'].includes(payrollRun?.status) && (
+                                <button onClick={(e) => { e.stopPropagation(); setAdjustmentModal({ employeeObjId: emp.employeeObjId, name: emp.name }); setAdjForm({ type: 'bonus', category: '', customLabel: '', amount: '' }); }}
+                                  className="bg-dark-800 border border-dark-700 text-dark-300 px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-dark-700 flex items-center gap-1.5 transition-colors">
+                                  <PlusCircle size={12} />
+                                  Adjustments{emp.adjustments?.length > 0 ? ` (${emp.adjustments.length})` : ''}
+                                </button>
+                              )}
                             </div>
                           </div>
                         </td>
@@ -1143,6 +1217,112 @@ export default function TimesheetPayroll() {
                 className="flex-1 px-4 py-2.5 rounded-xl bg-rivvra-500 text-dark-950 text-sm font-semibold hover:bg-rivvra-400 transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5">
                 {releasing ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
                 Send {selectedForRelease.size} Payslip{selectedForRelease.size !== 1 ? 's' : ''}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Adjustment Modal */}
+      {adjustmentModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setAdjustmentModal(null)}>
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+          <div className="relative bg-dark-900 border border-dark-700 rounded-2xl w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
+            {/* Header */}
+            <div className="px-5 py-4 border-b border-dark-800 flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-semibold text-white">Adjustments</h3>
+                <p className="text-xs text-dark-400">{adjustmentModal.name} &mdash; {monthNames[month]} {year}</p>
+              </div>
+              <button onClick={() => setAdjustmentModal(null)} className="text-dark-500 hover:text-white transition-colors"><X size={18} /></button>
+            </div>
+
+            <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
+              {/* Existing adjustments */}
+              {(() => {
+                const emp = data?.employees?.find(e => e.employeeObjId === adjustmentModal.employeeObjId);
+                const adjs = emp?.adjustments || [];
+                if (adjs.length === 0) return <p className="text-xs text-dark-500 text-center py-2">No adjustments added yet</p>;
+                return (
+                  <div className="space-y-1.5">
+                    {adjs.map(a => (
+                      <div key={a._id} className="flex items-center justify-between bg-dark-800/50 rounded-lg px-3 py-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium shrink-0 ${a.type === 'bonus' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
+                            {a.type === 'bonus' ? 'Bonus' : 'Deduction'}
+                          </span>
+                          <span className="text-sm text-dark-200 truncate">{a.label}</span>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className={`text-sm font-medium ${a.type === 'bonus' ? 'text-emerald-400' : 'text-red-400'}`}>
+                            {a.type === 'bonus' ? '+' : '-'}{'\u20B9'}{fmtDecimal(a.amount)}
+                          </span>
+                          <button onClick={() => handleDeleteAdjustment(a._id)} disabled={adjDeleting === a._id}
+                            className="text-dark-500 hover:text-red-400 transition-colors disabled:opacity-50">
+                            {adjDeleting === a._id ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+
+              {/* Add form */}
+              <div className="border-t border-dark-800 pt-4 space-y-3">
+                <p className="text-xs font-semibold text-dark-400 uppercase tracking-wider">Add Adjustment</p>
+
+                {/* Type toggle */}
+                <div className="flex gap-1 bg-dark-800/50 rounded-lg p-0.5">
+                  <button onClick={() => setAdjForm(f => ({ ...f, type: 'bonus', category: '', customLabel: '' }))}
+                    className={`flex-1 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${adjForm.type === 'bonus' ? 'bg-emerald-500/20 text-emerald-400' : 'text-dark-400 hover:text-dark-200'}`}>
+                    Bonus
+                  </button>
+                  <button onClick={() => setAdjForm(f => ({ ...f, type: 'deduction', category: '', customLabel: '' }))}
+                    className={`flex-1 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${adjForm.type === 'deduction' ? 'bg-red-500/20 text-red-400' : 'text-dark-400 hover:text-dark-200'}`}>
+                    Deduction
+                  </button>
+                </div>
+
+                {/* Category */}
+                <select value={adjForm.category} onChange={e => setAdjForm(f => ({ ...f, category: e.target.value, customLabel: '' }))}
+                  className="w-full bg-dark-800 border border-dark-700 rounded-lg px-3 py-2 text-sm text-dark-200 focus:outline-none focus:border-rivvra-500/50">
+                  <option value="">Select category...</option>
+                  {ADJUSTMENT_CATEGORIES[adjForm.type].map(c => (
+                    <option key={c.value} value={c.value}>{c.label}</option>
+                  ))}
+                </select>
+
+                {/* Custom label (shown when "Other" selected) */}
+                {adjForm.category === 'other' && (
+                  <input type="text" placeholder="Custom label..." value={adjForm.customLabel}
+                    onChange={e => setAdjForm(f => ({ ...f, customLabel: e.target.value }))}
+                    className="w-full bg-dark-800 border border-dark-700 rounded-lg px-3 py-2 text-sm text-dark-200 placeholder:text-dark-500 focus:outline-none focus:border-rivvra-500/50"
+                    maxLength={100} />
+                )}
+
+                {/* Amount */}
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-dark-500 text-sm">{'\u20B9'}</span>
+                  <input type="number" placeholder="Amount" value={adjForm.amount}
+                    onChange={e => setAdjForm(f => ({ ...f, amount: e.target.value }))}
+                    className="w-full bg-dark-800 border border-dark-700 rounded-lg pl-7 pr-3 py-2 text-sm text-dark-200 placeholder:text-dark-500 focus:outline-none focus:border-rivvra-500/50"
+                    min="0" step="0.01" />
+                </div>
+
+                <button onClick={handleAddAdjustment} disabled={adjLoading || !adjForm.category || !adjForm.amount}
+                  className="w-full px-4 py-2 rounded-lg bg-rivvra-500 text-dark-950 text-sm font-semibold hover:bg-rivvra-400 transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5">
+                  {adjLoading ? <Loader2 size={14} className="animate-spin" /> : <PlusCircle size={14} />}
+                  Add {adjForm.type === 'bonus' ? 'Bonus' : 'Deduction'}
+                </button>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="px-5 py-4 border-t border-dark-800">
+              <button onClick={() => setAdjustmentModal(null)}
+                className="w-full px-4 py-2.5 rounded-xl bg-dark-800 border border-dark-700 text-dark-300 text-sm font-medium hover:bg-dark-700 transition-colors">
+                Done
               </button>
             </div>
           </div>

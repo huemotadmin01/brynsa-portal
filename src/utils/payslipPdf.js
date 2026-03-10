@@ -172,11 +172,23 @@ export async function generatePayslipPDF(data, options = { download: true }) {
   drawLine(margin, y + 5, pageW - margin, y + 5);
   y += 7;
 
+  // Bonus adjustment line items
+  const bonuses = (data.adjustments || []).filter(a => a.type === 'bonus');
+  for (const bonus of bonuses) {
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(...black);
+    doc.text(bonus.label, margin + 3, y + 3);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`Rs. ${fmt(bonus.amount)}`, pageW - margin - 3, y + 3, { align: 'right' });
+    drawLine(margin, y + 5, pageW - margin, y + 5);
+    y += 7;
+  }
+
+  const totalEarnings = earn.grossAmount + (earn.totalBonuses || 0);
   fillRect(margin, y, contentW, 6, headerBg);
   drawLine(margin, y, pageW - margin, y, primary, 0.5);
   doc.setFont('helvetica', 'bold'); doc.setFontSize(8.5); doc.setTextColor(...black);
   doc.text('Total Earnings (A)', margin + 3, y + 4);
-  doc.text(`Rs. ${fmt(earn.grossAmount)}`, pageW - margin - 3, y + 4, { align: 'right' });
+  doc.text(`Rs. ${fmt(totalEarnings)}`, pageW - margin - 3, y + 4, { align: 'right' });
   drawLine(margin, y + 6, pageW - margin, y + 6, primary, 0.5);
   y += 10;
 
@@ -194,11 +206,23 @@ export async function generatePayslipPDF(data, options = { download: true }) {
   drawLine(margin, y + 5, pageW - margin, y + 5);
   y += 7;
 
+  // Deduction adjustment line items
+  const deductions = (data.adjustments || []).filter(a => a.type === 'deduction');
+  for (const ded of deductions) {
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(...black);
+    doc.text(ded.label, margin + 3, y + 3);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`Rs. ${fmt(ded.amount)}`, pageW - margin - 3, y + 3, { align: 'right' });
+    drawLine(margin, y + 5, pageW - margin, y + 5);
+    y += 7;
+  }
+
+  const totalDeductionsAll = earn.tdsAmount + (earn.totalDeductions || 0);
   fillRect(margin, y, contentW, 6, headerBg);
   drawLine(margin, y, pageW - margin, y, primary, 0.5);
   doc.setFont('helvetica', 'bold'); doc.setFontSize(8.5); doc.setTextColor(...black);
   doc.text('Total Deductions (B)', margin + 3, y + 4);
-  doc.text(`Rs. ${fmt(earn.tdsAmount)}`, pageW - margin - 3, y + 4, { align: 'right' });
+  doc.text(`Rs. ${fmt(totalDeductionsAll)}`, pageW - margin - 3, y + 4, { align: 'right' });
   drawLine(margin, y + 6, pageW - margin, y + 6, primary, 0.5);
   y += 10;
 

@@ -61,13 +61,25 @@ const todoApi = {
     return api.request(`/api/org/${orgSlug}/todo/dashboard`);
   },
 
-  // ── Settings ───────────────────────────────────────────────────────
+  // ── Per-User Settings (Gmail + scanEnabled) ────────────────────────
   getSettings(orgSlug) {
     return api.request(`/api/org/${orgSlug}/todo/settings`);
   },
 
   updateSettings(orgSlug, data) {
     return api.request(`/api/org/${orgSlug}/todo/settings`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  // ── Org-Wide Config (Admin: frequency, topN, blocklist) ───────────
+  getOrgConfig(orgSlug) {
+    return api.request(`/api/org/${orgSlug}/todo/org-config`);
+  },
+
+  updateOrgConfig(orgSlug, data) {
+    return api.request(`/api/org/${orgSlug}/todo/org-config`, {
       method: 'PUT',
       body: JSON.stringify(data),
     });

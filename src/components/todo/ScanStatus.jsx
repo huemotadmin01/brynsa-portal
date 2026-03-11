@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useToast } from '../../context/ToastContext';
+import { useOrg } from '../../context/OrgContext';
 import { usePlatform } from '../../context/PlatformContext';
 import { useNavigate } from 'react-router-dom';
 import todoApi from '../../utils/todoApi';
 import {
-  Mail, RefreshCw, CheckCircle2, XCircle, Clock, Loader2, Settings,
+  Mail, RefreshCw, CheckCircle2, XCircle, Clock, Loader2, Settings, Trash2, Power,
 } from 'lucide-react';
 
 function formatTimeAgo(date) {
@@ -19,15 +20,37 @@ function formatTimeAgo(date) {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
-export default function ScanStatus({ orgSlug, gmailStatus, lastScan, onScanComplete }) {
+export default function ScanStatus({ orgSlug, gmailStatus: initialGmailStatus, lastScan, onScanComplete }) {
   const { showToast } = useToast();
+  const { isOrgAdmin } = useOrg();
   const { orgPath } = usePlatform();
   const navigate = useNavigate();
+
   const [scanning, setScanning] = useState(false);
+  const [gmailStatus, setGmailStatus] = useState(initialGmailStatus || { connected: false });
+  const [scanEnabled, setScanEnabled] = useState(false);
+  const [savingToggle, setSavingToggle] = useState(false);
+  const [disconnecting, setDisconnecting] = useState(false);
+
+  // Sync prop changes
+  useEffect(() => {
+    if (initialGmailStatus) setGmailStatus(initialGmailStatus);
+  }, [initialGmailStatus]);
+
+  // Load per-user settings (scanEnabled)
+  useEffect(() => {
+    if (orgSlug) {
+      todoApi.getSettings(orgSlug).then(res => {
+        if (res.success) {
+          setScanEnabled(!!res.settings?.scanEnabled);
+        }
+      }).catch(() => {});
+    }
+  }, [orgSlug]);
 
   async function handleScan() {
     if (!gmailStatus?.connected) {
-      showToast('Connect Gmail first in Settings', 'error');
+      showToast('Connect Gmail first', 'error');
       return;
     }
     setScanning(true);
@@ -59,17 +82,52 @@ export default function ScanStatus({ orgSlug, gmailStatus, lastScan, onScanCompl
     }
   }
 
+  async function handleDisconnectGmail() {
+    setDisconnecting(true);
+    try {
+      const res = await todoApi.disconnectGmail(orgSlug);
+      if (res.success) {
+        setGmailStatus({ connected: false });
+        setScanEnabled(false);
+        showToast('Gmail disconnected', 'success');
+        onScanComplete?.();
+      }
+    } catch {
+      showToast('Failed to disconnect', 'error');
+    } finally {
+      setDisconnecting(false);
+    }
+  }
+
+  async function handleToggleScan() {
+    const newVal = !scanEnabled;
+    setSavingToggle(true);
+    try {
+      const res = await todoApi.updateSettings(orgSlug, { scanEnabled: newVal });
+      if (res.success) {
+        setScanEnabled(newVal);
+        showToast(newVal ? 'Auto-scan enabled' : 'Auto-scan disabled', 'success');
+      }
+    } catch {
+      showToast('Failed to update', 'error');
+    } finally {
+      setSavingToggle(false);
+    }
+  }
+
   return (
     <div className="bg-dark-900 rounded-xl border border-dark-800">
       <div className="flex items-center justify-between p-4 border-b border-dark-800">
         <h3 className="text-sm font-semibold text-white">AI Inbox Scanner</h3>
-        <button
-          onClick={() => navigate(orgPath('/settings/todo'))}
-          className="p-1 text-dark-400 hover:text-white"
-          title="Settings"
-        >
-          <Settings size={14} />
-        </button>
+        {isOrgAdmin && (
+          <button
+            onClick={() => navigate(orgPath('/settings/todo'))}
+            className="p-1 text-dark-400 hover:text-white"
+            title="Org Settings"
+          >
+            <Settings size={14} />
+          </button>
+        )}
       </div>
 
       <div className="p-4 space-y-3">
@@ -80,9 +138,19 @@ export default function ScanStatus({ orgSlug, gmailStatus, lastScan, onScanCompl
             <span className="text-sm text-dark-300">Gmail</span>
           </div>
           {gmailStatus?.connected ? (
-            <div className="flex items-center gap-1">
-              <CheckCircle2 size={14} className="text-emerald-400" />
-              <span className="text-xs text-emerald-400">{gmailStatus.email || 'Connected'}</span>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1">
+                <CheckCircle2 size={14} className="text-emerald-400" />
+                <span className="text-xs text-emerald-400">{gmailStatus.email || 'Connected'}</span>
+              </div>
+              <button
+                onClick={handleDisconnectGmail}
+                disabled={disconnecting}
+                className="p-1 text-dark-500 hover:text-red-400 transition-colors"
+                title="Disconnect Gmail"
+              >
+                {disconnecting ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
+              </button>
             </div>
           ) : (
             <button
@@ -93,6 +161,27 @@ export default function ScanStatus({ orgSlug, gmailStatus, lastScan, onScanCompl
             </button>
           )}
         </div>
+
+        {/* Auto-Scan Toggle (per-user) */}
+        {gmailStatus?.connected && (
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Power size={16} className={scanEnabled ? 'text-teal-400' : 'text-dark-500'} />
+              <span className="text-sm text-dark-300">Auto-scan</span>
+            </div>
+            <button
+              onClick={handleToggleScan}
+              disabled={savingToggle}
+              className={`relative w-9 h-5 rounded-full transition-colors ${
+                scanEnabled ? 'bg-teal-600' : 'bg-dark-700'
+              }`}
+            >
+              <div className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${
+                scanEnabled ? 'translate-x-4' : ''
+              }`} />
+            </button>
+          </div>
+        )}
 
         {/* Last Scan */}
         <div className="flex items-center justify-between">
@@ -145,7 +234,7 @@ export default function ScanStatus({ orgSlug, gmailStatus, lastScan, onScanCompl
 
         {!gmailStatus?.connected && (
           <p className="text-[11px] text-dark-500 text-center">
-            Connect Gmail to enable AI task extraction from your inbox
+            Connect your Gmail to enable AI task extraction from your inbox
           </p>
         )}
       </div>

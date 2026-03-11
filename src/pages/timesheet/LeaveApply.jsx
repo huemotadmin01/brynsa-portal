@@ -52,6 +52,16 @@ export default function LeaveApply() {
       getMyLeaveBalances().catch(() => null),
       getHolidays().catch(() => []),
     ]).then(([balData, holData]) => {
+      // Normalize: merge leaveTypes + balances object into an array
+      if (balData && balData.leaveTypes && balData.balances && !Array.isArray(balData.balances)) {
+        const balObj = balData.balances;
+        balData.balances = balData.leaveTypes.map(lt => ({
+          leaveType: lt.code,
+          name: lt.name,
+          ...balObj[lt.code],
+          policy: lt,
+        }));
+      }
       setBalances(balData);
       setHolidays(Array.isArray(holData) ? holData : holData?.holidays || []);
       // Default to first eligible leave type
@@ -145,7 +155,15 @@ export default function LeaveApply() {
       resetForm();
       // Refresh balances
       const updated = await getMyLeaveBalances().catch(() => null);
-      if (updated) setBalances(updated);
+      if (updated) {
+        if (updated.leaveTypes && updated.balances && !Array.isArray(updated.balances)) {
+          const balObj = updated.balances;
+          updated.balances = updated.leaveTypes.map(lt => ({
+            leaveType: lt.code, name: lt.name, ...balObj[lt.code], policy: lt,
+          }));
+        }
+        setBalances(updated);
+      }
     } catch (err) {
       showToast(err.response?.data?.message || 'Failed to submit leave application', 'error');
     } finally {

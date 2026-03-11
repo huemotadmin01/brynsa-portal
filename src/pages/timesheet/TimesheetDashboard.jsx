@@ -74,7 +74,15 @@ function ContractorDashboard() {
     }
     if (isLeaveEligible) {
       fetches.push(
-        getMyLeaveBalances().then(data => setLeaveBalances(data)).catch(() => {}),
+        getMyLeaveBalances().then(data => {
+          if (data?.leaveTypes && data?.balances && !Array.isArray(data.balances)) {
+            const balObj = data.balances;
+            data.balances = data.leaveTypes.map(lt => ({
+              leaveType: lt.code, name: lt.name, ...balObj[lt.code], policy: lt,
+            }));
+          }
+          setLeaveBalances(data);
+        }).catch(() => {}),
       );
     }
     Promise.all(fetches).finally(() => setLoading(false));

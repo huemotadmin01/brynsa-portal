@@ -43,7 +43,7 @@ export default function LeaveApprovals() {
     setLoading(true);
     try {
       const data = await getAllLeaveRequests();
-      setRequests(Array.isArray(data) ? data : data.leaveRequests || data.data || []);
+      setRequests(Array.isArray(data) ? data : data.requests || data.leaveRequests || data.data || []);
     } catch (err) {
       showToast(err.response?.data?.error || err.message || 'Failed to load leave requests', 'error');
       setRequests([]);

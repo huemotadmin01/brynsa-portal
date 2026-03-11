@@ -61,8 +61,9 @@ export default function LeaveMyRequests() {
         getMyLeaveRequests(),
         getMyLeaveBalances(),
       ]);
-      setRequests(reqData);
-      setBalances(Array.isArray(balData) ? balData : balData?.balances || []);
+      setRequests(Array.isArray(reqData) ? reqData : reqData?.requests || []);
+      const bals = balData?.balances;
+      setBalances(Array.isArray(bals) ? Object.entries(bals).map(([k, v]) => ({ leaveType: k, ...v })) : []);
     } catch (err) {
       showToast(err.response?.data?.error || err.response?.data?.message || err.message || 'Failed to load leave data', 'error');
     } finally {
@@ -87,8 +88,9 @@ export default function LeaveMyRequests() {
         getMyLeaveRequests(),
         getMyLeaveBalances(),
       ]);
-      setRequests(reqData);
-      setBalances(Array.isArray(balData) ? balData : balData?.balances || []);
+      setRequests(Array.isArray(reqData) ? reqData : reqData?.requests || []);
+      const bals = balData?.balances;
+      setBalances(Array.isArray(bals) ? Object.entries(bals).map(([k, v]) => ({ leaveType: k, ...v })) : []);
     } catch (err) {
       showToast(err.response?.data?.error || err.response?.data?.message || err.message || 'Failed to cancel request', 'error');
     } finally {

@@ -64,29 +64,57 @@ export default function HolidayCalendar() {
     }
   };
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     if (!newHoliday.date || !newHoliday.name.trim()) {
       showToast('Date and name are required', 'error');
       return;
     }
-    setHolidays(prev => {
-      const all = [...prev, { ...newHoliday }];
-      return all.sort((a, b) => toDateStr(a.date).localeCompare(toDateStr(b.date)));
-    });
+    const updated = [...holidays, { ...newHoliday }].sort((a, b) => toDateStr(a.date).localeCompare(toDateStr(b.date)));
+    setHolidays(updated);
     setNewHoliday({ date: '', name: '', type: 'mandatory', recurring: true });
     setShowAdd(false);
+    try {
+      const normalized = updated.map(h => ({ ...h, date: toDateStr(h.date) }));
+      await updateHolidays({ year, holidays: normalized });
+      showToast('Holiday added', 'success');
+    } catch (err) {
+      showToast(err.response?.data?.error || 'Failed to add', 'error');
+      load(); // reload from DB on failure
+    }
   };
 
-  const handleRemove = (idx) => {
-    setHolidays(prev => prev.filter((_, i) => i !== idx));
+  const handleRemove = async (idx) => {
+    const updated = holidays.filter((_, i) => i !== idx);
+    setHolidays(updated);
+    try {
+      const normalized = updated.map(h => ({ ...h, date: toDateStr(h.date) }));
+      await updateHolidays({ year, holidays: normalized });
+      showToast('Holiday removed', 'success');
+    } catch (err) {
+      showToast(err.response?.data?.error || 'Failed to remove', 'error');
+      setHolidays(holidays); // revert on failure
+    }
+  };
+
+  const autoSave = async (updated) => {
+    try {
+      const normalized = updated.map(h => ({ ...h, date: toDateStr(h.date) }));
+      await updateHolidays({ year, holidays: normalized });
+    } catch {
+      showToast('Failed to save change', 'error');
+    }
   };
 
   const toggleType = (idx) => {
-    setHolidays(prev => prev.map((h, i) => i === idx ? { ...h, type: h.type === 'mandatory' ? 'optional' : 'mandatory' } : h));
+    const updated = holidays.map((h, i) => i === idx ? { ...h, type: h.type === 'mandatory' ? 'optional' : 'mandatory' } : h);
+    setHolidays(updated);
+    autoSave(updated);
   };
 
   const toggleRecurring = (idx) => {
-    setHolidays(prev => prev.map((h, i) => i === idx ? { ...h, recurring: !h.recurring } : h));
+    const updated = holidays.map((h, i) => i === idx ? { ...h, recurring: !h.recurring } : h);
+    setHolidays(updated);
+    autoSave(updated);
   };
 
   const handleCopyToNextYear = async () => {

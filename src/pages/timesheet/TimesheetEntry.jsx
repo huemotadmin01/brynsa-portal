@@ -111,8 +111,16 @@ export default function TimesheetEntry() {
   const daysInMonth = new Date(year, month, 0).getDate();
   const firstDayOfWeek = new Date(year, month - 1, 1).getDay();
 
-  // Compute project start date — days before this are disabled
+  // Compute effective start date — days before this are disabled
+  // For billable employees: use project-specific start date
+  // For non-billable employees: use their joining date
   const projectStartDate = (() => {
+    if (isNonBillable) {
+      const jd = timesheetUser?.joiningDate;
+      if (!jd) return null;
+      const d = new Date(jd);
+      return isNaN(d.getTime()) ? null : d;
+    }
     const startStr = timesheetUser?.projectStartDates?.[selectedProject];
     if (!startStr) return null;
     const d = new Date(startStr);
@@ -345,7 +353,7 @@ export default function TimesheetEntry() {
 
   return (
     <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+      <div className={`flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 ${hasProjects ? 'sm:justify-between' : 'sm:justify-center text-center'}`}>
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-white">My Timesheet</h1>
           <p className="text-dark-400 text-sm hidden sm:block">Enter hours worked per day. Click status label to mark Leave/Holiday.</p>

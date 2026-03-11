@@ -7,15 +7,11 @@ export default function SuggestionsBanner({ suggestions, onAccept, onDismiss }) 
   if (!suggestions || suggestions.length === 0) return null;
 
   async function handleAcceptAll() {
-    for (const s of suggestions) {
-      await onAccept(s._id);
-    }
+    await Promise.all(suggestions.map(s => onAccept(s._id)));
   }
 
   async function handleDismissAll() {
-    for (const s of suggestions) {
-      await onDismiss(s._id);
-    }
+    await Promise.all(suggestions.map(s => onDismiss(s._id)));
   }
 
   return (

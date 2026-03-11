@@ -116,8 +116,10 @@ export default function TodoDashboard() {
     try {
       await todoApi.acceptAiTask(orgSlug, taskId);
       setAiSuggestions(prev => prev.filter(t => t._id !== taskId));
+      setRecentTasks(prev => prev.map(t =>
+        t._id === taskId ? { ...t, aiMeta: { ...t.aiMeta, accepted: true } } : t
+      ));
       showToast('Task accepted', 'success');
-      loadDashboard();
     } catch {
       showToast('Failed to accept task', 'error');
     }
@@ -127,6 +129,7 @@ export default function TodoDashboard() {
     try {
       await todoApi.dismissAiTask(orgSlug, taskId);
       setAiSuggestions(prev => prev.filter(t => t._id !== taskId));
+      setRecentTasks(prev => prev.filter(t => t._id !== taskId));
     } catch {
       showToast('Failed to dismiss task', 'error');
     }
@@ -134,10 +137,26 @@ export default function TodoDashboard() {
 
   async function handleToggleStatus(task) {
     const newStatus = task.status === 'done' ? 'pending' : 'done';
+    // Optimistic update
+    setRecentTasks(prev => prev.map(t =>
+      t._id === task._id ? { ...t, status: newStatus } : t
+    ));
+    setStats(prev => {
+      const delta = newStatus === 'done' ? 1 : -1;
+      return {
+        ...prev,
+        done: prev.done + delta,
+        pending: prev.pending - delta,
+      };
+    });
     try {
       await todoApi.updateTask(orgSlug, task._id, { status: newStatus });
-      loadDashboard();
     } catch {
+      // Revert on failure
+      setRecentTasks(prev => prev.map(t =>
+        t._id === task._id ? { ...t, status: task.status } : t
+      ));
+      loadDashboard();
       showToast('Failed to update task', 'error');
     }
   }

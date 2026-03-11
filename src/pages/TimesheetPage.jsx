@@ -34,8 +34,14 @@ export default function TimesheetPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  // Load projects
+  const isNonBillable = user?.billable === false;
+
+  // Load projects (skip for non-billable — they don't need a project)
   useEffect(() => {
+    if (isNonBillable) {
+      setSelectedProject('__none__');
+      return;
+    }
     api.get('/projects').then(r => {
       setProjects(r.data);
       if (user?.assignedProjects?.length > 0) {
@@ -46,7 +52,7 @@ export default function TimesheetPage() {
         setSelectedProject(r.data[0]._id);
       }
     });
-  }, [user]);
+  }, [user, isNonBillable]);
 
   // Load timesheet for selected month/project
   useEffect(() => {
@@ -57,7 +63,9 @@ export default function TimesheetPage() {
     setLoading(true);
     api.get('/timesheets', { params: { month, year, contractor: user._id } })
       .then(r => {
-        const ts = r.data.find(t => t.project?._id === selectedProject || t.project === selectedProject);
+        const ts = isNonBillable
+          ? r.data.find(t => !t.project || t.project === null)
+          : r.data.find(t => t.project?._id === selectedProject || t.project === selectedProject);
         if (ts) {
           setTimesheet(ts);
           const entryMap = {};
@@ -163,14 +171,14 @@ export default function TimesheetPage() {
     setSaving(true);
     try {
       const entryData = buildEntries();
-      const project = projects.find(p => p._id === selectedProject);
+      const project = isNonBillable ? null : projects.find(p => p._id === selectedProject);
       if (timesheet) {
         await api.put(`/timesheets/${timesheet._id}`, { entries: entryData });
         toast.success('Timesheet saved as draft');
       } else {
         const res = await api.post('/timesheets', {
-          project: selectedProject,
-          client: project?.client?._id || project?.client,
+          project: isNonBillable ? null : selectedProject,
+          client: isNonBillable ? null : (project?.client?._id || project?.client),
           month, year,
           entries: entryData
         });
@@ -179,7 +187,9 @@ export default function TimesheetPage() {
       }
       // Reload
       const r = await api.get('/timesheets', { params: { month, year, contractor: user._id } });
-      const ts = r.data.find(t => (t.project?._id || t.project) === selectedProject);
+      const ts = isNonBillable
+        ? r.data.find(t => !t.project || t.project === null)
+        : r.data.find(t => (t.project?._id || t.project) === selectedProject);
       if (ts) setTimesheet(ts);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Save failed');
@@ -197,7 +207,9 @@ export default function TimesheetPage() {
       await api.patch(`/timesheets/${timesheet._id}/submit`);
       toast.success('Timesheet submitted for approval');
       const r = await api.get('/timesheets', { params: { month, year, contractor: user._id } });
-      const ts = r.data.find(t => (t.project?._id || t.project) === selectedProject);
+      const ts = isNonBillable
+        ? r.data.find(t => !t.project || t.project === null)
+        : r.data.find(t => (t.project?._id || t.project) === selectedProject);
       if (ts) setTimesheet(ts);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Submit failed');
@@ -248,15 +260,17 @@ export default function TimesheetPage() {
           <h1 className="text-2xl font-bold text-gray-900">My Timesheet</h1>
           <p className="text-gray-500 text-sm">Enter hours worked per day. Click status label to mark Leave/Holiday.</p>
         </div>
-        <select
-          value={selectedProject}
-          onChange={e => setSelectedProject(e.target.value)}
-          className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white text-gray-900"
-        >
-          {projects.map(p => (
-            <option key={p._id} value={p._id}>{p.name}</option>
-          ))}
-        </select>
+        {!isNonBillable && (
+          <select
+            value={selectedProject}
+            onChange={e => setSelectedProject(e.target.value)}
+            className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white text-gray-900"
+          >
+            {projects.map(p => (
+              <option key={p._id} value={p._id}>{p.name}</option>
+            ))}
+          </select>
+        )}
       </div>
 
       {/* Status Banner */}
@@ -280,7 +294,7 @@ export default function TimesheetPage() {
         <button onClick={nextMonth} className="p-2 hover:bg-gray-100 rounded-lg"><ChevronRight size={20} /></button>
       </div>
 
-      {loading ? <LoadingSpinner /> : !selectedProject ? (
+      {loading ? <LoadingSpinner /> : (!selectedProject && !isNonBillable) ? (
         <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
           <AlertCircle size={40} className="mx-auto text-gray-300 mb-3" />
           <p className="text-gray-500 font-medium">No project assigned</p>

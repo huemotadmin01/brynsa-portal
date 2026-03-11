@@ -152,7 +152,7 @@ function ContractorDashboard() {
               <div key={ts._id} className="flex items-center justify-between p-4">
                 <div>
                   <p className="text-sm font-medium text-gray-900">
-                    {monthNames[ts.month]} {ts.year} — {ts.project?.name}
+                    {monthNames[ts.month]} {ts.year}{ts.project?.name ? ` — ${ts.project.name}` : ''}
                   </p>
                   <p className="text-xs text-gray-400">{ts.totalWorkingDays} working days</p>
                 </div>

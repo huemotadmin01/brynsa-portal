@@ -11,6 +11,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import OrgRedirect from './components/OrgRedirect';
 import AppAccessGate from './components/AppAccessGate';
 import AppRoleGate from './components/AppRoleGate';
+import ESSCompanyGate from './components/ESSCompanyGate';
 import OrgAdminGate from './components/OrgAdminGate';
 import { Loader2 } from 'lucide-react';
 
@@ -249,20 +250,22 @@ function App() {
                 <Route path="/org/:slug/settings/todo" element={<SettingsPageWrapper><SettingsTodo /></SettingsPageWrapper>} />
               </Route>
 
-              {/* Timesheet (ESS) app routes — gated by timesheet access */}
+              {/* Timesheet (ESS) app routes — gated by timesheet access + company match */}
               <Route element={<AppAccessGate appId="timesheet" />}>
-                <Route path="/org/:slug/timesheet/dashboard" element={<ErrorBoundary><TimesheetDashboard /></ErrorBoundary>} />
-                <Route path="/org/:slug/timesheet/my-timesheet" element={<ErrorBoundary><TimesheetEntry /></ErrorBoundary>} />
-                <Route path="/org/:slug/timesheet/earnings" element={<ErrorBoundary><TimesheetEarnings /></ErrorBoundary>} />
-                <Route path="/org/:slug/timesheet/approvals" element={<ErrorBoundary><TimesheetApprovals /></ErrorBoundary>} />
-                <Route path="/org/:slug/timesheet/users" element={<ErrorBoundary><TimesheetUsers /></ErrorBoundary>} />
-                <Route path="/org/:slug/timesheet/projects" element={<ErrorBoundary><TimesheetProjects /></ErrorBoundary>} />
-                {/* Leave Management */}
-                <Route path="/org/:slug/timesheet/leave/apply" element={<ErrorBoundary><LeaveApply /></ErrorBoundary>} />
-                <Route path="/org/:slug/timesheet/leave/my-requests" element={<ErrorBoundary><LeaveMyRequests /></ErrorBoundary>} />
-                <Route path="/org/:slug/timesheet/leave/approvals" element={<ErrorBoundary><LeaveApprovals /></ErrorBoundary>} />
-                <Route path="/org/:slug/timesheet/leave/reports" element={<ErrorBoundary><LeaveReports /></ErrorBoundary>} />
-                <Route path="/org/:slug/timesheet/holidays" element={<ErrorBoundary><HolidayCalendar /></ErrorBoundary>} />
+                <Route element={<ESSCompanyGate />}>
+                  <Route path="/org/:slug/timesheet/dashboard" element={<ErrorBoundary><TimesheetDashboard /></ErrorBoundary>} />
+                  <Route path="/org/:slug/timesheet/my-timesheet" element={<ErrorBoundary><TimesheetEntry /></ErrorBoundary>} />
+                  <Route path="/org/:slug/timesheet/earnings" element={<ErrorBoundary><TimesheetEarnings /></ErrorBoundary>} />
+                  <Route path="/org/:slug/timesheet/approvals" element={<ErrorBoundary><TimesheetApprovals /></ErrorBoundary>} />
+                  <Route path="/org/:slug/timesheet/users" element={<ErrorBoundary><TimesheetUsers /></ErrorBoundary>} />
+                  <Route path="/org/:slug/timesheet/projects" element={<ErrorBoundary><TimesheetProjects /></ErrorBoundary>} />
+                  {/* Leave Management */}
+                  <Route path="/org/:slug/timesheet/leave/apply" element={<ErrorBoundary><LeaveApply /></ErrorBoundary>} />
+                  <Route path="/org/:slug/timesheet/leave/my-requests" element={<ErrorBoundary><LeaveMyRequests /></ErrorBoundary>} />
+                  <Route path="/org/:slug/timesheet/leave/approvals" element={<ErrorBoundary><LeaveApprovals /></ErrorBoundary>} />
+                  <Route path="/org/:slug/timesheet/leave/reports" element={<ErrorBoundary><LeaveReports /></ErrorBoundary>} />
+                  <Route path="/org/:slug/timesheet/holidays" element={<ErrorBoundary><HolidayCalendar /></ErrorBoundary>} />
+                </Route>
               </Route>
 
               {/* Payroll app routes — gated by payroll app admin role */}

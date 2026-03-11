@@ -1,8 +1,17 @@
 import { useState, useEffect } from 'react';
 import { useTimesheetContext } from '../../context/TimesheetContext';
 import { useToast } from '../../context/ToastContext';
-import timesheetApi from '../../utils/timesheetApi';
+import timesheetApi, { getHolidays } from '../../utils/timesheetApi';
 import { ChevronLeft, ChevronRight, Save, Send, AlertCircle, RotateCcw, Loader2, Lock } from 'lucide-react';
+
+// Check if employee is eligible for paid holidays (same as leave eligibility)
+function isHolidayEligible(emp) {
+  if (!emp) return false;
+  const t = (emp.employmentType || '').toLowerCase();
+  if (t === 'external_consultant') return false;
+  if (t === 'internal_consultant' && emp.billable === true) return false;
+  return ['confirmed', 'intern', 'internal_consultant'].includes(t);
+}
 
 const statusColors = {
   'working': 'bg-emerald-500',
@@ -61,41 +70,64 @@ export default function TimesheetEntry() {
     if ((!selectedProject && !isNonBillable) || !timesheetUser) { setLoading(false); return; }
     setLoading(true);
     const controller = new AbortController();
-    timesheetApi.get('/timesheets', { params: { month, year, contractor: timesheetUser._id }, signal: controller.signal })
-      .then(r => {
+
+    // Fetch timesheet + holidays in parallel
+    const eligible = isHolidayEligible(timesheetUser);
+    const tsPromise = timesheetApi.get('/timesheets', { params: { month, year, contractor: timesheetUser._id }, signal: controller.signal });
+    const holidayPromise = eligible
+      ? getHolidays({ year }).catch(() => ({ holidays: [] }))
+      : Promise.resolve({ holidays: [] });
+
+    Promise.all([tsPromise, holidayPromise])
+      .then(([r, holData]) => {
+        // Build set of holiday day-numbers for this month
+        const holidayDays = new Set();
+        if (eligible) {
+          (holData.holidays || []).forEach(h => {
+            const match = String(h.date).match(/(\d{4})-(\d{2})-(\d{2})/);
+            if (match && parseInt(match[2]) === month && parseInt(match[1]) === year) {
+              holidayDays.add(parseInt(match[3]));
+            }
+          });
+        }
+
         const ts = selectedProject
           ? r.data.find(t => t.project?._id === selectedProject || t.project === selectedProject)
           : r.data.find(t => !t.project || !t.project._id); // non-billable: find projectless timesheet
+
+        const daysInMo = new Date(year, month, 0).getDate();
+        const entryMap = {};
+
+        // Build base entries
+        for (let d = 1; d <= daysInMo; d++) {
+          const dayOfWeek = new Date(year, month - 1, d).getDay();
+          if (dayOfWeek === 0 || dayOfWeek === 6) entryMap[d] = { hours: 0, status: 'weekend' };
+          else if (holidayDays.has(d)) entryMap[d] = { hours: 0, status: 'holiday' };
+          else entryMap[d] = { hours: '', status: null };
+        }
+
         if (ts) {
           setTimesheet(ts);
-          // Start with a blank month, then overlay saved entries
-          const daysInMo = new Date(year, month, 0).getDate();
-          const entryMap = {};
-          for (let d = 1; d <= daysInMo; d++) {
-            const dayOfWeek = new Date(year, month - 1, d).getDay();
-            if (dayOfWeek === 0 || dayOfWeek === 6) entryMap[d] = { hours: 0, status: 'weekend' };
-            else entryMap[d] = { hours: '', status: null };
-          }
           // Overlay saved entries (only days that were actually saved)
           ts.entries.forEach(e => {
             const d = new Date(e.date).getDate();
             const hours = e.hours || 0;
             const status = e.status || 'working';
-            // Don't show "Working" for 0-hour entries — treat as unfilled
-            entryMap[d] = { hours, status: (status === 'working' && hours <= 0) ? null : status };
+            // Keep holiday/leave status from saved data; otherwise use saved status
+            if (status === 'holiday' || status === 'leave') {
+              entryMap[d] = { hours, status };
+            } else if (holidayDays.has(d)) {
+              // Day is a holiday but saved as working — keep holiday status (paid holiday)
+              entryMap[d] = { hours: 0, status: 'holiday' };
+            } else {
+              entryMap[d] = { hours, status: (status === 'working' && hours <= 0) ? null : status };
+            }
           });
-          setEntries(entryMap);
         } else {
           setTimesheet(null);
-          const daysInMonth = new Date(year, month, 0).getDate();
-          const defaultMap = {};
-          for (let d = 1; d <= daysInMonth; d++) {
-            const dayOfWeek = new Date(year, month - 1, d).getDay();
-            if (dayOfWeek === 0 || dayOfWeek === 6) defaultMap[d] = { hours: 0, status: 'weekend' };
-            else defaultMap[d] = { hours: '', status: null };
-          }
-          setEntries(defaultMap);
         }
+
+        setEntries(entryMap);
       })
       .catch(() => setTimesheet(null))
       .finally(() => setLoading(false));

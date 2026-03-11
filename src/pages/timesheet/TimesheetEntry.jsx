@@ -344,9 +344,28 @@ export default function TimesheetEntry() {
         </div>
         <select value={selectedProject} onChange={e => setSelectedProject(e.target.value)}
           className="px-3 py-2 bg-dark-800/50 border border-dark-700 rounded-lg text-sm text-white focus:outline-none focus:border-rivvra-500 w-full sm:w-auto">
-          {projects.map(p => <option key={p._id} value={p._id}>{p.name}</option>)}
+          {projects.map(p => {
+            const asgn = timesheetUser?.assignments?.find(a => (a.projectId?._id || a.projectId)?.toString() === p._id);
+            const clientLabel = asgn?.clientName ? ` — ${asgn.clientName}` : '';
+            return <option key={p._id} value={p._id}>{p.name}{clientLabel}</option>;
+          })}
         </select>
       </div>
+
+      {/* Project info bar */}
+      {selectedProject && (() => {
+        const asgn = timesheetUser?.assignments?.find(a => (a.projectId?._id || a.projectId)?.toString() === selectedProject);
+        if (!asgn) return null;
+        const rate = asgn.billingRate?.monthly ? `₹${Number(asgn.billingRate.monthly).toLocaleString('en-IN')}/mo` : asgn.billingRate?.daily ? `₹${Number(asgn.billingRate.daily).toLocaleString('en-IN')}/day` : null;
+        const startDate = asgn.startDate ? new Date(asgn.startDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : null;
+        return (asgn.clientName || rate || startDate) ? (
+          <div className="rounded-lg bg-dark-800/50 border border-dark-700 px-4 py-2 text-sm text-dark-400 flex flex-wrap gap-x-5 gap-y-1">
+            {asgn.clientName && <span>Client: <span className="text-dark-200">{asgn.clientName}</span></span>}
+            {rate && <span>Rate: <span className="text-dark-200">{rate}</span></span>}
+            {startDate && <span>Since: <span className="text-dark-200">{startDate}</span></span>}
+          </div>
+        ) : null;
+      })()}
 
       {periodLocked && (
         <div className="rounded-xl px-4 py-3 flex items-center gap-2 text-sm font-medium border bg-amber-500/5 text-amber-400 border-amber-500/20">

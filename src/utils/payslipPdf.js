@@ -152,6 +152,47 @@ export async function generatePayslipPDF(data, options = { download: true }) {
   }
   y += 4;
 
+  // ===== PROJECT DETAILS (if available) =====
+  const projBreakdowns = data.projectBreakdowns || [];
+  if (projBreakdowns.length > 0) {
+    fillRect(margin, y, contentW, 7, primary);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(...white);
+    doc.text('PROJECT DETAILS', margin + 4, y + 5);
+    y += 9;
+
+    // Column headers
+    fillRect(margin, y, contentW, 6, headerBg);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(6.5); doc.setTextColor(...primary);
+    doc.text('PROJECT', margin + 3, y + 4);
+    doc.text('CLIENT', margin + 48, y + 4);
+    doc.text('RATE', margin + 88, y + 4);
+    doc.text('START DATE', margin + 118, y + 4);
+    doc.text('HOURS', margin + 148, y + 4);
+    doc.text('AMOUNT (Rs.)', pageW - margin - 3, y + 4, { align: 'right' });
+    drawLine(margin, y + 6, pageW - margin, y + 6, primary, 0.5);
+    y += 8;
+
+    for (const pb of projBreakdowns) {
+      const pRate = pb.candidateBillingRate?.monthly
+        ? `Rs.${Number(pb.candidateBillingRate.monthly).toLocaleString('en-IN')}/mo`
+        : pb.candidateBillingRate?.daily
+          ? `Rs.${Number(pb.candidateBillingRate.daily).toLocaleString('en-IN')}/day` : '';
+      const pStart = pb.assignmentStartDate
+        ? new Date(pb.assignmentStartDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '\u2014';
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(...black);
+      doc.text(truncate(pb.projectName || 'Unknown', 42), margin + 3, y + 3);
+      doc.text(truncate(pb.clientName || '\u2014', 36), margin + 48, y + 3);
+      doc.text(pRate, margin + 88, y + 3);
+      doc.text(pStart, margin + 118, y + 3);
+      doc.text(String(pb.totalHours || 0), margin + 148, y + 3);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`Rs. ${fmt(pb.contractorPayable || 0)}`, pageW - margin - 3, y + 3, { align: 'right' });
+      drawLine(margin, y + 5, pageW - margin, y + 5);
+      y += rowH;
+    }
+    y += 4;
+  }
+
   // ===== EARNINGS & DEDUCTIONS =====
   fillRect(margin, y, contentW, 7, primary);
   doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(...white);

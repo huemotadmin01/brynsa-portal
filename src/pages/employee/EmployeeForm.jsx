@@ -603,10 +603,20 @@ export default function EmployeeForm() {
       return false;
     }
 
-    // Non-billable: salary is required
-    if (!form.billable && !form.monthlyGrossSalary) {
-      setError('Monthly Gross Salary is required for non-billable employees.');
-      return false;
+    // Non-billable: joining date, salary, and manager are required
+    if (!form.billable) {
+      if (!form.joiningDate) {
+        setError('Joining Date is required for non-billable employees.');
+        return false;
+      }
+      if (!form.monthlyGrossSalary) {
+        setError('Monthly Gross Salary is required for non-billable employees.');
+        return false;
+      }
+      if (!form.manager) {
+        setError('Manager is required for non-billable employees.');
+        return false;
+      }
     }
 
     // Billable: at least one assignment is required (skip if separating — assignments will be auto-ended)
@@ -1133,7 +1143,7 @@ export default function EmployeeForm() {
 
             {/* Manager (only licensed portal users) */}
             <div>
-              <label className="block text-sm font-medium text-dark-300 mb-1">Manager</label>
+              <label className="block text-sm font-medium text-dark-300 mb-1">Manager{!form.billable && <span className="text-red-400"> *</span>}</label>
               <select
                 value={form.manager}
                 onChange={(e) => setField('manager', e.target.value)}
@@ -1523,7 +1533,7 @@ export default function EmployeeForm() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {/* Joining Date */}
               <div>
-                <label className="block text-sm font-medium text-dark-300 mb-1">Joining Date</label>
+                <label className="block text-sm font-medium text-dark-300 mb-1">Joining Date{!form.billable && <span className="text-red-400"> *</span>}</label>
                 <input
                   type="date"
                   value={form.joiningDate}

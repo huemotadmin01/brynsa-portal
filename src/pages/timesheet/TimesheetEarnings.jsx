@@ -81,13 +81,25 @@ function EarningsCard({ data, title, onDownload, downloading }) {
               )}
             </div>
           )}
-          {data.projectBreakdowns?.length > 1 && (
+          {data.projectBreakdowns?.length > 0 && (
             <div className="mt-4 border-t border-dark-800 pt-3">
               <p className="text-xs font-medium text-dark-400 mb-2">Per Project</p>
               {data.projectBreakdowns.map((pb, i) => (
-                <div key={i} className="flex justify-between text-xs py-1">
-                  <span className="text-dark-300">{pb.project}</span>
-                  <span className="font-medium text-white">{pb.totalHours || 0}h ({pb.workingDays} days)</span>
+                <div key={i} className="border border-dark-700/50 rounded-lg p-2.5 mb-2 last:mb-0">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <span className="text-sm font-medium text-white">{pb.project || pb.projectName}</span>
+                      {pb.clientName && <span className="text-xs text-dark-400 ml-2">({pb.clientName})</span>}
+                    </div>
+                    <span className="text-sm font-semibold text-white">{pb.totalHours || 0}h</span>
+                  </div>
+                  <div className="flex flex-wrap gap-x-4 gap-y-0.5 mt-1 text-xs text-dark-400">
+                    <span>{pb.workingDays} days</span>
+                    {pb.candidateBillingRate?.monthly ? <span>₹{Number(pb.candidateBillingRate.monthly).toLocaleString('en-IN')}/mo</span>
+                      : pb.candidateBillingRate?.daily ? <span>₹{Number(pb.candidateBillingRate.daily).toLocaleString('en-IN')}/day</span> : null}
+                    {pb.assignmentStartDate && <span>Since {new Date(pb.assignmentStartDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</span>}
+                    {pb.contractorPayable > 0 && <span className="text-emerald-400">₹{Number(pb.contractorPayable).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>}
+                  </div>
                 </div>
               ))}
             </div>

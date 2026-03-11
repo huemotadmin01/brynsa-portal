@@ -3,7 +3,7 @@ import {
   Clock, Briefcase, UserSearch, Mail, CalendarDays, IndianRupee,
   CheckCircle2, Download, Settings, Building2, UserPlus, Wallet,
   Contact, Kanban, FileText, GripVertical, PenTool, FileSignature, Inbox,
-  Tag, AlertTriangle, Banknote,
+  Tag, AlertTriangle, Banknote, CheckSquare,
 } from 'lucide-react';
 
 export const APP_REGISTRY = {
@@ -303,6 +303,31 @@ export const APP_REGISTRY = {
     },
   },
 
+  todo: {
+    id: 'todo',
+    name: 'To-Do',
+    description: 'Personal tasks & AI-powered email task extraction',
+    icon: CheckSquare,
+    color: 'teal',
+    basePath: '/todo',
+    status: 'active',
+    defaultRoute: '/todo/dashboard',
+    roles: [
+      { value: 'admin', label: 'Admin', color: 'teal' },
+      { value: 'member', label: 'Member', color: 'dark' },
+    ],
+    getSidebarItems: () => [
+      { type: 'item', path: '/todo/dashboard', label: 'Dashboard', icon: Home },
+      { type: 'item', path: '/todo/tasks', label: 'All Tasks', icon: CheckSquare },
+      {
+        type: 'group', label: 'Configuration', icon: Settings,
+        children: [
+          { path: '/settings/todo', label: 'Settings', icon: Settings },
+        ],
+      },
+    ],
+  },
+
   settings: {
     id: 'settings',
     name: 'Settings',
@@ -328,6 +353,7 @@ export const APP_REGISTRY = {
         { type: 'item', path: '/settings/crm', label: 'CRM', icon: Briefcase },
         { type: 'item', path: '/settings/ats', label: 'ATS', icon: UserSearch },
         { type: 'item', path: '/settings/sign', label: 'Sign', icon: PenTool },
+        { type: 'item', path: '/settings/todo', label: 'To-Do', icon: CheckSquare },
       ];
     },
   },

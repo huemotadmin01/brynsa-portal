@@ -55,6 +55,11 @@ const SettingsAts = lazy(() => import('./components/settings/SettingsAts'));
 const SettingsSign = lazy(() => import('./components/settings/SettingsSign'));
 const SettingsContacts = lazy(() => import('./components/settings/SettingsContacts'));
 const SettingsCompanies = lazy(() => import('./components/settings/SettingsCompanies'));
+const SettingsTodo = lazy(() => import('./components/settings/SettingsTodo'));
+
+// Lazy-loaded: To-Do app pages
+const TodoDashboard = lazy(() => import('./pages/todo/TodoDashboard'));
+const TodoTasks = lazy(() => import('./pages/todo/TodoTasks'));
 
 // Lazy-loaded: Timesheet app pages
 const TimesheetDashboard = lazy(() => import('./pages/timesheet/TimesheetDashboard'));
@@ -236,6 +241,7 @@ function App() {
                 <Route path="/org/:slug/settings/sign" element={<SettingsPageWrapper><SettingsSign /></SettingsPageWrapper>} />
                 <Route path="/org/:slug/settings/contacts" element={<SettingsPageWrapper><SettingsContacts /></SettingsPageWrapper>} />
                 <Route path="/org/:slug/settings/companies" element={<SettingsPageWrapper><SettingsCompanies /></SettingsPageWrapper>} />
+                <Route path="/org/:slug/settings/todo" element={<SettingsPageWrapper><SettingsTodo /></SettingsPageWrapper>} />
               </Route>
 
               {/* Timesheet (ESS) app routes — gated by timesheet access */}
@@ -324,6 +330,12 @@ function App() {
                   <Route path="/org/:slug/sign/config" element={<ErrorBoundary><SignConfig /></ErrorBoundary>} />
                 </Route>
               </Route>
+
+              {/* To-Do app routes — gated by todo access */}
+              <Route element={<AppAccessGate appId="todo" />}>
+                <Route path="/org/:slug/todo/dashboard" element={<ErrorBoundary><TodoDashboard /></ErrorBoundary>} />
+                <Route path="/org/:slug/todo/tasks" element={<ErrorBoundary><TodoTasks /></ErrorBoundary>} />
+              </Route>
             </Route>
 
             {/* ============================================================ */}
@@ -349,6 +361,7 @@ function App() {
             <Route path="/crm/*" element={<OrgRedirect />} />
             <Route path="/ats/*" element={<OrgRedirect />} />
             <Route path="/sign/*" element={<OrgRedirect />} />
+            <Route path="/todo/*" element={<OrgRedirect />} />
             <Route path="/settings" element={<OrgRedirect to="/settings" />} />
             <Route path="/settings/*" element={<OrgRedirect />} />
 

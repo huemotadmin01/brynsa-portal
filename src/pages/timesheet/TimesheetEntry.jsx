@@ -51,13 +51,19 @@ export default function TimesheetEntry() {
     return () => controller.abort();
   }, [timesheetUser]);
 
+  const isNonBillable = timesheetUser?.billable === false;
+  const hasProjects = projects.length > 0;
+
   useEffect(() => {
-    if (!selectedProject || !timesheetUser) { setLoading(false); return; }
+    // Non-billable employees without projects can still use timesheets
+    if ((!selectedProject && !isNonBillable) || !timesheetUser) { setLoading(false); return; }
     setLoading(true);
     const controller = new AbortController();
     timesheetApi.get('/timesheets', { params: { month, year, contractor: timesheetUser._id }, signal: controller.signal })
       .then(r => {
-        const ts = r.data.find(t => t.project?._id === selectedProject || t.project === selectedProject);
+        const ts = selectedProject
+          ? r.data.find(t => t.project?._id === selectedProject || t.project === selectedProject)
+          : r.data.find(t => !t.project || !t.project._id); // non-billable: find projectless timesheet
         if (ts) {
           setTimesheet(ts);
           // Start with a blank month, then overlay saved entries
@@ -92,7 +98,7 @@ export default function TimesheetEntry() {
       .catch(() => setTimesheet(null))
       .finally(() => setLoading(false));
     return () => controller.abort();
-  }, [month, year, selectedProject, timesheetUser]);
+  }, [month, year, selectedProject, timesheetUser, isNonBillable]);
 
   // Check if payroll period is locked
   useEffect(() => {
@@ -202,7 +208,9 @@ export default function TimesheetEntry() {
   const refreshTimesheet = async () => {
     try {
       const r = await timesheetApi.get('/timesheets', { params: { month, year, contractor: timesheetUser._id } });
-      const ts = r.data.find(t => (t.project?._id || t.project) === selectedProject);
+      const ts = selectedProject
+        ? r.data.find(t => (t.project?._id || t.project) === selectedProject)
+        : r.data.find(t => !t.project || !t.project._id);
       if (ts) {
         setTimesheet(ts);
         return ts;
@@ -212,7 +220,7 @@ export default function TimesheetEntry() {
   };
 
   const handleSave = async () => {
-    if (!selectedProject) { showToast('Please select a project first', 'error'); return; }
+    if (!selectedProject && !isNonBillable) { showToast('Please select a project first', 'error'); return; }
     if (totalHours <= 0 && totalLeaves === 0 && totalHolidays === 0) {
       showToast('Please enter hours for at least one day before saving', 'error');
       return;
@@ -220,7 +228,7 @@ export default function TimesheetEntry() {
     setSaving(true);
     try {
       const entryData = buildEntries();
-      const project = projects.find(p => p._id === selectedProject);
+      const project = selectedProject ? projects.find(p => p._id === selectedProject) : null;
       if (timesheet) {
         // Update existing timesheet
         await timesheetApi.put(`/timesheets/${timesheet._id}`, { entries: entryData });
@@ -229,7 +237,7 @@ export default function TimesheetEntry() {
         // Create new timesheet
         try {
           const res = await timesheetApi.post('/timesheets', {
-            project: selectedProject, client: project?.client?._id || project?.client, month, year, entries: entryData
+            project: selectedProject || null, client: project?.client?._id || project?.client || null, month, year, entries: entryData
           });
           setTimesheet(res.data);
           showToast('Timesheet created');
@@ -259,7 +267,7 @@ export default function TimesheetEntry() {
   };
 
   const handleSubmit = async () => {
-    if (!selectedProject) { showToast('Please select a project first', 'error'); return; }
+    if (!selectedProject && !isNonBillable) { showToast('Please select a project first', 'error'); return; }
     if (totalHours <= 0 && totalLeaves === 0 && totalHolidays === 0) {
       showToast('Please enter hours for at least one day before submitting', 'error');
       return;
@@ -291,13 +299,13 @@ export default function TimesheetEntry() {
     try {
       // Auto-save before submitting
       const entryData = buildEntries();
-      const project = projects.find(p => p._id === selectedProject);
+      const project = selectedProject ? projects.find(p => p._id === selectedProject) : null;
       let ts = timesheet;
       if (ts) {
         await timesheetApi.put(`/timesheets/${ts._id}`, { entries: entryData });
       } else {
         const res = await timesheetApi.post('/timesheets', {
-          project: selectedProject, client: project?.client?._id || project?.client, month, year, entries: entryData
+          project: selectedProject || null, client: project?.client?._id || project?.client || null, month, year, entries: entryData
         });
         ts = res.data;
         setTimesheet(ts);
@@ -342,14 +350,16 @@ export default function TimesheetEntry() {
           <h1 className="text-xl sm:text-2xl font-bold text-white">My Timesheet</h1>
           <p className="text-dark-400 text-sm hidden sm:block">Enter hours worked per day. Click status label to mark Leave/Holiday.</p>
         </div>
-        <select value={selectedProject} onChange={e => setSelectedProject(e.target.value)}
-          className="px-3 py-2 bg-dark-800/50 border border-dark-700 rounded-lg text-sm text-white focus:outline-none focus:border-rivvra-500 w-full sm:w-auto">
-          {projects.map(p => {
-            const asgn = timesheetUser?.assignments?.find(a => (a.projectId?._id || a.projectId)?.toString() === p._id);
-            const clientLabel = asgn?.clientName ? ` — ${asgn.clientName}` : '';
-            return <option key={p._id} value={p._id}>{p.name}{clientLabel}</option>;
-          })}
-        </select>
+        {hasProjects && (
+          <select value={selectedProject} onChange={e => setSelectedProject(e.target.value)}
+            className="px-3 py-2 bg-dark-800/50 border border-dark-700 rounded-lg text-sm text-white focus:outline-none focus:border-rivvra-500 w-full sm:w-auto">
+            {projects.map(p => {
+              const asgn = timesheetUser?.assignments?.find(a => (a.projectId?._id || a.projectId)?.toString() === p._id);
+              const clientLabel = asgn?.clientName ? ` — ${asgn.clientName}` : '';
+              return <option key={p._id} value={p._id}>{p.name}{clientLabel}</option>;
+            })}
+          </select>
+        )}
       </div>
 
       {/* Project info bar */}
@@ -395,7 +405,7 @@ export default function TimesheetEntry() {
 
       {loading ? (
         <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-dark-400" /></div>
-      ) : !selectedProject ? (
+      ) : !selectedProject && !isNonBillable ? (
         <div className="card p-8 text-center">
           <AlertCircle size={40} className="mx-auto text-dark-600 mb-3" />
           <p className="text-dark-400 font-medium">No project assigned</p>

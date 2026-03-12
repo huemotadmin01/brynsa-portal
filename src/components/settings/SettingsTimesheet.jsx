@@ -52,7 +52,7 @@ export default function SettingsTimesheet() {
     Promise.all([
       timesheetApi.get('/payroll-settings').then(r => setSettings(r.data)).catch(() => {}),
       getTimesheetAppSettings().then(setAppSettings).catch(() => {}),
-      getLeavePolicy().then(setLeavePolicy).catch(() => {}),
+      getLeavePolicy().then(data => setLeavePolicy(data.policy || data)).catch(() => {}),
     ]).finally(() => { setLoading(false); setAppLoading(false); });
   }, [isTimesheetAdmin]);
 
@@ -92,6 +92,7 @@ export default function SettingsTimesheet() {
           carryForward: false, carryForwardCap: 0, encashable: false, expiresAtYearEnd: false,
           halfDayAllowed: true,
           eligibleEmployeeTypes: ['confirmed'],
+          accrualByEmployeeType: {},
         },
       ],
     }));
@@ -110,6 +111,22 @@ export default function SettingsTimesheet() {
       leaveTypes: prev.leaveTypes.map((lt, i) =>
         i === index ? { ...lt, [field]: value } : lt
       ),
+    }));
+  };
+
+  const updateLeaveTypeQuota = (index, empType, value) => {
+    setLeavePolicy(prev => ({
+      ...prev,
+      leaveTypes: prev.leaveTypes.map((lt, i) => {
+        if (i !== index) return lt;
+        return {
+          ...lt,
+          accrualByEmployeeType: {
+            ...(lt.accrualByEmployeeType || {}),
+            [empType]: Number(value) || 0,
+          },
+        };
+      }),
     }));
   };
 
@@ -630,6 +647,31 @@ export default function SettingsTimesheet() {
                         ))}
                       </div>
                     </div>
+                    {/* Per-employee-type quota */}
+                    {(lt.eligibleEmployeeTypes || []).length > 0 && (
+                      <div className="mt-4 pt-4 border-t border-dark-700/50">
+                        <label className="block text-xs text-dark-500 mb-3">Leave Quota by Employee Type</label>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                          {[
+                            { value: 'confirmed', label: 'Confirmed' },
+                            { value: 'intern', label: 'Intern' },
+                            { value: 'internal_consultant_nonbillable', label: 'Non-Billable' },
+                          ].filter(opt => (lt.eligibleEmployeeTypes || []).includes(opt.value)).map(opt => (
+                            <div key={opt.value} className="flex items-center gap-2 bg-dark-800/50 rounded-lg px-3 py-2">
+                              <span className="text-xs text-dark-400 flex-1">{opt.label}</span>
+                              <input
+                                type="number"
+                                min="0"
+                                value={lt.accrualByEmployeeType?.[opt.value] ?? lt.accrualPerYear ?? 0}
+                                onChange={e => updateLeaveTypeQuota(i, opt.value, e.target.value)}
+                                className="input-field w-16 text-xs text-center"
+                              />
+                              <span className="text-[10px] text-dark-500">/yr</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

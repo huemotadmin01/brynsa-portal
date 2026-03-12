@@ -25,8 +25,12 @@ export function TimesheetProvider({ children }) {
       setTimesheetUser(res.data);
     } catch (err) {
       console.error('Failed to fetch timesheet profile:', err);
-      setError(err.response?.data?.message || 'Failed to load timesheet profile');
-      fetchedRef.current = false; // allow retry on error
+      const status = err.response?.status;
+      setError(err.response?.data?.error || err.response?.data?.message || 'Failed to load timesheet profile');
+      // Only allow auto-retry on network/server errors (5xx), not on permanent auth errors (4xx)
+      if (!status || status >= 500) {
+        fetchedRef.current = false;
+      }
     } finally {
       setLoading(false);
     }
@@ -44,17 +48,25 @@ export function TimesheetProvider({ children }) {
   }, [userEmail]);
 
   // Pre-warm backend + fetch profile when entering timesheet app
+  // Don't auto-retry when there's a permanent error (e.g. 403 no employee record)
   useEffect(() => {
-    if (isInTimesheet && !timesheetUser && !loading) {
+    if (isInTimesheet && !timesheetUser && !loading && !error) {
       warmTimesheetBackend(); // wake Render free-tier server
       fetchProfile();
     }
-  }, [isInTimesheet, timesheetUser, loading, fetchProfile]);
+  }, [isInTimesheet, timesheetUser, loading, error, fetchProfile]);
+
+  // Manual refetch (e.g. from Retry button) — always resets and tries again
+  const refetch = useCallback(() => {
+    fetchedRef.current = false;
+    setError(null);
+    fetchProfile();
+  }, [fetchProfile]);
 
   // Memoize context value to prevent unnecessary consumer re-renders
   const value = useMemo(() => ({
-    timesheetUser, loading, error, refetch: fetchProfile
-  }), [timesheetUser, loading, error, fetchProfile]);
+    timesheetUser, loading, error, refetch
+  }), [timesheetUser, loading, error, refetch]);
 
   return (
     <TimesheetContext.Provider value={value}>

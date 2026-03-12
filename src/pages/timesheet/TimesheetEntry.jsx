@@ -78,8 +78,8 @@ export default function TimesheetEntry() {
       ? getHolidays({ year }).catch(() => ({ holidays: [] }))
       : Promise.resolve({ holidays: [] });
     const leavePromise = eligible
-      ? getMyLeaveRequests({ status: 'approved' }).catch(() => ({ leaveRequests: [] }))
-      : Promise.resolve({ leaveRequests: [] });
+      ? getMyLeaveRequests({ status: 'approved' }).catch(() => ({ requests: [] }))
+      : Promise.resolve({ requests: [] });
 
     Promise.all([tsPromise, holidayPromise, leavePromise])
       .then(([r, holData, leaveData]) => {
@@ -97,7 +97,7 @@ export default function TimesheetEntry() {
         // Build set of approved leave day-numbers for this month
         const leaveDays = new Map(); // day → { hours, leaveType }
         if (eligible) {
-          (leaveData.leaveRequests || leaveData || []).forEach(lr => {
+          (leaveData.requests || leaveData.leaveRequests || []).forEach(lr => {
             if (lr.status !== 'approved') return;
             const from = new Date(lr.fromDate);
             const to = new Date(lr.toDate);

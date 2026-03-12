@@ -83,6 +83,8 @@ export default function TimesheetPayroll() {
   const [showReleaseModal, setShowReleaseModal] = useState(false);
   const [selectedForRelease, setSelectedForRelease] = useState(new Set());
   const [releasing, setReleasing] = useState(false);
+  const [releaseStatus, setReleaseStatus] = useState({}); // { empId: { releasedAt } }
+  const [forceResend, setForceResend] = useState(false);
 
   // Not-approved data + popup states
   const [notApprovedData, setNotApprovedData] = useState(null);
@@ -230,15 +232,17 @@ export default function TimesheetPayroll() {
       const res = await timesheetApi.post('/payroll/release-payslips', {
         month, year,
         employeeIds: [...selectedForRelease],
+        forceResend,
       });
-      const { sent, failed } = res.data;
-      if (failed > 0) {
-        showToast(`${sent} payslip(s) sent, ${failed} failed`, 'error');
-      } else {
-        showToast(`${sent} payslip(s) released successfully`);
-      }
+      const { sent, failed, skippedDuplicate } = res.data;
+      const parts = [];
+      if (sent > 0) parts.push(`${sent} sent`);
+      if (skippedDuplicate > 0) parts.push(`${skippedDuplicate} already released`);
+      if (failed > 0 && failed !== skippedDuplicate) parts.push(`${failed - (skippedDuplicate || 0)} failed`);
+      showToast(parts.join(', ') || 'Done', sent > 0 ? undefined : 'error');
       setShowReleaseModal(false);
       setSelectedForRelease(new Set());
+      setReleaseStatus({});
     } catch (err) {
       showToast(err.response?.data?.error || 'Failed to release payslips', 'error');
     } finally {
@@ -893,7 +897,21 @@ export default function TimesheetPayroll() {
             className="w-full bg-dark-800/50 border border-dark-700 rounded-lg pl-10 pr-4 py-2 text-sm text-white placeholder-dark-500 outline-none focus:border-rivvra-500 focus:ring-2 focus:ring-rivvra-500/20" />
         </div>
         <div className="flex flex-wrap gap-2">
-          <button onClick={() => { setSelectedForRelease(new Set(processableEmployees.map(e => e.employeeObjId))); setShowReleaseModal(true); }}
+          <button onClick={async () => {
+              setForceResend(false);
+              // Fetch release status to show who already received payslips
+              try {
+                const statusRes = await timesheetApi.get('/payroll/payslip-release-status', { params: { month, year } });
+                setReleaseStatus(statusRes.data?.releases || {});
+                // Only pre-select employees who haven't been released yet
+                const unreleased = processableEmployees.filter(e => !statusRes.data?.releases?.[e.employeeObjId]);
+                setSelectedForRelease(new Set(unreleased.map(e => e.employeeObjId)));
+              } catch {
+                setReleaseStatus({});
+                setSelectedForRelease(new Set(processableEmployees.map(e => e.employeeObjId)));
+              }
+              setShowReleaseModal(true);
+            }}
             disabled={!processableEmployees.length || !['processed', 'finalized'].includes(payrollRun?.status)}
             title={!['processed', 'finalized'].includes(payrollRun?.status) ? 'Process payroll first to release payslips' : ''}
             className="bg-rivvra-500 text-dark-950 px-3 py-2 rounded-lg text-sm font-semibold hover:bg-rivvra-400 flex items-center gap-1.5 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
@@ -1378,10 +1396,11 @@ export default function TimesheetPayroll() {
               </button>
             </div>
 
-            {/* Select All */}
+            {/* Select All + Force Resend */}
             <div className="px-5 py-3 border-b border-dark-800/50 flex items-center gap-3">
               {(() => {
                 const releasable = processableEmployees.filter(e => e.paymentStatus !== 'on_hold');
+                const alreadySentCount = processableEmployees.filter(e => releaseStatus[e.employeeObjId]).length;
                 return (
                   <>
                     <input type="checkbox" id="select-all-payslips"
@@ -1392,7 +1411,14 @@ export default function TimesheetPayroll() {
                       }}
                       className="w-4 h-4 rounded border-dark-600 bg-dark-800 text-rivvra-500 focus:ring-rivvra-500/30"
                     />
-                    <label htmlFor="select-all-payslips" className="text-sm text-dark-300 cursor-pointer select-none">Select All</label>
+                    <label htmlFor="select-all-payslips" className="text-sm text-dark-300 cursor-pointer select-none flex-1">Select All</label>
+                    {alreadySentCount > 0 && (
+                      <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                        <input type="checkbox" checked={forceResend} onChange={e => setForceResend(e.target.checked)}
+                          className="w-3.5 h-3.5 rounded border-dark-600 bg-dark-800 text-amber-500 focus:ring-amber-500/30" />
+                        <span className="text-[11px] text-amber-400">Resend ({alreadySentCount})</span>
+                      </label>
+                    )}
                   </>
                 );
               })()}
@@ -1403,6 +1429,7 @@ export default function TimesheetPayroll() {
               {processableEmployees.map((emp) => {
                 const isSelected = selectedForRelease.has(emp.employeeObjId);
                 const isHeld = emp.paymentStatus === 'on_hold';
+                const alreadySent = !!releaseStatus[emp.employeeObjId];
                 return (
                   <label key={emp.employeeObjId}
                     className={`flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-dark-800/50 transition-colors ${isHeld ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}>
@@ -1423,6 +1450,9 @@ export default function TimesheetPayroll() {
                       <p className="text-sm text-white truncate">{emp.name}</p>
                       <p className="text-[11px] text-dark-500 truncate">{emp.email}</p>
                     </div>
+                    {alreadySent && (
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-500/10 text-blue-400 shrink-0">Sent</span>
+                    )}
                     <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium shrink-0 ${typeBadgeColors[emp.employmentType] || 'bg-dark-700 text-dark-300'}`}>
                       {typeLabels[emp.employmentType] || emp.employmentType}
                     </span>

@@ -139,6 +139,7 @@ export const APP_REGISTRY = {
     status: 'active',
     adminOnly: true,
     defaultRoute: '/payroll/process',
+    derivedRoles: true,
     roles: [
       { value: 'admin', label: 'Admin', color: 'amber' },
     ],

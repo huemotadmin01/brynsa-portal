@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useTimesheetContext } from '../../context/TimesheetContext';
 import { useToast } from '../../context/ToastContext';
-import timesheetApi, { getHolidays } from '../../utils/timesheetApi';
+import timesheetApi, { getHolidays, getMyLeaveRequests } from '../../utils/timesheetApi';
 import { ChevronLeft, ChevronRight, Save, Send, AlertCircle, RotateCcw, Loader2, Lock } from 'lucide-react';
 
 // Check if employee is eligible for paid holidays (same as leave eligibility)
@@ -71,15 +71,18 @@ export default function TimesheetEntry() {
     setLoading(true);
     const controller = new AbortController();
 
-    // Fetch timesheet + holidays in parallel
+    // Fetch timesheet + holidays + approved leaves in parallel
     const eligible = isHolidayEligible(timesheetUser);
     const tsPromise = timesheetApi.get('/timesheets', { params: { month, year, contractor: timesheetUser._id }, signal: controller.signal });
     const holidayPromise = eligible
       ? getHolidays({ year }).catch(() => ({ holidays: [] }))
       : Promise.resolve({ holidays: [] });
+    const leavePromise = eligible
+      ? getMyLeaveRequests({ status: 'approved' }).catch(() => ({ leaveRequests: [] }))
+      : Promise.resolve({ leaveRequests: [] });
 
-    Promise.all([tsPromise, holidayPromise])
-      .then(([r, holData]) => {
+    Promise.all([tsPromise, holidayPromise, leavePromise])
+      .then(([r, holData, leaveData]) => {
         // Build set of holiday day-numbers for this month
         const holidayDays = new Set();
         if (eligible) {
@@ -87,6 +90,33 @@ export default function TimesheetEntry() {
             const match = String(h.date).match(/(\d{4})-(\d{2})-(\d{2})/);
             if (match && parseInt(match[2]) === month && parseInt(match[1]) === year) {
               holidayDays.add(parseInt(match[3]));
+            }
+          });
+        }
+
+        // Build set of approved leave day-numbers for this month
+        const leaveDays = new Map(); // day → { hours, leaveType }
+        if (eligible) {
+          (leaveData.leaveRequests || leaveData || []).forEach(lr => {
+            if (lr.status !== 'approved') return;
+            const from = new Date(lr.fromDate);
+            const to = new Date(lr.toDate);
+            if (lr.isHalfDay) {
+              if (from.getMonth() + 1 === month && from.getFullYear() === year) {
+                leaveDays.set(from.getDate(), { hours: 4, leaveType: lr.leaveType });
+              }
+              return;
+            }
+            // Iterate business days within the leave range that fall in this month
+            const monthStart = new Date(year, month - 1, 1);
+            const monthEnd = new Date(year, month, 0);
+            const iterFrom = new Date(Math.max(from.getTime(), monthStart.getTime()));
+            const iterTo = new Date(Math.min(to.getTime(), monthEnd.getTime()));
+            for (let d = new Date(iterFrom); d <= iterTo; d.setDate(d.getDate() + 1)) {
+              const dow = d.getDay();
+              if (dow === 0 || dow === 6) continue; // skip weekends
+              if (holidayDays.has(d.getDate())) continue; // skip holidays
+              leaveDays.set(d.getDate(), { hours: 0, leaveType: lr.leaveType });
             }
           });
         }
@@ -103,6 +133,7 @@ export default function TimesheetEntry() {
           const dayOfWeek = new Date(year, month - 1, d).getDay();
           if (dayOfWeek === 0 || dayOfWeek === 6) entryMap[d] = { hours: 0, status: 'weekend' };
           else if (holidayDays.has(d)) entryMap[d] = { hours: 8, status: 'holiday' };
+          else if (leaveDays.has(d)) entryMap[d] = { hours: leaveDays.get(d).hours, status: 'leave' };
           else entryMap[d] = { hours: '', status: null };
         }
 
@@ -119,6 +150,9 @@ export default function TimesheetEntry() {
             } else if (holidayDays.has(d)) {
               // Day is a holiday but saved as working — keep holiday status (paid holiday, 8h)
               entryMap[d] = { hours: 8, status: 'holiday' };
+            } else if (leaveDays.has(d)) {
+              // Day has an approved leave — override saved working status
+              entryMap[d] = { hours: leaveDays.get(d).hours, status: 'leave' };
             } else {
               entryMap[d] = { hours, status: (status === 'working' && hours <= 0) ? null : status };
             }

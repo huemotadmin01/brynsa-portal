@@ -729,15 +729,19 @@ export default function SettingsTeam() {
 
                                 {/* Role selector */}
                                 {access.enabled && roles.length > 0 ? (
-                                  <select
-                                    value={access.role || roles[roles.length - 1].value}
-                                    onChange={(e) => updateAppAccess(app.id, 'role', e.target.value)}
-                                    className="px-2 py-1 bg-dark-800 border border-dark-600 rounded-lg text-xs text-white focus:outline-none focus:border-rivvra-500 min-w-[100px]"
-                                  >
-                                    {roles.map(r => (
-                                      <option key={r.value} value={r.value}>{r.label}</option>
-                                    ))}
-                                  </select>
+                                  app.derivedRoles ? (
+                                    <span className="text-xs text-dark-400 min-w-[100px] italic">Auto (from org role)</span>
+                                  ) : (
+                                    <select
+                                      value={access.role || roles[roles.length - 1].value}
+                                      onChange={(e) => updateAppAccess(app.id, 'role', e.target.value)}
+                                      className="px-2 py-1 bg-dark-800 border border-dark-600 rounded-lg text-xs text-white focus:outline-none focus:border-rivvra-500 min-w-[100px]"
+                                    >
+                                      {roles.map(r => (
+                                        <option key={r.value} value={r.value}>{r.label}</option>
+                                      ))}
+                                    </select>
+                                  )
                                 ) : (
                                   <span className="text-xs text-dark-500 min-w-[100px]">—</span>
                                 )}

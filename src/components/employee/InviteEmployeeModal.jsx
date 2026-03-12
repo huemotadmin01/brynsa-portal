@@ -227,15 +227,19 @@ export default function InviteEmployeeModal({ isOpen, onClose, onInviteSent, emp
                       </div>
 
                       {access?.enabled && app.roles && (
-                        <select
-                          value={access.role}
-                          onChange={(e) => setAppRole(app.id, e.target.value)}
-                          className="text-xs bg-dark-700 border border-dark-600 rounded-lg px-2 py-1 text-dark-300 focus:outline-none focus:border-rivvra-500"
-                        >
-                          {app.roles.map((r) => (
-                            <option key={r.value} value={r.value}>{r.label}</option>
-                          ))}
-                        </select>
+                        app.derivedRoles ? (
+                          <span className="text-xs text-dark-400 italic">Auto</span>
+                        ) : (
+                          <select
+                            value={access.role}
+                            onChange={(e) => setAppRole(app.id, e.target.value)}
+                            className="text-xs bg-dark-700 border border-dark-600 rounded-lg px-2 py-1 text-dark-300 focus:outline-none focus:border-rivvra-500"
+                          >
+                            {app.roles.map((r) => (
+                              <option key={r.value} value={r.value}>{r.label}</option>
+                            ))}
+                          </select>
+                        )
                       )}
                     </div>
                   );

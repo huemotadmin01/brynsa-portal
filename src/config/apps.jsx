@@ -70,20 +70,19 @@ export const APP_REGISTRY = {
     basePath: '/timesheet',
     status: 'active',
     defaultRoute: '/timesheet/dashboard',
+    derivedRoles: true, // Roles derived from orgRole + manager status — no per-app assignment
     roles: [
       { value: 'admin', label: 'Admin', color: 'purple' },
       { value: 'manager', label: 'Manager', color: 'blue' },
-      { value: 'member', label: 'Member', color: 'dark' },
+      { value: 'member', label: 'Employee', color: 'dark' },
     ],
     getSidebarItems: (user, timesheetUser, orgAppRole) => {
-      // Org membership role is the source of truth for access control.
-      // ts_users.role is only a fallback when no org context exists.
+      // Role is derived on the backend from orgRole + isManager
+      // timesheetUser.role is the source of truth (returned from ensureEmployee)
       const tsRole = timesheetUser?.role || 'contractor';
-      const effectiveRole = orgAppRole || (tsRole === 'contractor' ? 'member' : tsRole);
 
-      const isAdmin = effectiveRole === 'admin';
-      const isManager = effectiveRole === 'manager';
-      const isMember = effectiveRole === 'member' || effectiveRole === 'contractor';
+      const isAdmin = tsRole === 'admin';
+      const isManager = tsRole === 'manager';
 
       // Determine if employee is eligible for leave management
       const empType = timesheetUser?.employmentType;

@@ -54,7 +54,7 @@ function AppSidebar({ isOpen, onClose }) {
 
   const handleLogout = () => {
     logout();
-    navigate('/login');
+    navigate('/find-workspace');
   };
 
   // Get org name from user for display (we can enhance this later with OrgContext)

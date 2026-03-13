@@ -79,7 +79,7 @@ function TopBar({ onToggleSidebar, sidebarOpen }) {
 
   const handleLogout = () => {
     logout();
-    navigate('/login');
+    navigate('/find-workspace');
   };
 
   return (

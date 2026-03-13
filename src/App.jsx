@@ -19,7 +19,7 @@ import { Loader2 } from 'lucide-react';
 import LandingPage from './pages/LandingPage';
 import SignupPage from './pages/SignupPage';
 import InviteAcceptPage from './pages/InviteAcceptPage';
-import LoginPage from './pages/LoginPage';
+// LoginPage removed — users log in via /find-workspace → /org/:slug/login
 import OrgLoginPage from './pages/OrgLoginPage';
 import PrivacyPage from './pages/PrivacyPage';
 import TermsPage from './pages/TermsPage';
@@ -194,7 +194,7 @@ function App() {
             {/* Public Routes */}
             <Route path="/" element={<LandingPage />} />
             <Route path="/signup" element={<SignupPage />} />
-            <Route path="/login" element={<LoginPage />} />
+            <Route path="/login" element={<Navigate to="/find-workspace" replace />} />
             <Route path="/invite" element={<InviteAcceptPage />} />
             <Route path="/features" element={<FeaturesPage />} />
             <Route path="/pricing" element={<PricingPage />} />

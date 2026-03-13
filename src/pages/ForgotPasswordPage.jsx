@@ -39,7 +39,7 @@ export default function ForgotPasswordPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const workspace = searchParams.get('workspace');
-  const backToLogin = workspace ? `/org/${workspace}/login` : '/login';
+  const backToLogin = workspace ? `/org/${workspace}/login` : '/find-workspace';
 
   const [step, setStep] = useState(STEPS.EMAIL);
   const [email, setEmail] = useState('');

@@ -30,9 +30,9 @@ function OrgRedirect({ to }) {
     return <div className="min-h-screen bg-dark-950" />;
   }
 
-  // Not authenticated → login
+  // Not authenticated → find workspace
   if (!isAuthenticated) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    return <Navigate to="/find-workspace" state={{ from: location }} replace />;
   }
 
   // Get user's default org slug (set during migration / login)

@@ -363,7 +363,7 @@ function SettingsPage() {
                   <button 
                     onClick={() => {
                       logout();
-                      navigate('/login');
+                      navigate('/find-workspace');
                     }}
                     className="flex items-center gap-2 px-4 py-2 bg-dark-800 text-white rounded-lg hover:bg-dark-700 transition-colors"
                   >

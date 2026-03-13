@@ -628,7 +628,7 @@ export default function MyProfilePage() {
                     <h3 className="text-sm font-semibold text-white mb-1">Active Sessions</h3>
                     <p className="text-xs text-dark-400 mb-3">Manage your active sessions across devices.</p>
                     <button
-                      onClick={() => { logout(); navigate('/login'); }}
+                      onClick={() => { logout(); navigate('/find-workspace'); }}
                       className="flex items-center gap-2 px-3 py-1.5 bg-dark-800 text-dark-300 rounded-lg hover:bg-dark-700 hover:text-white transition-colors text-sm"
                     >
                       <LogOut className="w-3.5 h-3.5" />

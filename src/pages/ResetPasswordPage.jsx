@@ -131,10 +131,10 @@ export default function ResetPasswordPage() {
           <h1 className="text-xl font-bold text-white mb-2">Invalid Link</h1>
           <p className="text-dark-400 mb-6">{tokenError}</p>
           <button
-            onClick={() => navigate('/login')}
+            onClick={() => navigate('/find-workspace')}
             className="px-6 py-2.5 bg-rivvra-500 text-white rounded-xl hover:bg-rivvra-600 transition-colors font-medium"
           >
-            Back to Login
+            Find your workspace
           </button>
         </div>
       </div>

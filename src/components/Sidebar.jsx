@@ -22,7 +22,7 @@ function Sidebar() {
 
   const handleLogout = () => {
     logout();
-    navigate('/login');
+    navigate('/find-workspace');
   };
 
   const isActive = (path) => location.pathname === path;

@@ -235,10 +235,10 @@ function InviteAcceptPage() {
           <h2 className="text-lg font-semibold text-white mb-2">Invalid Invite</h2>
           <p className="text-dark-400 text-sm mb-6">{error}</p>
           <button
-            onClick={() => navigate('/login')}
+            onClick={() => navigate('/find-workspace')}
             className="px-6 py-2.5 bg-rivvra-500 text-dark-950 rounded-xl text-sm font-semibold hover:bg-rivvra-400 transition-colors"
           >
-            Go to Login
+            Find your workspace
           </button>
         </div>
       </div>
@@ -465,10 +465,10 @@ function InviteAcceptPage() {
 
             {showPassword && (
               <button
-                onClick={() => navigate(`/login?redirect=${encodeURIComponent(`/invite?token=${inviteToken}`)}`)}
+                onClick={() => navigate(`/find-workspace`)}
                 className="w-full py-3 bg-dark-800 text-white border border-dark-600 rounded-xl text-sm font-semibold hover:bg-dark-700 transition-colors flex items-center justify-center gap-2"
               >
-                <LogIn className="w-4 h-4" /> Sign in with Password
+                <LogIn className="w-4 h-4" /> Sign in to your workspace
               </button>
             )}
           </div>

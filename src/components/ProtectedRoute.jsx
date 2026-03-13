@@ -29,8 +29,8 @@ function ProtectedRoute({ children }) {
       return <Navigate to={`/org/${slug}/login`} state={{ from: location }} replace />;
     }
 
-    // Fallback: generic login
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    // Fallback: find workspace
+    return <Navigate to="/find-workspace" state={{ from: location }} replace />;
   }
 
   return children;

@@ -233,7 +233,7 @@ function SignupPage() {
       if (err.message === 'Account already exists') {
         setError('An account with this email already exists. Please log in instead.');
         // Optionally redirect after a delay
-        setTimeout(() => navigate('/login'), 3000);
+        setTimeout(() => navigate('/find-workspace'), 3000);
       } else {
         setError(err.message || 'Failed to send OTP. Please try again.');
       }

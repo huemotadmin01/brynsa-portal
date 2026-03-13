@@ -234,6 +234,7 @@ export const APP_REGISTRY = {
     derivedRoles: true,
     roles: [
       { value: 'admin', label: 'Admin', color: 'emerald' },
+      { value: 'team_lead', label: 'Team Lead', color: 'amber' },
       { value: 'salesperson', label: 'Salesperson', color: 'blue' },
       { value: 'member', label: 'Member', color: 'dark' },
     ],

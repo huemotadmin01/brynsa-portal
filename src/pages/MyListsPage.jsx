@@ -944,6 +944,8 @@ function MyListsPage() {
         lead={exportCRMTarget}
         onSuccess={(leadId) => {
           setLeads(prev => prev.map(l => l._id === leadId ? { ...l, outreachStatus: 'converted' } : l));
+          loadLists();
+          if (selectedList) loadLeads(selectedList);
         }}
       />
 

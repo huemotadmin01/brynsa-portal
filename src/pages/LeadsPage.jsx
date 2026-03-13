@@ -701,6 +701,7 @@ function LeadsPage() {
           if (selectedLead && selectedLead._id === leadId) {
             setSelectedLead(prev => ({ ...prev, outreachStatus: 'converted' }));
           }
+          loadLeads();
         }}
       />
       <AddToSequenceModal

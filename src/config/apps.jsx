@@ -24,9 +24,9 @@ export const APP_REGISTRY = {
       { value: 'member', label: 'Member', color: 'dark' },
     ],
     getSidebarItems: (user, timesheetUser, orgAppRole) => {
-      // Admin derived from org role; team_lead derived from Sales Teams (user.role)
+      // Admin derived from org role; team_lead from orgAppRole (org_memberships) OR legacy user.role (portal_users)
       const isAdmin = orgAppRole === 'admin';
-      const isTeamLead = user?.role === 'team_lead';
+      const isTeamLead = orgAppRole === 'team_lead' || user?.role === 'team_lead';
       const isAdminOrLead = isAdmin || isTeamLead;
       return [
         { type: 'item', path: '/outreach/dashboard', label: 'Home', icon: Home },
@@ -239,7 +239,7 @@ export const APP_REGISTRY = {
     ],
     getSidebarItems: (user, timesheetUser, orgAppRole) => {
       const isAdmin = orgAppRole === 'admin';
-      const isTeamLead = user?.role === 'team_lead';
+      const isTeamLead = orgAppRole === 'team_lead' || user?.role === 'team_lead';
       const isAdminOrLead = isAdmin || isTeamLead;
       return [
         { type: 'item', path: '/crm/dashboard', label: 'Dashboard', icon: Home },

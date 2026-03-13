@@ -10,11 +10,11 @@ import { useOrg } from '../../context/OrgContext';
 import { usePlatform } from '../../context/PlatformContext';
 import {
   Search, Users, ChevronLeft, ChevronRight, ChevronDown, ChevronUp,
-  IndianRupee, TrendingUp, CalendarDays, Banknote,
-  CheckCircle2, Circle, Clock, Briefcase,
+  IndianRupee, CalendarDays,
+  CheckCircle2, Circle, Clock,
   UserX, ArrowRight,
 } from 'lucide-react';
-import { getPayConfig, getPayrollSummary, getReconciliation, getNotApprovedTimesheets } from '../../utils/timesheetApi';
+import { getPayConfig, getPayrollSummary, getNotApprovedTimesheets } from '../../utils/timesheetApi';
 import { PageSkeleton, HeaderSkeleton, CardGridSkeleton, PendingListSkeleton } from '../../components/Skeletons';
 
 /* ── Helpers (unchanged) ────────────────────────────────────────────────── */
@@ -79,7 +79,6 @@ export default function TimesheetPayConfig() {
 
   // Data states
   const [payrollData, setPayrollData] = useState(null);
-  const [reconcData, setReconcData] = useState(null);
   const [payConfigData, setPayConfigData] = useState(null);
   const [notApprovedData, setNotApprovedData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -104,14 +103,12 @@ export default function TimesheetPayConfig() {
   const fetchDashboardData = useCallback(async () => {
     setLoading(true);
     try {
-      const [payrollRes, reconcRes, configRes, notApprRes] = await Promise.all([
+      const [payrollRes, configRes, notApprRes] = await Promise.all([
         getPayrollSummary(month, year).catch(() => null),
-        getReconciliation(month, year).catch(() => null),
         getPayConfig().catch(() => null),
         getNotApprovedTimesheets().catch(() => null),
       ]);
       setPayrollData(payrollRes);
-      setReconcData(reconcRes);
       if (configRes?.success) setPayConfigData(configRes);
       setNotApprovedData(notApprRes);
     } catch (err) {
@@ -161,10 +158,7 @@ export default function TimesheetPayConfig() {
           <div className="h-5 bg-dark-800 rounded w-full" />
           <div className="h-2 bg-dark-800/50 rounded w-3/4" />
         </div>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <PendingListSkeleton count={5} />
-          <PendingListSkeleton count={4} />
-        </div>
+        <PendingListSkeleton count={5} />
       </PageSkeleton>
     );
   }
@@ -218,8 +212,8 @@ export default function TimesheetPayConfig() {
         </div>
       </div>
 
-      {/* ═══ Financial Summary Cards ═══ */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      {/* ═══ Summary Cards ═══ */}
+      <div className="grid grid-cols-2 gap-3 sm:gap-4">
         {/* Total Payable */}
         <div className="card p-4 sm:p-5">
           <div className="flex items-center justify-between mb-2">
@@ -228,33 +222,6 @@ export default function TimesheetPayConfig() {
           </div>
           <p className="text-lg sm:text-2xl font-bold text-white">{'\u20B9'}{fmt(summary.totalPayable)}</p>
           <p className="text-xs text-dark-500 mt-1">{monthNames[month]} {year}</p>
-        </div>
-
-        {/* Client Billable */}
-        <div className="card p-4 sm:p-5">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs sm:text-sm text-dark-400">Client Billable</span>
-            <Banknote size={16} className="text-blue-500" />
-          </div>
-          <p className="text-lg sm:text-2xl font-bold text-white">{'\u20B9'}{fmt(summary.totalBillable)}</p>
-          <p className="text-xs text-dark-500 mt-1">{monthNames[month]} {year}</p>
-        </div>
-
-        {/* Profit Margin */}
-        <div className="card p-4 sm:p-5">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs sm:text-sm text-dark-400">Margin</span>
-            <TrendingUp size={16} className="text-emerald-500" />
-          </div>
-          <p className={`text-lg sm:text-2xl font-bold ${(summary.margin || 0) >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-            {'\u20B9'}{fmt(summary.margin)}
-          </p>
-          <p className="text-xs text-dark-500 mt-1">
-            {summary.totalBillable
-              ? `${((summary.margin / summary.totalBillable) * 100).toFixed(1)}% margin`
-              : '\u2014'
-            }
-          </p>
         </div>
 
         {/* Employees */}
@@ -361,11 +328,8 @@ export default function TimesheetPayConfig() {
         );
       })()}
 
-      {/* ═══ Two-column: Disbursements + Client Billing ═══ */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <DisbursementList employees={payrollEmployees} orgPath={orgPath} />
-        <BillingSummary reconcData={reconcData} />
-      </div>
+      {/* ═══ Upcoming Disbursements ═══ */}
+      <DisbursementList employees={payrollEmployees} orgPath={orgPath} />
 
       {/* ═══ Employee Pay Configuration (collapsible) ═══ */}
       <div className="card overflow-hidden">
@@ -495,18 +459,29 @@ export default function TimesheetPayConfig() {
 function DisbursementList({ employees, orgPath }) {
   const [showAll, setShowAll] = useState(false);
 
-  if (!employees?.length) {
+  // Filter to today and future dates only (+ on_hold regardless of date)
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const upcoming = (employees || []).filter(emp => {
+    if (emp.paymentStatus === 'on_hold') return true;
+    if (!emp.disbursementDate) return true; // no date = show it
+    const d = new Date(emp.disbursementDate);
+    d.setHours(0, 0, 0, 0);
+    return d >= today;
+  });
+
+  if (!upcoming.length) {
     return (
       <div className="card p-8 text-center">
         <Clock size={24} className="mx-auto mb-2 text-dark-600" />
-        <p className="text-sm text-dark-500">No disbursement data for this period</p>
-        <p className="text-xs text-dark-600 mt-1">Process payroll to see disbursement details</p>
+        <p className="text-sm text-dark-500">No upcoming disbursements</p>
+        <p className="text-xs text-dark-600 mt-1">All disbursements for this period have been completed</p>
       </div>
     );
   }
 
   // Sort: on_hold first, then by disbursementDate ascending
-  const sorted = [...employees].sort((a, b) => {
+  const sorted = [...upcoming].sort((a, b) => {
     if (a.paymentStatus === 'on_hold' && b.paymentStatus !== 'on_hold') return -1;
     if (b.paymentStatus === 'on_hold' && a.paymentStatus !== 'on_hold') return 1;
     const dateA = a.disbursementDate ? new Date(a.disbursementDate) : new Date('9999-12-31');
@@ -524,7 +499,7 @@ function DisbursementList({ employees, orgPath }) {
   const statusLabels = { paid: 'Paid', unpaid: 'Unpaid', on_hold: 'On Hold' };
 
   // Group counts by status
-  const statusCounts = employees.reduce((acc, e) => {
+  const statusCounts = upcoming.reduce((acc, e) => {
     acc[e.paymentStatus] = (acc[e.paymentStatus] || 0) + 1;
     return acc;
   }, {});
@@ -541,7 +516,7 @@ function DisbursementList({ employees, orgPath }) {
           {statusCounts.on_hold > 0 && (
             <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-500/10 text-red-400 font-medium">{statusCounts.on_hold} on hold</span>
           )}
-          <span className="text-xs text-dark-500">{employees.length} employees</span>
+          <span className="text-xs text-dark-500">{upcoming.length} employees</span>
         </div>
       </div>
 
@@ -590,95 +565,6 @@ function DisbursementList({ employees, orgPath }) {
           {showAll ? 'Show Less' : `Show All ${sorted.length} Employees`}
         </button>
       )}
-    </div>
-  );
-}
-
-/* ── Client Billing Summary ─────────────────────────────────────────────── */
-
-function BillingSummary({ reconcData }) {
-  if (!reconcData?.report?.length) {
-    return (
-      <div className="card p-8 text-center">
-        <Briefcase size={24} className="mx-auto mb-2 text-dark-600" />
-        <p className="text-sm text-dark-500">No billing data for this period</p>
-        <p className="text-xs text-dark-600 mt-1">Approve timesheets to see client billing</p>
-      </div>
-    );
-  }
-
-  // Group by client, sum amounts
-  const clientMap = {};
-  reconcData.report.forEach(r => {
-    const client = r.client || 'Unassigned';
-    if (!clientMap[client]) clientMap[client] = { billable: 0, payable: 0, count: 0 };
-    clientMap[client].billable += r.clientBillable || 0;
-    clientMap[client].payable += r.contractorPayable || 0;
-    clientMap[client].count += 1;
-  });
-  const clients = Object.entries(clientMap)
-    .map(([name, data]) => ({ name, ...data, margin: data.billable - data.payable }))
-    .sort((a, b) => b.billable - a.billable);
-
-  const totalBillable = reconcData.totals?.totalClientBillable || 0;
-  const totalPayable = reconcData.totals?.totalContractorPayable || 0;
-  const totalMargin = reconcData.totals?.totalMargin || 0;
-  const totalMarginPct = totalBillable > 0 ? ((totalMargin / totalBillable) * 100).toFixed(1) : 0;
-
-  return (
-    <div className="card flex flex-col">
-      {/* Header */}
-      <div className="p-4 border-b border-dark-800 flex items-center justify-between">
-        <h3 className="font-semibold text-white text-sm flex items-center gap-2">
-          <Briefcase size={16} className="text-amber-400" />
-          Client Billing Summary
-        </h3>
-        <span className="text-xs text-dark-500">{clients.length} clients</span>
-      </div>
-
-      {/* Totals bar */}
-      <div className="px-4 py-3 bg-dark-800/30 border-b border-dark-800 grid grid-cols-3 gap-3 text-center">
-        <div>
-          <p className="text-[10px] text-dark-500 uppercase tracking-wider">Billable</p>
-          <p className="text-sm font-semibold text-white">{'\u20B9'}{fmt(totalBillable)}</p>
-        </div>
-        <div>
-          <p className="text-[10px] text-dark-500 uppercase tracking-wider">Payable</p>
-          <p className="text-sm font-semibold text-amber-400">{'\u20B9'}{fmt(totalPayable)}</p>
-        </div>
-        <div>
-          <p className="text-[10px] text-dark-500 uppercase tracking-wider">Margin</p>
-          <p className="text-sm font-semibold text-emerald-400">{totalMarginPct}%</p>
-        </div>
-      </div>
-
-      {/* Per-client rows */}
-      <div className="divide-y divide-dark-800 flex-1">
-        {clients.map(c => {
-          const marginPct = c.billable > 0 ? ((c.margin / c.billable) * 100).toFixed(0) : 0;
-          return (
-            <div key={c.name} className="px-4 py-3 hover:bg-dark-800/30 transition-colors">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-sm font-medium text-white truncate mr-3">{c.name}</span>
-                <span className="text-sm font-semibold text-white tabular-nums shrink-0">{'\u20B9'}{fmt(c.billable)}</span>
-              </div>
-              <div className="flex items-center justify-between text-xs text-dark-500">
-                <span>{c.count} assignment{c.count !== 1 ? 's' : ''} &middot; Payable {'\u20B9'}{fmt(c.payable)}</span>
-                <span className={`font-medium ${Number(marginPct) >= 0 ? 'text-emerald-400/80' : 'text-red-400/80'}`}>
-                  +{'\u20B9'}{fmt(c.margin)} ({marginPct}%)
-                </span>
-              </div>
-              {/* Margin progress bar */}
-              <div className="mt-1.5 h-1 bg-dark-700 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-emerald-500/50 rounded-full transition-all"
-                  style={{ width: `${Math.max(0, Math.min(Number(marginPct), 100))}%` }}
-                />
-              </div>
-            </div>
-          );
-        })}
-      </div>
     </div>
   );
 }

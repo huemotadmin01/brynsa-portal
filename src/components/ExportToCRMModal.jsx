@@ -184,17 +184,12 @@ function ExportToCRMModal({ isOpen, onClose, lead, onSuccess }) {
         clientType: profileType === 'client' ? 'existing' : 'new',
         notes: lead.notes?.length ? lead.notes.map(n => typeof n === 'string' ? n : n.text || '').join('\n') : undefined,
         opportunityName: `${name.trim()} — ${company.trim() || 'Opportunity'}`,
+        leadId: lead._id, // Backend will atomically update lead status to 'converted'
       };
 
       const result = await crmApi.convertLead(orgSlug, convertData);
 
       if (result.success) {
-        // Update lead status to 'converted' (non-fatal if fails)
-        try {
-          await api.updateLead(lead._id, { outreachStatus: 'converted' });
-        } catch (e) {
-          console.warn('Failed to update lead status to converted:', e);
-        }
 
         // Notify parent to update local state
         onSuccess?.(lead._id);

@@ -260,6 +260,23 @@ export async function copyHolidaysToYear(data) {
   return res.data;
 }
 
+// ─── Payroll Dashboard ───────────────────────────────────────────────────
+
+export async function getPayrollSummary(month, year) {
+  const res = await timesheetApi.get('/payroll/summary', { params: { month, year } });
+  return res.data;
+}
+
+export async function getReconciliation(month, year) {
+  const res = await timesheetApi.get('/timesheets/reconciliation', { params: { month, year } });
+  return res.data;
+}
+
+export async function getNotApprovedTimesheets() {
+  const res = await timesheetApi.get('/dashboard/not-approved');
+  return res.data;
+}
+
 // ─── Leave Reports ────────────────────────────────────────────────────────
 
 export async function getLeaveReportSummary(params) {

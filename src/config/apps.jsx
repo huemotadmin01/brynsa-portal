@@ -4,7 +4,7 @@ import {
   CheckCircle2, Download, Settings, Building2, UserPlus, Wallet,
   Contact, Kanban, FileText, GripVertical, PenTool, FileSignature, Inbox,
   Tag, AlertTriangle, Banknote, CheckSquare,
-  CalendarOff, PlusCircle, ClipboardCheck, Calendar,
+  CalendarOff, PlusCircle, ClipboardCheck, Calendar, LayoutDashboard,
 } from 'lucide-react';
 
 export const APP_REGISTRY = {
@@ -138,14 +138,14 @@ export const APP_REGISTRY = {
     basePath: '/payroll',
     status: 'active',
     adminOnly: true,
-    defaultRoute: '/payroll/process',
+    defaultRoute: '/payroll/pay-overview',
     derivedRoles: true,
     roles: [
       { value: 'admin', label: 'Admin', color: 'amber' },
     ],
     getSidebarItems: () => [
+      { type: 'item', path: '/payroll/pay-overview', label: 'Dashboard', icon: LayoutDashboard },
       { type: 'item', path: '/payroll/process', label: 'Process Payroll', icon: Banknote },
-      { type: 'item', path: '/payroll/pay-overview', label: 'Pay Overview', icon: Wallet },
       { type: 'item', path: '/payroll/export', label: 'Export & Reports', icon: Download },
       {
         type: 'group', label: 'Configuration', icon: Settings,

@@ -1,0 +1,1 @@
+import{r as s}from"./vendor-charts-Bp3gnMeM.js";import{H as n,aO as i,aP as c}from"./index-NKLjMJzt.js";function f(t){const a=n(),{setDetailLabel:e,clearDetailLabel:r}=i();s.useEffect(()=>{if(!t)return;const o=c(a.pathname);return e(o,t),()=>r(o)},[t,a.pathname,e,r])}export{f as u};

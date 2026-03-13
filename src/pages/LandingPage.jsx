@@ -113,7 +113,7 @@ function LandingPage() {
     <MarketingLayout activePage="/">
 
       {/* ═══════════ HERO ═══════════════════════════════════════════════════ */}
-      <section className="relative pt-24 pb-28 lg:pt-36 lg:pb-40">
+      <section className="relative pt-20 pb-20 lg:pt-28 lg:pb-28">
         {/* Dot grid background */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div
@@ -168,10 +168,38 @@ function LandingPage() {
         </div>
       </section>
 
+      {/* ═══════════ PRODUCT PREVIEW ═══════════════════════════════════════ */}
+      <section className="pb-16 -mt-4">
+        <div className="max-w-5xl mx-auto px-6">
+          <div className="rounded-xl border border-white/[0.08] bg-white/[0.03] overflow-hidden">
+            {/* Browser chrome */}
+            <div className="flex items-center gap-2 px-4 py-3 border-b border-white/[0.06] bg-white/[0.02]">
+              <div className="flex gap-1.5">
+                <div className="w-2.5 h-2.5 rounded-full bg-dark-600" />
+                <div className="w-2.5 h-2.5 rounded-full bg-dark-600" />
+                <div className="w-2.5 h-2.5 rounded-full bg-dark-600" />
+              </div>
+              <div className="flex-1 mx-4">
+                <div className="h-6 rounded-md bg-dark-800/50 max-w-xs mx-auto" />
+              </div>
+            </div>
+            {/* Placeholder content */}
+            <div className="aspect-[16/9] bg-dark-900/50 flex items-center justify-center">
+              <div className="text-center space-y-3">
+                <div className="w-12 h-12 rounded-xl bg-rivvra-500/10 flex items-center justify-center mx-auto">
+                  <Zap className="w-6 h-6 text-rivvra-400" />
+                </div>
+                <p className="text-dark-500 text-sm">Product demo coming soon</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ═══════════ APP GRID ═══════════════════════════════════════════════ */}
-      <section className="py-24 lg:py-32 border-t border-white/[0.04]">
+      <section className="py-16 lg:py-20 border-t border-white/[0.04]">
         <div className="max-w-7xl mx-auto px-6">
-          <div className="text-center mb-16">
+          <div className="text-center mb-10">
             <h2 className="text-3xl lg:text-[40px] font-bold text-white tracking-[-0.02em] mb-4">
               Every tool your agency needs
             </h2>
@@ -226,9 +254,9 @@ function LandingPage() {
       </section>
 
       {/* ═══════════ HOW IT WORKS ══════════════════════════════════════════ */}
-      <section className="py-24 lg:py-32 border-t border-white/[0.04]">
+      <section className="py-16 lg:py-20 border-t border-white/[0.04]">
         <div className="max-w-7xl mx-auto px-6">
-          <div className="text-center mb-16">
+          <div className="text-center mb-10">
             <h2 className="text-3xl lg:text-[40px] font-bold text-white tracking-[-0.02em] mb-4">
               Get started in minutes
             </h2>
@@ -271,7 +299,7 @@ function LandingPage() {
       </section>
 
       {/* ═══════════ PLATFORM HIGHLIGHTS ═══════════════════════════════════ */}
-      <section className="py-24 lg:py-32 border-t border-white/[0.04]">
+      <section className="py-16 lg:py-20 border-t border-white/[0.04]">
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             <div className="space-y-6">
@@ -346,9 +374,9 @@ function LandingPage() {
       </section>
 
       {/* ═══════════ TESTIMONIALS ═════════════════════════════════════════ */}
-      <section className="py-24 lg:py-32 border-t border-white/[0.04]">
+      <section className="py-16 lg:py-20 border-t border-white/[0.04]">
         <div className="max-w-7xl mx-auto px-6">
-          <div className="text-center mb-14">
+          <div className="text-center mb-10">
             <h2 className="text-3xl lg:text-[40px] font-bold text-white tracking-[-0.02em]">
               Trusted by staffing teams
             </h2>
@@ -374,19 +402,19 @@ function LandingPage() {
       </section>
 
       {/* ═══════════ PRICING TEASER ═══════════════════════════════════════ */}
-      <section className="py-24 lg:py-32 border-t border-white/[0.04]">
+      <section className="py-16 lg:py-20 border-t border-white/[0.04]">
         <div className="max-w-4xl mx-auto px-6 text-center">
           <h2 className="text-3xl lg:text-[40px] font-bold text-white tracking-[-0.02em] mb-4">
             Simple, transparent pricing
           </h2>
           <p className="text-dark-400 text-lg mb-12 max-w-xl mx-auto">
-            Two plans. Per-seat billing. Start with a 14-day free trial of every app.
+            Two plans. Per-seat billing. Start with a 14-day free trial.
           </p>
 
           <div className="grid sm:grid-cols-2 gap-5 max-w-2xl mx-auto mb-10">
             {[
-              { plan: 'Pro', price: '$29', desc: 'All 9 apps, up to 25 users' },
-              { plan: 'Enterprise', price: '$49', desc: 'Unlimited users, priority support, SLA' },
+              { plan: 'Core', price: '$10', desc: 'ATS, CRM, Contacts, Employee, Sign, Payroll' },
+              { plan: 'All Apps', price: '$15', desc: 'Everything in Core + Outreach, Timesheet, To-Do' },
             ].map((item) => (
               <div key={item.plan} className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-6 text-center">
                 <p className="text-[13px] font-semibold text-dark-400 uppercase tracking-wide mb-2">{item.plan}</p>
@@ -404,9 +432,9 @@ function LandingPage() {
       </section>
 
       {/* ═══════════ CTA ══════════════════════════════════════════════════ */}
-      <section className="py-24 lg:py-32">
+      <section className="py-16 lg:py-20">
         <div className="max-w-4xl mx-auto px-6 text-center">
-          <div className="relative rounded-3xl border border-white/[0.08] bg-white/[0.02] p-14 lg:p-20 overflow-hidden">
+          <div className="relative rounded-3xl border border-white/[0.08] bg-white/[0.02] p-10 lg:p-14 overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-br from-rivvra-500/[0.06] via-transparent to-emerald-500/[0.04]" />
             <div className="relative space-y-6">
               <h2 className="text-3xl lg:text-[40px] font-bold text-white tracking-[-0.02em]">

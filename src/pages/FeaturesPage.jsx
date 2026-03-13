@@ -223,7 +223,7 @@ function FeaturesPage() {
         const badge = STATUS_BADGE[app.status];
 
         return (
-          <section key={app.id} id={app.id} className="py-20 border-t border-white/[0.04]">
+          <section key={app.id} id={app.id} className="py-14 border-t border-white/[0.04]">
             <div className="max-w-7xl mx-auto px-6">
               {/* App header */}
               <div className="max-w-3xl mb-12">
@@ -262,7 +262,7 @@ function FeaturesPage() {
       })}
 
       {/* ═══════════ PLATFORM FEATURES ═══════════════════════════════════ */}
-      <section className="py-24 border-t border-white/[0.04]">
+      <section className="py-16 border-t border-white/[0.04]">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-14">
             <h2 className="text-3xl font-bold text-white tracking-[-0.02em] mb-4">Platform features</h2>
@@ -286,7 +286,7 @@ function FeaturesPage() {
       </section>
 
       {/* ═══════════ CTA ═════════════════════════════════════════════════ */}
-      <section className="py-24">
+      <section className="py-16">
         <div className="max-w-3xl mx-auto px-6 text-center">
           <div className="relative rounded-3xl border border-white/[0.08] bg-white/[0.02] p-14 overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-br from-rivvra-500/[0.06] via-transparent to-emerald-500/[0.04]" />

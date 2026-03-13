@@ -11,41 +11,41 @@ import MarketingLayout from '../components/marketing/MarketingLayout';
 // ── Plans ─────────────────────────────────────────────────────────────────────
 const PLANS = [
   {
-    id: 'pro',
-    name: 'Pro',
-    price: 29,
-    description: 'Everything you need to run your staffing agency.',
+    id: 'core',
+    name: 'Core',
+    price: 10,
+    description: 'Essential tools to manage your agency operations.',
     badge: null,
     features: [
-      'All 9 apps included',
+      'ATS \u2014 Applicant Tracking',
+      'CRM \u2014 Sales Pipeline',
+      'Contacts \u2014 Unified Directory',
+      'Employee \u2014 HR Management',
+      'Sign \u2014 Digital Signatures',
+      'Payroll \u2014 Pay Processing',
       'Up to 25 team members',
-      'Gmail OAuth integration',
-      'Chrome extension access',
-      'Cross-app data sync',
       'Email support',
-      'CSV & PDF exports',
-      'Role-based access control',
     ],
-    cta: 'Get started with Pro',
+    cta: 'Get started with Core',
     highlight: false,
   },
   {
-    id: 'enterprise',
-    name: 'Enterprise',
-    price: 49,
-    description: 'For growing agencies that need more power and support.',
-    badge: 'Most popular',
+    id: 'all_apps',
+    name: 'All Apps',
+    price: 15,
+    description: 'Full platform access with outreach and productivity tools.',
+    badge: 'Best value',
     features: [
-      'Everything in Pro',
+      'Everything in Core',
+      'Outreach \u2014 Lead Gen & Sequences',
+      'Timesheet \u2014 Time & Payroll Tracking',
+      'To-Do \u2014 AI Task Management',
       'Unlimited team members',
-      'Priority support (4hr SLA)',
-      'Custom branding',
-      'Dedicated account manager',
-      'Advanced analytics',
-      'API access',
-      'SLA guarantee',
+      'Priority support',
+      'Chrome extension access',
+      'Cross-app workflows',
     ],
-    cta: 'Get started with Enterprise',
+    cta: 'Get started with All Apps',
     highlight: true,
   },
 ];
@@ -70,12 +70,12 @@ const FAQS = [
     a: 'Sign up with your work email and get instant access to all apps for 14 days. No credit card required. Invite your team during the trial. When it ends, choose a plan to keep going.',
   },
   {
-    q: 'What\'s included in both plans?',
-    a: 'Both Pro and Enterprise include all 9 apps. The difference is team size limits, support level, and enterprise features like custom branding, SLA, and API access.',
+    q: 'What\'s the difference between Core and All Apps?',
+    a: 'Core ($10/user/mo) includes 6 essential apps: ATS, CRM, Contacts, Employee, Sign, and Payroll. All Apps ($15/user/mo) adds Outreach, Timesheet, and To-Do on top of Core, plus unlimited team members and priority support.',
   },
   {
     q: 'How does per-seat pricing work?',
-    a: 'You pay per user per month. If you have 10 users on the Pro plan, that\'s 10 x $29 = $290/month. Every user gets access to all 9 apps.',
+    a: 'You pay per user per month. For example, 10 users on Core is 10 \u00d7 $10 = $100/month. On All Apps, that\'s 10 \u00d7 $15 = $150/month.',
   },
   {
     q: 'Can I change plans or cancel anytime?',
@@ -93,19 +93,20 @@ const FAQS = [
 
 // ── Feature comparison ────────────────────────────────────────────────────────
 const COMPARISON = [
-  { feature: 'All 9 apps', pro: true, enterprise: true },
-  { feature: 'Team members', pro: 'Up to 25', enterprise: 'Unlimited' },
-  { feature: 'Gmail OAuth', pro: true, enterprise: true },
-  { feature: 'Chrome extension', pro: true, enterprise: true },
-  { feature: 'Cross-app sync', pro: true, enterprise: true },
-  { feature: 'CSV & PDF exports', pro: true, enterprise: true },
-  { feature: 'Role-based access', pro: true, enterprise: true },
-  { feature: 'Support', pro: 'Email', enterprise: 'Priority (4hr SLA)' },
-  { feature: 'Custom branding', pro: false, enterprise: true },
-  { feature: 'Dedicated account manager', pro: false, enterprise: true },
-  { feature: 'Advanced analytics', pro: false, enterprise: true },
-  { feature: 'API access', pro: false, enterprise: true },
-  { feature: 'SLA guarantee', pro: false, enterprise: true },
+  { feature: 'ATS', core: true, all_apps: true },
+  { feature: 'CRM', core: true, all_apps: true },
+  { feature: 'Contacts', core: true, all_apps: true },
+  { feature: 'Employee', core: true, all_apps: true },
+  { feature: 'Sign', core: true, all_apps: true },
+  { feature: 'Payroll', core: true, all_apps: true },
+  { feature: 'Outreach', core: false, all_apps: true },
+  { feature: 'Timesheet', core: false, all_apps: true },
+  { feature: 'To-Do', core: false, all_apps: true },
+  { feature: 'Team members', core: 'Up to 25', all_apps: 'Unlimited' },
+  { feature: 'Support', core: 'Email', all_apps: 'Priority' },
+  { feature: 'Chrome extension', core: false, all_apps: true },
+  { feature: 'Cross-app workflows', core: false, all_apps: true },
+  { feature: 'Role-based access', core: true, all_apps: true },
 ];
 
 function PricingPage() {
@@ -137,8 +138,8 @@ function PricingPage() {
             Simple, per-seat pricing
           </h1>
           <p className="text-lg text-dark-400 max-w-2xl mx-auto leading-relaxed">
-            Two plans. All apps included. Start with a 14-day free trial &mdash;
-            no credit card required.
+            Two plans. Pick Core for essentials or All Apps for the full platform.
+            Start with a 14-day free trial &mdash; no credit card required.
           </p>
         </div>
       </section>
@@ -168,7 +169,7 @@ function PricingPage() {
       </section>
 
       {/* ═══════════ PLAN CARDS ═══════════════════════════════════════════ */}
-      <section className="pb-28">
+      <section className="pb-16">
         <div className="max-w-4xl mx-auto px-6">
           <div className="grid md:grid-cols-2 gap-6">
             {PLANS.map((plan) => (
@@ -224,13 +225,13 @@ function PricingPage() {
       </section>
 
       {/* ═══════════ APPS INCLUDED ═══════════════════════════════════════ */}
-      <section className="py-24 border-t border-white/[0.04]">
+      <section className="py-16 border-t border-white/[0.04]">
         <div className="max-w-5xl mx-auto px-6">
           <div className="text-center mb-12">
             <h2 className="text-2xl lg:text-3xl font-bold text-white tracking-[-0.02em] mb-3">
-              All 9 apps included in every plan
+              All 9 apps available
             </h2>
-            <p className="text-dark-400 text-sm">No per-app charges. Every user gets access to the full platform.</p>
+            <p className="text-dark-400 text-sm">Core includes 6 essential apps. All Apps unlocks the full 9-app platform.</p>
           </div>
 
           <div className="grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-9 gap-4">
@@ -246,7 +247,7 @@ function PricingPage() {
       </section>
 
       {/* ═══════════ COMPARISON TABLE ═════════════════════════════════════ */}
-      <section className="py-24 border-t border-white/[0.04]">
+      <section className="py-16 border-t border-white/[0.04]">
         <div className="max-w-3xl mx-auto px-6">
           <h2 className="text-2xl font-bold text-white text-center mb-10 tracking-[-0.02em]">
             Compare plans
@@ -256,8 +257,8 @@ function PricingPage() {
             {/* Header */}
             <div className="grid grid-cols-3 bg-white/[0.03] border-b border-white/[0.06]">
               <div className="p-4 text-[13px] text-dark-500 font-medium">Feature</div>
-              <div className="p-4 text-[13px] text-white font-semibold text-center">Pro</div>
-              <div className="p-4 text-[13px] text-white font-semibold text-center">Enterprise</div>
+              <div className="p-4 text-[13px] text-white font-semibold text-center">Core</div>
+              <div className="p-4 text-[13px] text-white font-semibold text-center">All Apps</div>
             </div>
             {COMPARISON.map((row, i) => (
               <div
@@ -266,19 +267,19 @@ function PricingPage() {
               >
                 <div className="p-4 text-[13px] text-dark-400">{row.feature}</div>
                 <div className="p-4 text-center">
-                  {typeof row.pro === 'boolean'
-                    ? row.pro
+                  {typeof row.core === 'boolean'
+                    ? row.core
                       ? <CheckCircle className="w-4 h-4 text-rivvra-400 mx-auto" />
                       : <X className="w-4 h-4 text-dark-700 mx-auto" />
-                    : <span className="text-[13px] text-dark-300">{row.pro}</span>
+                    : <span className="text-[13px] text-dark-300">{row.core}</span>
                   }
                 </div>
                 <div className="p-4 text-center">
-                  {typeof row.enterprise === 'boolean'
-                    ? row.enterprise
+                  {typeof row.all_apps === 'boolean'
+                    ? row.all_apps
                       ? <CheckCircle className="w-4 h-4 text-rivvra-400 mx-auto" />
                       : <X className="w-4 h-4 text-dark-700 mx-auto" />
-                    : <span className="text-[13px] text-dark-300">{row.enterprise}</span>
+                    : <span className="text-[13px] text-dark-300">{row.all_apps}</span>
                   }
                 </div>
               </div>
@@ -288,7 +289,7 @@ function PricingPage() {
       </section>
 
       {/* ═══════════ PRICING EXAMPLE ══════════════════════════════════════ */}
-      <section className="py-24 border-t border-white/[0.04]">
+      <section className="py-16 border-t border-white/[0.04]">
         <div className="max-w-3xl mx-auto px-6">
           <div className="text-center mb-10">
             <h2 className="text-2xl font-bold text-white tracking-[-0.02em] mb-3">Example: What you'd pay</h2>
@@ -298,15 +299,19 @@ function PricingPage() {
           <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6">
             <div className="space-y-4">
               <div className="flex items-center justify-between py-2 border-b border-white/[0.06]">
-                <span className="text-[13px] text-dark-400">Pro plan &mdash; 8 users</span>
-                <span className="text-[13px] font-medium text-white">8 &times; $29 = $232</span>
+                <span className="text-[13px] text-dark-400">Core plan &mdash; 8 users</span>
+                <span className="text-[13px] font-medium text-white">8 &times; $10 = $80</span>
+              </div>
+              <div className="flex items-center justify-between py-2 border-b border-white/[0.06]">
+                <span className="text-[13px] text-dark-400">All Apps plan &mdash; 8 users</span>
+                <span className="text-[13px] font-medium text-white">8 &times; $15 = $120</span>
               </div>
               <div className="flex items-center justify-between py-3">
-                <span className="text-sm font-semibold text-white">Total per month</span>
-                <span className="text-xl font-bold text-rivvra-400">$232/mo</span>
+                <span className="text-sm font-semibold text-white">Starting from</span>
+                <span className="text-xl font-bold text-rivvra-400">$80/mo</span>
               </div>
               <p className="text-[12px] text-dark-600 text-center pt-1">
-                That's $29 per team member for access to all 9 apps.
+                Start with Core at $10/user, or get the full platform at $15/user.
               </p>
             </div>
           </div>
@@ -314,7 +319,7 @@ function PricingPage() {
       </section>
 
       {/* ═══════════ PLATFORM INCLUDED ═══════════════════════════════════ */}
-      <section className="py-24 border-t border-white/[0.04]">
+      <section className="py-16 border-t border-white/[0.04]">
         <div className="max-w-5xl mx-auto px-6">
           <div className="text-center mb-12">
             <h2 className="text-2xl font-bold text-white tracking-[-0.02em] mb-3">Included with every plan</h2>
@@ -340,7 +345,7 @@ function PricingPage() {
       </section>
 
       {/* ═══════════ FAQS ════════════════════════════════════════════════ */}
-      <section className="py-24 border-t border-white/[0.04]">
+      <section className="py-16 border-t border-white/[0.04]">
         <div className="max-w-3xl mx-auto px-6">
           <h2 className="text-2xl font-bold text-white text-center mb-10 tracking-[-0.02em]">
             Frequently asked questions
@@ -367,7 +372,7 @@ function PricingPage() {
       </section>
 
       {/* ═══════════ CTA ═════════════════════════════════════════════════ */}
-      <section className="py-24">
+      <section className="py-16">
         <div className="max-w-3xl mx-auto px-6 text-center">
           <div className="relative rounded-3xl border border-white/[0.08] bg-white/[0.02] p-14 overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-br from-rivvra-500/[0.06] via-transparent to-emerald-500/[0.04]" />

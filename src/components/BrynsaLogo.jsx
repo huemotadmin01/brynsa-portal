@@ -1,9 +1,8 @@
 // Rivvra Logo — bold neon-green vortex/spiral SVG icon (scales crisp at any size)
-import { useId } from 'react';
+import { useMemo } from 'react';
 
 function RivvraLogo({ className = "w-5 h-5" }) {
-  const uid = useId();
-  const gid = `rv${uid}`;
+  const gid = useMemo(() => `rv_${Math.random().toString(36).slice(2, 8)}`, []);
 
   return (
     <svg viewBox="0 0 64 64" className={className} xmlns="http://www.w3.org/2000/svg">

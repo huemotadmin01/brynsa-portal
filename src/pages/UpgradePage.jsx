@@ -9,32 +9,30 @@ import {
 } from 'lucide-react';
 
 const PRICING = {
-  pro: {
-    name: 'Pro',
-    price: 29,
+  core: {
+    name: 'Core',
+    price: 10,
     currency: 'USD',
     period: 'user/month',
     features: [
-      'All 9 platform apps',
+      'ATS, CRM, Contacts',
+      'Employee, Sign, Payroll',
       'Up to 25 users',
-      'Unlimited sequences',
-      'Gmail integration',
       'Email support',
-      'Standard analytics',
     ],
   },
-  enterprise: {
-    name: 'Enterprise',
-    price: 49,
+  all_apps: {
+    name: 'All Apps',
+    price: 15,
     currency: 'USD',
     period: 'user/month',
     features: [
-      'Everything in Pro',
+      'Everything in Core',
+      'Outreach, Timesheet, To-Do',
       'Unlimited users',
-      'Priority support + SLA',
-      'Custom branding',
-      'Advanced analytics',
-      'Dedicated account manager',
+      'Priority support',
+      'Chrome extension',
+      'Cross-app workflows',
     ],
   },
 };
@@ -43,7 +41,7 @@ function UpgradePage() {
   const { currentOrg, orgSlug, trial, isOrgOwner, isOrgAdmin, refetchOrg } = useOrg();
   const [searchParams] = useSearchParams();
 
-  const [selectedPlan, setSelectedPlan] = useState('pro');
+  const [selectedPlan, setSelectedPlan] = useState('core');
   const [seatCount, setSeatCount] = useState(3);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -93,7 +91,7 @@ function UpgradePage() {
 
   const plan = PRICING[selectedPlan];
   const monthlyTotal = plan.price * seatCount;
-  const isPaid = currentOrg?.plan === 'pro' || currentOrg?.plan === 'enterprise';
+  const isPaid = currentOrg?.plan === 'core' || currentOrg?.plan === 'all_apps' || currentOrg?.plan === 'pro' || currentOrg?.plan === 'enterprise';
 
   // Redirect to Stripe Checkout
   const handleCheckout = async () => {

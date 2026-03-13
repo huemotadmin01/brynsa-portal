@@ -34,7 +34,7 @@ export default function MarketingFooter() {
             <p className="text-[11px] font-semibold text-dark-500 uppercase tracking-widest mb-4">Company</p>
             <ul className="space-y-3">
               <li><Link to="/privacy" className="text-sm text-dark-400 hover:text-white transition-colors">Privacy Policy</Link></li>
-              <li><a href="#" className="text-sm text-dark-400 hover:text-white transition-colors">Terms of Service</a></li>
+              <li><Link to="/terms" className="text-sm text-dark-400 hover:text-white transition-colors">Terms of Service</Link></li>
             </ul>
           </div>
 
@@ -51,7 +51,7 @@ export default function MarketingFooter() {
           <p className="text-dark-600 text-xs">&copy; {new Date().getFullYear()} Rivvra. All rights reserved.</p>
           <div className="flex items-center gap-6">
             <Link to="/privacy" className="text-xs text-dark-500 hover:text-white transition-colors">Privacy</Link>
-            <a href="#" className="text-xs text-dark-500 hover:text-white transition-colors">Terms</a>
+            <Link to="/terms" className="text-xs text-dark-500 hover:text-white transition-colors">Terms</Link>
           </div>
         </div>
       </div>

@@ -310,8 +310,10 @@ function App() {
                 <Route path="/org/:slug/crm/pipeline" element={<ErrorBoundary><CrmPipeline /></ErrorBoundary>} />
                 <Route path="/org/:slug/crm/opportunities" element={<ErrorBoundary><CrmOpportunities /></ErrorBoundary>} />
                 <Route path="/org/:slug/crm/opportunities/:opportunityId" element={<ErrorBoundary><CrmOpportunityDetail /></ErrorBoundary>} />
-                <Route element={<AppRoleGate appId="crm" requiredRole="admin" />}>
+                <Route element={<AppRoleGate appId="crm" requiredRole="admin" allowTeamLead />}>
                   <Route path="/org/:slug/crm/reporting" element={<ErrorBoundary><CrmReporting /></ErrorBoundary>} />
+                </Route>
+                <Route element={<AppRoleGate appId="crm" requiredRole="admin" />}>
                   <Route path="/org/:slug/crm/config" element={<CrmConfigRedirect />} />
                   <Route path="/org/:slug/crm/config/stages" element={<ErrorBoundary><CrmConfigStages /></ErrorBoundary>} />
                   <Route path="/org/:slug/crm/config/tags" element={<ErrorBoundary><CrmConfigTags /></ErrorBoundary>} />

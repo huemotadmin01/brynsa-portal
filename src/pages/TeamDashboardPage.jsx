@@ -95,9 +95,9 @@ export default function TeamDashboardPage() {
   const [showDateDropdown, setShowDateDropdown] = useState(false);
   const dateDropdownRef = useRef(null);
 
-  // Org membership role is the source of truth; user.role is fallback
+  // Org membership role is the source of truth; user.role (from Sales Teams) is fallback
   const orgRole = currentOrg ? getAppRole('outreach') : null;
-  const effectiveRole = orgRole || user?.role || 'member';
+  const effectiveRole = (orgRole && orgRole !== 'member') ? orgRole : (user?.role || orgRole || 'member');
   const canView = effectiveRole === 'admin' || effectiveRole === 'team_lead';
 
   // Compute date params based on filter

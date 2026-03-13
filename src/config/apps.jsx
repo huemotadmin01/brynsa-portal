@@ -239,12 +239,16 @@ export const APP_REGISTRY = {
     ],
     getSidebarItems: (user, timesheetUser, orgAppRole) => {
       const isAdmin = orgAppRole === 'admin';
+      const isTeamLead = user?.role === 'team_lead';
+      const isAdminOrLead = isAdmin || isTeamLead;
       return [
         { type: 'item', path: '/crm/dashboard', label: 'Dashboard', icon: Home },
         { type: 'item', path: '/crm/pipeline', label: 'Pipeline', icon: Kanban },
         { type: 'item', path: '/crm/opportunities', label: 'Opportunities', icon: Briefcase },
-        ...(isAdmin ? [
+        ...(isAdminOrLead ? [
           { type: 'item', path: '/crm/reporting', label: 'Reporting', icon: BarChart3 },
+        ] : []),
+        ...(isAdmin ? [
           {
             type: 'group', label: 'Configuration', icon: Settings,
             children: [

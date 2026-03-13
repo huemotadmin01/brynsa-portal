@@ -143,6 +143,16 @@ function ExportToCRMModal({ isOpen, onClose, lead, onSuccess }) {
       });
 
       if (result.success) {
+        // Update lead status to 'converted' (non-fatal if fails)
+        try {
+          await api.updateLead(lead._id, { outreachStatus: 'converted' });
+        } catch (e) {
+          console.warn('Failed to update lead status to converted:', e);
+        }
+
+        // Notify parent to update local state
+        onSuccess?.(lead._id);
+
         setExportResult(result);
         setStep('success');
       } else if (result.alreadyExists) {

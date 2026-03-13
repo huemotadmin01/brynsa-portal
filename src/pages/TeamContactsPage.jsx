@@ -718,7 +718,14 @@ function TeamContactsPage() {
       )}
 
       <AddToListModal isOpen={showAddToList} onClose={() => { setShowAddToList(false); setAddToListTarget(null); }} lead={addToListTarget} onLeadUpdate={handleLeadUpdate} />
-      <ExportToCRMModal isOpen={showExportCRM} onClose={() => { setShowExportCRM(false); setExportCRMTarget(null); }} lead={exportCRMTarget} />
+      <ExportToCRMModal
+        isOpen={showExportCRM}
+        onClose={() => { setShowExportCRM(false); setExportCRMTarget(null); }}
+        lead={exportCRMTarget}
+        onSuccess={(leadId) => {
+          setLeads(prev => prev.map(l => l._id === leadId ? { ...l, outreachStatus: 'converted' } : l));
+        }}
+      />
       <AddToSequenceModal
         isOpen={showAddToSequence}
         onClose={() => { setShowAddToSequence(false); setSequenceTarget(null); }}

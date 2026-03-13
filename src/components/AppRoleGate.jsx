@@ -1,5 +1,6 @@
 import { Outlet, useNavigate } from 'react-router-dom';
 import { useOrg } from '../context/OrgContext';
+import { useAuth } from '../context/AuthContext';
 import { usePlatform } from '../context/PlatformContext';
 import { Loader2, ShieldAlert, Home } from 'lucide-react';
 
@@ -11,14 +12,20 @@ import { Loader2, ShieldAlert, Home } from 'lucide-react';
  *     <Route path="/org/:slug/employee/add" element={<EmployeeForm />} />
  *   </Route>
  *
+ * Props:
+ *   - appId: which app this gate protects
+ *   - requiredRole: minimum role needed (default: 'admin')
+ *   - allowTeamLead: if true, also allows users with legacy team_lead role through
+ *
  * Behavior:
  *   - No org context (standalone user) → allow through (backward compat)
  *   - Loading → show spinner
  *   - User has required app role → render child routes via <Outlet />
  *   - Not authorized → show access denied page
  */
-function AppRoleGate({ appId, requiredRole = 'admin' }) {
+function AppRoleGate({ appId, requiredRole = 'admin', allowTeamLead = false }) {
   const { getAppRole, isOrgAdmin, loading, currentOrg } = useOrg();
+  const { user } = useAuth();
   const { orgPath } = usePlatform();
   const navigate = useNavigate();
 
@@ -44,6 +51,11 @@ function AppRoleGate({ appId, requiredRole = 'admin' }) {
   // Check app-specific role
   const userRole = getAppRole(appId);
   if (userRole === requiredRole) {
+    return <Outlet />;
+  }
+
+  // Allow team leads through if allowTeamLead is set
+  if (allowTeamLead && (userRole === 'team_lead' || user?.role === 'team_lead')) {
     return <Outlet />;
   }
 

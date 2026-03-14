@@ -114,9 +114,13 @@ export const APP_REGISTRY = {
         ] : []),
         // Confirmed employees get statutory payroll pages; others get earnings
         ...(timesheetUser?.employmentType === 'confirmed' ? [
-          { type: 'group', label: 'Payroll' },
-          { type: 'item', path: '/timesheet/my-salary', label: 'My Salary', icon: IndianRupee },
-          { type: 'item', path: '/timesheet/my-payslips', label: 'My Payslips', icon: FileText },
+          {
+            type: 'group', label: 'Payroll', icon: IndianRupee,
+            children: [
+              { path: '/timesheet/my-salary', label: 'My Salary', icon: IndianRupee },
+              { path: '/timesheet/my-payslips', label: 'My Payslips', icon: FileText },
+            ],
+          },
         ] : [
           { type: 'item', path: '/timesheet/earnings', label: 'My Earnings', icon: IndianRupee },
         ]),

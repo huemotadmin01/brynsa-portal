@@ -112,8 +112,12 @@ export const APP_REGISTRY = {
             ],
           },
         ] : []),
-        // Hide earnings for confirmed employees (temporary — pending PF, ESI, PT, Income Tax modules)
-        ...(timesheetUser?.employmentType === 'confirmed' ? [] : [
+        // Confirmed employees get statutory payroll pages; others get earnings
+        ...(timesheetUser?.employmentType === 'confirmed' ? [
+          { type: 'group', label: 'Payroll' },
+          { type: 'item', path: '/timesheet/my-salary', label: 'My Salary', icon: IndianRupee },
+          { type: 'item', path: '/timesheet/my-payslips', label: 'My Payslips', icon: FileText },
+        ] : [
           { type: 'item', path: '/timesheet/earnings', label: 'My Earnings', icon: IndianRupee },
         ]),
         // Admin only: configuration

@@ -120,7 +120,7 @@ export default function EmployeeSalaryPage() {
             <div className="flex flex-wrap gap-2 mt-2">
               {unconfigured.slice(0, 5).map(e => (
                 <button key={e._id} onClick={() => openNew(e._id)} className="text-xs bg-amber-500/20 text-amber-300 px-2 py-1 rounded hover:bg-amber-500/30">
-                  {e.name || e.email}
+                  {e.fullName || e.name || e.email}
                 </button>
               ))}
               {unconfigured.length > 5 && <span className="text-xs text-amber-400">+{unconfigured.length - 5} more</span>}
@@ -147,7 +147,7 @@ export default function EmployeeSalaryPage() {
             {salaries.map(s => (
               <tr key={s._id} className="border-b border-dark-700/50 hover:bg-dark-750">
                 <td className="px-4 py-3">
-                  <div className="text-white font-medium">{s.employee?.name || 'Unknown'}</div>
+                  <div className="text-white font-medium">{s.employee?.fullName || s.employee?.name || 'Unknown'}</div>
                   <div className="text-xs text-dark-400">{s.employee?.email}</div>
                 </td>
                 <td className="px-4 py-3 text-dark-300">{s.structure?.name || '-'}</td>
@@ -188,7 +188,7 @@ export default function EmployeeSalaryPage() {
                   <select value={form.employeeId} onChange={e => setForm(f => ({ ...f, employeeId: e.target.value }))}
                     className="w-full px-3 py-2 bg-dark-900 border border-dark-600 rounded-lg text-sm text-white focus:border-rivvra-500 focus:outline-none" required>
                     <option value="">Select employee...</option>
-                    {unconfigured.map(e => <option key={e._id} value={e._id}>{e.name || e.email}</option>)}
+                    {unconfigured.map(e => <option key={e._id} value={e._id}>{e.fullName || e.name || e.email}</option>)}
                   </select>
                 </div>
               )}

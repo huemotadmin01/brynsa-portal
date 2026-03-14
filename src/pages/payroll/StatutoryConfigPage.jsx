@@ -60,7 +60,7 @@ export default function StatutoryConfigPage() {
   const filtered = data.filter(d => {
     if (!search) return true;
     const q = search.toLowerCase();
-    return (d.employee.name || '').toLowerCase().includes(q) || (d.employee.email || '').toLowerCase().includes(q);
+    return (d.employee.fullName || d.employee.name || '').toLowerCase().includes(q) || (d.employee.email || '').toLowerCase().includes(q);
   });
 
   const StatusBadge = ({ enabled, label }) => (
@@ -104,7 +104,7 @@ export default function StatutoryConfigPage() {
               return (
                 <tr key={item.employee._id} className="border-b border-dark-700/50 hover:bg-dark-750">
                   <td className="px-4 py-3">
-                    <div className="text-white font-medium">{item.employee.name || item.employee.email}</div>
+                    <div className="text-white font-medium">{item.employee.fullName || item.employee.name || item.employee.email}</div>
                     <div className="text-xs text-dark-400">{item.employee.email}</div>
                   </td>
                   <td className="px-4 py-3 text-center"><StatusBadge enabled={s?.pfEnabled} label="PF" /></td>

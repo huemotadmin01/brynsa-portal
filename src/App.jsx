@@ -79,6 +79,8 @@ const SalaryStructuresPage = lazy(() => import('./pages/payroll/SalaryStructures
 const EmployeeSalaryPage = lazy(() => import('./pages/payroll/EmployeeSalaryPage'));
 const StatutoryConfigPage = lazy(() => import('./pages/payroll/StatutoryConfigPage'));
 const PayrollRunPage = lazy(() => import('./pages/payroll/PayrollRunPage'));
+const MySalaryPage = lazy(() => import('./pages/payroll/MySalaryPage'));
+const MyPayslipsPage = lazy(() => import('./pages/payroll/MyPayslipsPage'));
 
 const LeaveApply = lazy(() => import('./pages/timesheet/LeaveApply'));
 const LeaveMyRequests = lazy(() => import('./pages/timesheet/LeaveMyRequests'));
@@ -274,6 +276,9 @@ function App() {
                   <Route path="/org/:slug/timesheet/leave/approvals" element={<ErrorBoundary><LeaveApprovals /></ErrorBoundary>} />
                   <Route path="/org/:slug/timesheet/leave/reports" element={<ErrorBoundary><LeaveReports /></ErrorBoundary>} />
                   <Route path="/org/:slug/timesheet/holidays" element={<ErrorBoundary><HolidayCalendar /></ErrorBoundary>} />
+                  {/* Employee-facing statutory payroll pages */}
+                  <Route path="/org/:slug/timesheet/my-salary" element={<ErrorBoundary><MySalaryPage /></ErrorBoundary>} />
+                  <Route path="/org/:slug/timesheet/my-payslips" element={<ErrorBoundary><MyPayslipsPage /></ErrorBoundary>} />
                 </Route>
               </Route>
 

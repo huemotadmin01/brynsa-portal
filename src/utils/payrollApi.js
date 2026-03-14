@@ -142,3 +142,14 @@ export function downloadPTChallan(orgSlug, id, state) {
 export function getUnconfiguredEmployees(orgSlug) {
   return request('GET', `${orgUrl(orgSlug)}/unconfigured-employees`);
 }
+
+// Employee Self-Service
+export function getMySalary(orgSlug) {
+  return request('GET', `${orgUrl(orgSlug)}/my-salary`);
+}
+export function getMyPayslips(orgSlug) {
+  return request('GET', `${orgUrl(orgSlug)}/my-payslips`);
+}
+export function getMyTax(orgSlug) {
+  return request('GET', `${orgUrl(orgSlug)}/my-tax`);
+}

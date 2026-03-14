@@ -296,16 +296,19 @@ export async function exportLeaveReport(params) {
 
 // ─── Attendance (Confirmed Employees) ──────────────────────────────────
 
-export function getAttendance(month, year) {
-  return request('GET', `/attendance/${month}/${year}`);
+export async function getAttendance(month, year) {
+  const res = await request('GET', `/attendance/${month}/${year}`);
+  return res.data;
 }
 
-export function updateAttendance(id, entries) {
-  return request('PUT', `/attendance/${id}`, { body: { entries } });
+export async function updateAttendance(id, entries) {
+  const res = await request('PUT', `/attendance/${id}`, { body: { entries } });
+  return res.data;
 }
 
-export function submitAttendance(id) {
-  return request('PATCH', `/attendance/${id}/submit`);
+export async function submitAttendance(id) {
+  const res = await request('PATCH', `/attendance/${id}/submit`);
+  return res.data;
 }
 
 export default timesheetApi;

@@ -622,12 +622,8 @@ export default function EmployeeForm() {
       return false;
     }
 
-    // Non-billable: salary and manager are required
+    // Non-billable: manager is required
     if (!form.billable) {
-      if (!form.monthlyGrossSalary) {
-        setError('Monthly Gross Salary is required for non-billable employees.');
-        return false;
-      }
       if (!form.manager) {
         setError('Manager is required for non-billable employees.');
         return false;
@@ -1262,33 +1258,6 @@ export default function EmployeeForm() {
                 className="input-field w-full"
                 placeholder="Software Engineer"
               />
-            </div>
-
-            {/* Monthly Gross Salary — editable only for non-billable */}
-            <div>
-              <label className="block text-sm font-medium text-dark-300 mb-1">
-                Monthly Gross Salary {!form.billable && <span className="text-red-400">*</span>}
-              </label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-dark-400 text-sm">
-                  ₹
-                </span>
-                <input
-                  type="number"
-                  value={form.monthlyGrossSalary}
-                  onChange={(e) => setField('monthlyGrossSalary', e.target.value)}
-                  className={`input-field w-full pl-7 ${form.billable ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  placeholder="0"
-                  min="0"
-                  disabled={form.billable}
-                />
-              </div>
-              {form.billable && (
-                <p className="text-xs text-dark-500 mt-1">Derived from assignment billing rates for billable employees.</p>
-              )}
-              {!form.billable && !form.monthlyGrossSalary && (
-                <p className="text-xs text-amber-400/80 mt-1">Required for non-billable employees.</p>
-              )}
             </div>
 
             {/* Billable */}

@@ -497,10 +497,6 @@ export default function EmployeeDetail() {
             />
           )}
           <InfoRow
-            label="Monthly Gross"
-            value={formatCurrency(emp.monthlyGrossSalary)}
-          />
-          <InfoRow
             label="Billable"
             value={
               emp.billable != null ? (

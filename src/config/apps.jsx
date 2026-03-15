@@ -80,12 +80,10 @@ export const APP_REGISTRY = {
       { value: 'member', label: 'Employee', color: 'dark' },
     ],
     getSidebarItems: (user, timesheetUser, orgAppRole) => {
-      // Role is derived on the backend from orgRole + isManager
-      // timesheetUser.role is the source of truth (returned from ensureEmployee)
       const tsRole = timesheetUser?.role || 'contractor';
-
       const isAdmin = tsRole === 'admin';
-      const isManager = tsRole === 'manager';
+      // Manager status is derived from the employee system (not from static role field)
+      const isManager = timesheetUser?.isManager === true;
 
       // Determine if employee is eligible for leave management
       const empType = timesheetUser?.employmentType;

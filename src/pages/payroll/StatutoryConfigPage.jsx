@@ -33,24 +33,18 @@ export default function StatutoryConfigPage() {
     const s = item.statutory || {};
     setForm({
       pfEnabled: s.pfEnabled ?? true,
-      pfNumber: s.pfNumber || '',
       pfCappedAt15K: s.pfCappedAt15K || false,
       esiEnabled: s.esiEnabled || false,
-      esiNumber: s.esiNumber || '',
       ptEnabled: s.ptEnabled ?? true,
       ptState: s.ptState || 'MH',
       taxRegime: s.taxRegime || 'new',
-      panNumber: s.panNumber || '',
-      bankAccountNumber: s.bankAccountNumber || '',
-      bankIfsc: s.bankIfsc || '',
-      bankName: s.bankName || '',
     });
-    setEditing(item.employee._id);
+    setEditing(item);
   };
 
   const handleSave = async () => {
     try {
-      await updateStatutoryConfig(orgSlug, editing, form);
+      await updateStatutoryConfig(orgSlug, editing.employee._id, form);
       showToast('Updated');
       setEditing(null);
       load();
@@ -70,6 +64,14 @@ export default function StatutoryConfigPage() {
   );
 
   if (loading) return <div className="flex items-center justify-center py-20"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-rivvra-500" /></div>;
+
+  // Helper to get employee-level data
+  const getPan = (item) => item.employee?.bankDetails?.pan || item.employee?.statutory?.pan || '-';
+  const getBank = (item) => {
+    const b = item.employee?.bankDetails;
+    if (!b?.bankName && !b?.accountNumber) return '-';
+    return b.bankName || 'Set';
+  };
 
   return (
     <div className="max-w-6xl mx-auto">
@@ -95,6 +97,7 @@ export default function StatutoryConfigPage() {
               <th className="text-center px-4 py-3 text-dark-400 font-medium">PT</th>
               <th className="text-center px-4 py-3 text-dark-400 font-medium">Tax Regime</th>
               <th className="text-center px-4 py-3 text-dark-400 font-medium">PAN</th>
+              <th className="text-center px-4 py-3 text-dark-400 font-medium">Bank</th>
               <th className="text-right px-4 py-3 text-dark-400 font-medium">Action</th>
             </tr>
           </thead>
@@ -117,7 +120,8 @@ export default function StatutoryConfigPage() {
                       {s?.taxRegime === 'old' ? 'Old' : 'New'}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-center text-xs text-dark-400">{s?.panNumber || '-'}</td>
+                  <td className="px-4 py-3 text-center text-xs text-dark-400">{getPan(item)}</td>
+                  <td className="px-4 py-3 text-center text-xs text-dark-400">{getBank(item)}</td>
                   <td className="px-4 py-3 text-right">
                     <button onClick={() => openEdit(item)} className="text-xs text-rivvra-400 hover:text-rivvra-300">Edit</button>
                   </td>
@@ -129,23 +133,53 @@ export default function StatutoryConfigPage() {
         {filtered.length === 0 && <div className="text-center py-12 text-dark-500">No employees found.</div>}
       </div>
 
-      {/* Edit Modal */}
+      {/* Edit Modal — only payroll-specific settings */}
       {editing && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
           <div className="bg-dark-800 border border-dark-700 rounded-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-5 border-b border-dark-700">
-              <h2 className="text-lg font-semibold text-white flex items-center gap-2"><Shield size={18} /> Statutory Config</h2>
+              <div>
+                <h2 className="text-lg font-semibold text-white flex items-center gap-2"><Shield size={18} /> Statutory Config</h2>
+                <p className="text-xs text-dark-400 mt-0.5">{editing.employee.fullName || editing.employee.email}</p>
+              </div>
               <button onClick={() => setEditing(null)} className="text-dark-400 hover:text-white"><X size={20} /></button>
             </div>
             <div className="p-5 space-y-5">
+              {/* Employee data (read-only) */}
+              <div className="bg-dark-900/50 rounded-lg p-3 space-y-1.5">
+                <p className="text-[10px] uppercase tracking-wider text-dark-500 font-medium mb-2">From Employee Record</p>
+                <div className="flex justify-between text-xs">
+                  <span className="text-dark-400">PAN</span>
+                  <span className="text-dark-300">{getPan(editing)}</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-dark-400">UAN</span>
+                  <span className="text-dark-300">{editing.employee?.statutory?.uan || '-'}</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-dark-400">ESI Number</span>
+                  <span className="text-dark-300">{editing.employee?.statutory?.esicNumber || '-'}</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-dark-400">Bank</span>
+                  <span className="text-dark-300">{editing.employee?.bankDetails?.bankName || '-'}</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-dark-400">Account</span>
+                  <span className="text-dark-300">{editing.employee?.bankDetails?.accountNumber ? '••••' + editing.employee.bankDetails.accountNumber.slice(-4) : '-'}</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-dark-400">IFSC</span>
+                  <span className="text-dark-300">{editing.employee?.bankDetails?.ifsc || '-'}</span>
+                </div>
+              </div>
+
               {/* PF Section */}
               <fieldset className="space-y-3">
                 <legend className="text-sm font-medium text-dark-300 border-b border-dark-700 pb-1 mb-2">Provident Fund</legend>
                 <label className="flex items-center gap-2 text-sm text-dark-300">
                   <input type="checkbox" checked={form.pfEnabled} onChange={e => setForm(f => ({ ...f, pfEnabled: e.target.checked }))} className="rounded border-dark-600" /> PF Enabled
                 </label>
-                <input type="text" value={form.pfNumber} onChange={e => setForm(f => ({ ...f, pfNumber: e.target.value }))}
-                  className="w-full px-3 py-2 bg-dark-900 border border-dark-600 rounded-lg text-sm text-white placeholder:text-dark-500 focus:border-rivvra-500 focus:outline-none" placeholder="UAN Number" />
                 <label className="flex items-center gap-2 text-sm text-dark-300">
                   <input type="checkbox" checked={form.pfCappedAt15K} onChange={e => setForm(f => ({ ...f, pfCappedAt15K: e.target.checked }))} className="rounded border-dark-600" /> PF Capped at 15K
                 </label>
@@ -157,8 +191,6 @@ export default function StatutoryConfigPage() {
                 <label className="flex items-center gap-2 text-sm text-dark-300">
                   <input type="checkbox" checked={form.esiEnabled} onChange={e => setForm(f => ({ ...f, esiEnabled: e.target.checked }))} className="rounded border-dark-600" /> ESI Enabled
                 </label>
-                <input type="text" value={form.esiNumber} onChange={e => setForm(f => ({ ...f, esiNumber: e.target.value }))}
-                  className="w-full px-3 py-2 bg-dark-900 border border-dark-600 rounded-lg text-sm text-white placeholder:text-dark-500 focus:border-rivvra-500 focus:outline-none" placeholder="ESI Number" />
               </fieldset>
 
               {/* PT Section */}
@@ -173,33 +205,17 @@ export default function StatutoryConfigPage() {
                 </select>
               </fieldset>
 
-              {/* Tax & Identity */}
+              {/* Tax Regime */}
               <fieldset className="space-y-3">
-                <legend className="text-sm font-medium text-dark-300 border-b border-dark-700 pb-1 mb-2">Tax & Identity</legend>
-                <div>
-                  <label className="block text-xs text-dark-400 mb-1">Tax Regime</label>
-                  <div className="flex gap-4">
-                    <label className="flex items-center gap-2 text-sm text-dark-300">
-                      <input type="radio" name="regime" value="new" checked={form.taxRegime === 'new'} onChange={() => setForm(f => ({ ...f, taxRegime: 'new' }))} /> New Regime
-                    </label>
-                    <label className="flex items-center gap-2 text-sm text-dark-300">
-                      <input type="radio" name="regime" value="old" checked={form.taxRegime === 'old'} onChange={() => setForm(f => ({ ...f, taxRegime: 'old' }))} /> Old Regime
-                    </label>
-                  </div>
+                <legend className="text-sm font-medium text-dark-300 border-b border-dark-700 pb-1 mb-2">Tax Regime</legend>
+                <div className="flex gap-4">
+                  <label className="flex items-center gap-2 text-sm text-dark-300">
+                    <input type="radio" name="regime" value="new" checked={form.taxRegime === 'new'} onChange={() => setForm(f => ({ ...f, taxRegime: 'new' }))} /> New Regime
+                  </label>
+                  <label className="flex items-center gap-2 text-sm text-dark-300">
+                    <input type="radio" name="regime" value="old" checked={form.taxRegime === 'old'} onChange={() => setForm(f => ({ ...f, taxRegime: 'old' }))} /> Old Regime
+                  </label>
                 </div>
-                <input type="text" value={form.panNumber} onChange={e => setForm(f => ({ ...f, panNumber: e.target.value.toUpperCase() }))}
-                  className="w-full px-3 py-2 bg-dark-900 border border-dark-600 rounded-lg text-sm text-white placeholder:text-dark-500 focus:border-rivvra-500 focus:outline-none" placeholder="PAN Number" maxLength={10} />
-              </fieldset>
-
-              {/* Bank Details */}
-              <fieldset className="space-y-3">
-                <legend className="text-sm font-medium text-dark-300 border-b border-dark-700 pb-1 mb-2">Bank Details</legend>
-                <input type="text" value={form.bankName} onChange={e => setForm(f => ({ ...f, bankName: e.target.value }))}
-                  className="w-full px-3 py-2 bg-dark-900 border border-dark-600 rounded-lg text-sm text-white placeholder:text-dark-500 focus:border-rivvra-500 focus:outline-none" placeholder="Bank Name" />
-                <input type="text" value={form.bankAccountNumber} onChange={e => setForm(f => ({ ...f, bankAccountNumber: e.target.value }))}
-                  className="w-full px-3 py-2 bg-dark-900 border border-dark-600 rounded-lg text-sm text-white placeholder:text-dark-500 focus:border-rivvra-500 focus:outline-none" placeholder="Account Number" />
-                <input type="text" value={form.bankIfsc} onChange={e => setForm(f => ({ ...f, bankIfsc: e.target.value.toUpperCase() }))}
-                  className="w-full px-3 py-2 bg-dark-900 border border-dark-600 rounded-lg text-sm text-white placeholder:text-dark-500 focus:border-rivvra-500 focus:outline-none" placeholder="IFSC Code" maxLength={11} />
               </fieldset>
 
               <div className="flex gap-3 pt-2">

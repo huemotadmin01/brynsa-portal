@@ -160,7 +160,7 @@ export default function EmployeeDetail() {
   // CTC management state
   const [showSetCtc, setShowSetCtc] = useState(false);
   const [showReviseCtc, setShowReviseCtc] = useState(false);
-  const [ctcForm, setCtcForm] = useState({ ctcAnnual: '', effectiveFrom: '', reason: '' });
+  const [ctcForm, setCtcForm] = useState({ ctcAnnual: '', effectiveFrom: '', reason: '', monthlyGrossSalary: '' });
   const [ctcSaving, setCtcSaving] = useState(false);
   const [salaryHistory, setSalaryHistory] = useState([]);
   const [salaryHistoryLoading, setSalaryHistoryLoading] = useState(false);
@@ -206,8 +206,17 @@ export default function EmployeeDetail() {
       .finally(() => setDocsLoading(false));
   }, [currentOrg?.slug, employeeId]);
 
-  // Fetch salary history for confirmed / internal_consultant employees
-  const isCompensationEligible = employee && ['confirmed', 'internal_consultant'].includes(employee.employmentType);
+  // Fetch salary history for confirmed / non-billable internal_consultant / intern employees
+  const isCompensationEligible = employee && (
+    employee.employmentType === 'confirmed' ||
+    (employee.employmentType === 'internal_consultant' && employee.billable === false) ||
+    employee.employmentType === 'intern'
+  );
+  // Non-billable ICs and interns use flat TDS mode (admin enters both CTC and gross independently)
+  const isFlatTdsEmployee = employee && (
+    (employee.employmentType === 'internal_consultant' && employee.billable === false) ||
+    employee.employmentType === 'intern'
+  );
   const fetchSalaryHistory = async () => {
     if (!currentOrg?.slug || !employeeId || !isAdmin) return;
     setSalaryHistoryLoading(true);
@@ -223,15 +232,18 @@ export default function EmployeeDetail() {
 
   const handleSetCtc = async () => {
     if (!ctcForm.ctcAnnual || !ctcForm.effectiveFrom || ctcSaving) return;
+    if (isFlatTdsEmployee && !ctcForm.monthlyGrossSalary) return;
     setCtcSaving(true);
     try {
-      const res = await employeeApi.setCtc(currentOrg.slug, employeeId, {
+      const data = {
         ctcAnnual: Number(ctcForm.ctcAnnual),
         effectiveFrom: ctcForm.effectiveFrom,
-      });
+      };
+      if (isFlatTdsEmployee) data.monthlyGrossSalary = Number(ctcForm.monthlyGrossSalary);
+      const res = await employeeApi.setCtc(currentOrg.slug, employeeId, data);
       if (res.success) {
         setShowSetCtc(false);
-        setCtcForm({ ctcAnnual: '', effectiveFrom: '', reason: '' });
+        setCtcForm({ ctcAnnual: '', effectiveFrom: '', reason: '', monthlyGrossSalary: '' });
         // Re-fetch employee + salary history
         const empRes = await employeeApi.get(currentOrg.slug, employeeId);
         if (empRes.success) setEmployee(empRes.employee);
@@ -247,16 +259,19 @@ export default function EmployeeDetail() {
 
   const handleReviseCtc = async () => {
     if (!ctcForm.ctcAnnual || !ctcForm.effectiveFrom || !ctcForm.reason || ctcSaving) return;
+    if (isFlatTdsEmployee && !ctcForm.monthlyGrossSalary) return;
     setCtcSaving(true);
     try {
-      const res = await employeeApi.reviseCtc(currentOrg.slug, employeeId, {
+      const data = {
         ctcAnnual: Number(ctcForm.ctcAnnual),
         effectiveFrom: ctcForm.effectiveFrom,
         reason: ctcForm.reason,
-      });
+      };
+      if (isFlatTdsEmployee) data.monthlyGrossSalary = Number(ctcForm.monthlyGrossSalary);
+      const res = await employeeApi.reviseCtc(currentOrg.slug, employeeId, data);
       if (res.success) {
         setShowReviseCtc(false);
-        setCtcForm({ ctcAnnual: '', effectiveFrom: '', reason: '' });
+        setCtcForm({ ctcAnnual: '', effectiveFrom: '', reason: '', monthlyGrossSalary: '' });
         const empRes = await employeeApi.get(currentOrg.slug, employeeId);
         if (empRes.success) setEmployee(empRes.employee);
         fetchSalaryHistory();
@@ -457,7 +472,7 @@ export default function EmployeeDetail() {
                     {isAdmin && (
                       <button
                         onClick={() => {
-                          setCtcForm({ ctcAnnual: '', effectiveFrom: '', reason: '' });
+                          setCtcForm({ ctcAnnual: '', effectiveFrom: '', reason: '', monthlyGrossSalary: '' });
                           setShowReviseCtc(true);
                         }}
                         className="text-dark-400 hover:text-rivvra-400 transition-colors"
@@ -470,7 +485,7 @@ export default function EmployeeDetail() {
                 ) : isAdmin ? (
                   <button
                     onClick={() => {
-                      setCtcForm({ ctcAnnual: '', effectiveFrom: '', reason: '' });
+                      setCtcForm({ ctcAnnual: '', effectiveFrom: '', reason: '', monthlyGrossSalary: '' });
                       setShowSetCtc(true);
                     }}
                     className="flex items-center gap-1 text-xs text-rivvra-400 hover:text-rivvra-300 transition-colors"
@@ -858,6 +873,13 @@ export default function EmployeeDetail() {
               <h3 className="text-white font-semibold text-lg">Set CTC</h3>
               <button onClick={() => setShowSetCtc(false)} className="text-dark-400 hover:text-white"><X size={18} /></button>
             </div>
+            {isFlatTdsEmployee && (
+              <div className="bg-dark-900/50 rounded-lg p-3 mb-4">
+                <span className="text-dark-400 text-xs">
+                  {emp?.employmentType === 'intern' ? 'No deductions (LOP only)' : 'Deduction: Flat 2% TDS only (no PF / ESI / PT)'}
+                </span>
+              </div>
+            )}
             <div className="space-y-4">
               <div>
                 <label className="block text-sm text-dark-400 mb-1">Annual CTC (₹)</label>
@@ -869,6 +891,18 @@ export default function EmployeeDetail() {
                   placeholder="e.g. 3000000"
                 />
               </div>
+              {isFlatTdsEmployee && (
+                <div>
+                  <label className="block text-sm text-dark-400 mb-1">Monthly Gross (₹) <span className="text-red-400">*</span></label>
+                  <input
+                    type="number"
+                    value={ctcForm.monthlyGrossSalary}
+                    onChange={e => setCtcForm(f => ({ ...f, monthlyGrossSalary: e.target.value }))}
+                    className="w-full bg-dark-900 border border-dark-600 rounded-lg px-3 py-2 text-white text-sm focus:border-rivvra-500 focus:outline-none"
+                    placeholder="e.g. 50000"
+                  />
+                </div>
+              )}
               <div>
                 <label className="block text-sm text-dark-400 mb-1">Effective From</label>
                 <input
@@ -883,7 +917,7 @@ export default function EmployeeDetail() {
               <button onClick={() => setShowSetCtc(false)} className="px-4 py-2 text-sm text-dark-400 hover:text-white transition-colors">Cancel</button>
               <button
                 onClick={handleSetCtc}
-                disabled={!ctcForm.ctcAnnual || !ctcForm.effectiveFrom || ctcSaving}
+                disabled={!ctcForm.ctcAnnual || !ctcForm.effectiveFrom || (isFlatTdsEmployee && !ctcForm.monthlyGrossSalary) || ctcSaving}
                 className="px-4 py-2 bg-rivvra-600 text-white rounded-lg hover:bg-rivvra-700 text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 {ctcSaving && <Loader2 size={14} className="animate-spin" />}
@@ -903,8 +937,23 @@ export default function EmployeeDetail() {
               <button onClick={() => setShowReviseCtc(false)} className="text-dark-400 hover:text-white"><X size={18} /></button>
             </div>
             <div className="bg-dark-900/50 rounded-lg p-3 mb-4">
-              <span className="text-dark-400 text-xs">Current CTC</span>
-              <p className="text-white font-medium">{formatCurrency(emp?.ctcAnnual)}</p>
+              <div className="flex gap-6">
+                <div>
+                  <span className="text-dark-400 text-xs">Current CTC</span>
+                  <p className="text-white font-medium">{formatCurrency(emp?.ctcAnnual)}</p>
+                </div>
+                {isFlatTdsEmployee && (
+                  <div>
+                    <span className="text-dark-400 text-xs">Current Monthly Gross</span>
+                    <p className="text-white font-medium">{formatCurrency(emp?.monthlyGrossSalary)}</p>
+                  </div>
+                )}
+              </div>
+              {isFlatTdsEmployee && (
+                <div className="mt-2 text-xs text-dark-500">
+                  {emp?.employmentType === 'intern' ? 'No deductions (LOP only)' : 'Deduction: Flat 2% TDS only'}
+                </div>
+              )}
             </div>
             <div className="space-y-4">
               <div>
@@ -917,6 +966,18 @@ export default function EmployeeDetail() {
                   placeholder="e.g. 3600000"
                 />
               </div>
+              {isFlatTdsEmployee && (
+                <div>
+                  <label className="block text-sm text-dark-400 mb-1">New Monthly Gross (₹) <span className="text-red-400">*</span></label>
+                  <input
+                    type="number"
+                    value={ctcForm.monthlyGrossSalary}
+                    onChange={e => setCtcForm(f => ({ ...f, monthlyGrossSalary: e.target.value }))}
+                    className="w-full bg-dark-900 border border-dark-600 rounded-lg px-3 py-2 text-white text-sm focus:border-rivvra-500 focus:outline-none"
+                    placeholder="e.g. 55000"
+                  />
+                </div>
+              )}
               <div>
                 <label className="block text-sm text-dark-400 mb-1">Effective From</label>
                 <input
@@ -941,7 +1002,7 @@ export default function EmployeeDetail() {
               <button onClick={() => setShowReviseCtc(false)} className="px-4 py-2 text-sm text-dark-400 hover:text-white transition-colors">Cancel</button>
               <button
                 onClick={handleReviseCtc}
-                disabled={!ctcForm.ctcAnnual || !ctcForm.effectiveFrom || !ctcForm.reason || ctcSaving}
+                disabled={!ctcForm.ctcAnnual || !ctcForm.effectiveFrom || !ctcForm.reason || (isFlatTdsEmployee && !ctcForm.monthlyGrossSalary) || ctcSaving}
                 className="px-4 py-2 bg-rivvra-600 text-white rounded-lg hover:bg-rivvra-700 text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 {ctcSaving && <Loader2 size={14} className="animate-spin" />}

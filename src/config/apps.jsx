@@ -5,6 +5,7 @@ import {
   Contact, Kanban, FileText, GripVertical, PenTool, FileSignature, Inbox,
   Tag, AlertTriangle, Banknote, CheckSquare,
   CalendarOff, PlusCircle, ClipboardCheck, Calendar, LayoutDashboard, CalendarCheck,
+  GraduationCap,
 } from 'lucide-react';
 
 export const APP_REGISTRY = {

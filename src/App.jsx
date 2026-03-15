@@ -80,6 +80,7 @@ const SalaryStructuresPage = lazy(() => import('./pages/payroll/SalaryStructures
 const EmployeeSalaryPage = lazy(() => import('./pages/payroll/EmployeeSalaryPage'));
 const StatutoryConfigPage = lazy(() => import('./pages/payroll/StatutoryConfigPage'));
 const PayrollRunPage = lazy(() => import('./pages/payroll/PayrollRunPage'));
+const InternPayrollPage = lazy(() => import('./pages/payroll/InternPayrollPage'));
 const MySalaryPage = lazy(() => import('./pages/payroll/MySalaryPage'));
 const MyPayslipsPage = lazy(() => import('./pages/payroll/MyPayslipsPage'));
 
@@ -293,6 +294,7 @@ function App() {
                 <Route path="/org/:slug/payroll/employee-salary" element={<ErrorBoundary><EmployeeSalaryPage /></ErrorBoundary>} />
                 <Route path="/org/:slug/payroll/statutory-config" element={<ErrorBoundary><StatutoryConfigPage /></ErrorBoundary>} />
                 <Route path="/org/:slug/payroll/statutory-run" element={<ErrorBoundary><PayrollRunPage /></ErrorBoundary>} />
+                <Route path="/org/:slug/payroll/intern-payroll" element={<ErrorBoundary><InternPayrollPage /></ErrorBoundary>} />
               </Route>
 
               {/* Legacy payroll redirects — old /timesheet/ paths → new /payroll/ paths */}

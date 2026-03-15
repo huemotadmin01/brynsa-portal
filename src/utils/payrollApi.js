@@ -138,6 +138,29 @@ export function downloadPTChallan(orgSlug, id, state) {
   return request('GET', `${orgUrl(orgSlug)}/runs/${id}/challan/pt`, { params: { state }, responseType: 'blob' });
 }
 
+// Intern Payroll Runs
+export function getInternPayrollRuns(orgSlug) {
+  return request('GET', `${orgUrl(orgSlug)}/intern-runs`);
+}
+export function getInternPayrollRun(orgSlug, id) {
+  return request('GET', `${orgUrl(orgSlug)}/intern-runs/${id}`);
+}
+export function createInternPayrollRun(orgSlug, data) {
+  return request('POST', `${orgUrl(orgSlug)}/intern-runs`, { body: data });
+}
+export function processInternPayrollRun(orgSlug, id) {
+  return request('POST', `${orgUrl(orgSlug)}/intern-runs/${id}/process`);
+}
+export function finalizeInternPayrollRun(orgSlug, id) {
+  return request('PUT', `${orgUrl(orgSlug)}/intern-runs/${id}/finalize`);
+}
+export function markInternPayrollRunPaid(orgSlug, id) {
+  return request('PUT', `${orgUrl(orgSlug)}/intern-runs/${id}/mark-paid`);
+}
+export function deleteInternPayrollRun(orgSlug, id) {
+  return request('DELETE', `${orgUrl(orgSlug)}/intern-runs/${id}`);
+}
+
 // Unconfigured employees
 export function getUnconfiguredEmployees(orgSlug) {
   return request('GET', `${orgUrl(orgSlug)}/unconfigured-employees`);

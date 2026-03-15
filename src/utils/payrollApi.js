@@ -222,6 +222,23 @@ export function updatePayrollSettings(orgSlug, data) {
   return request('PUT', `${orgUrl(orgSlug)}/settings`, { body: data });
 }
 
+// FY Statutory Config (Super Admin)
+export function getFYConfigs() {
+  return request('GET', '/api/superadmin/fy-config');
+}
+export function getFYConfig(fy) {
+  return request('GET', `/api/superadmin/fy-config/${fy}`);
+}
+export function updateFYConfig(fy, data) {
+  return request('PUT', `/api/superadmin/fy-config/${fy}`, { body: data });
+}
+export function copyFYConfig(targetFy, sourceFy) {
+  return request('POST', `/api/superadmin/fy-config/${targetFy}/copy-from/${sourceFy}`);
+}
+export function seedFYConfig() {
+  return request('POST', '/api/superadmin/fy-config/seed');
+}
+
 // PT Master
 export function getPTMaster(orgSlug, financialYear) {
   return request('GET', `${orgUrl(orgSlug)}/pt-master`, { params: { financialYear } });

@@ -462,9 +462,9 @@ export default function EmployeeDetail() {
             <InfoRow
               label="Annual CTC"
               value={
-                emp.ctcAnnual ? (
+                (emp.ctcAnnual || salaryHistory.length > 0) ? (
                   <span className="flex items-center gap-2">
-                    {formatCurrency(emp.ctcAnnual)}
+                    {formatCurrency(emp.ctcAnnual || salaryHistory[0]?.ctcAnnual)}
                     {isAdmin && (
                       <button
                         onClick={() => {

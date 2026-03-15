@@ -160,7 +160,7 @@ export default function EmployeeDetail() {
   // CTC management state
   const [showSetCtc, setShowSetCtc] = useState(false);
   const [showReviseCtc, setShowReviseCtc] = useState(false);
-  const [ctcForm, setCtcForm] = useState({ ctcAnnual: '', effectiveFrom: '', reason: '', monthlyGrossSalary: '' });
+  const [ctcForm, setCtcForm] = useState({ ctcAnnual: '', effectiveFrom: '', reason: '' });
   const [ctcSaving, setCtcSaving] = useState(false);
   const [salaryHistory, setSalaryHistory] = useState([]);
   const [salaryHistoryLoading, setSalaryHistoryLoading] = useState(false);
@@ -232,18 +232,16 @@ export default function EmployeeDetail() {
 
   const handleSetCtc = async () => {
     if (!ctcForm.ctcAnnual || !ctcForm.effectiveFrom || ctcSaving) return;
-    if (isFlatTdsEmployee && !ctcForm.monthlyGrossSalary) return;
     setCtcSaving(true);
     try {
       const data = {
         ctcAnnual: Number(ctcForm.ctcAnnual),
         effectiveFrom: ctcForm.effectiveFrom,
       };
-      if (isFlatTdsEmployee) data.monthlyGrossSalary = Number(ctcForm.monthlyGrossSalary);
       const res = await employeeApi.setCtc(currentOrg.slug, employeeId, data);
       if (res.success) {
         setShowSetCtc(false);
-        setCtcForm({ ctcAnnual: '', effectiveFrom: '', reason: '', monthlyGrossSalary: '' });
+        setCtcForm({ ctcAnnual: '', effectiveFrom: '', reason: '' });
         // Re-fetch employee + salary history
         const empRes = await employeeApi.get(currentOrg.slug, employeeId);
         if (empRes.success) setEmployee(empRes.employee);
@@ -259,7 +257,6 @@ export default function EmployeeDetail() {
 
   const handleReviseCtc = async () => {
     if (!ctcForm.ctcAnnual || !ctcForm.effectiveFrom || !ctcForm.reason || ctcSaving) return;
-    if (isFlatTdsEmployee && !ctcForm.monthlyGrossSalary) return;
     setCtcSaving(true);
     try {
       const data = {
@@ -267,11 +264,10 @@ export default function EmployeeDetail() {
         effectiveFrom: ctcForm.effectiveFrom,
         reason: ctcForm.reason,
       };
-      if (isFlatTdsEmployee) data.monthlyGrossSalary = Number(ctcForm.monthlyGrossSalary);
       const res = await employeeApi.reviseCtc(currentOrg.slug, employeeId, data);
       if (res.success) {
         setShowReviseCtc(false);
-        setCtcForm({ ctcAnnual: '', effectiveFrom: '', reason: '', monthlyGrossSalary: '' });
+        setCtcForm({ ctcAnnual: '', effectiveFrom: '', reason: '' });
         const empRes = await employeeApi.get(currentOrg.slug, employeeId);
         if (empRes.success) setEmployee(empRes.employee);
         fetchSalaryHistory();
@@ -472,7 +468,7 @@ export default function EmployeeDetail() {
                     {isAdmin && (
                       <button
                         onClick={() => {
-                          setCtcForm({ ctcAnnual: '', effectiveFrom: '', reason: '', monthlyGrossSalary: '' });
+                          setCtcForm({ ctcAnnual: '', effectiveFrom: '', reason: '' });
                           setShowReviseCtc(true);
                         }}
                         className="text-dark-400 hover:text-rivvra-400 transition-colors"
@@ -485,7 +481,7 @@ export default function EmployeeDetail() {
                 ) : isAdmin ? (
                   <button
                     onClick={() => {
-                      setCtcForm({ ctcAnnual: '', effectiveFrom: '', reason: '', monthlyGrossSalary: '' });
+                      setCtcForm({ ctcAnnual: '', effectiveFrom: '', reason: '' });
                       setShowSetCtc(true);
                     }}
                     className="flex items-center gap-1 text-xs text-rivvra-400 hover:text-rivvra-300 transition-colors"
@@ -887,18 +883,6 @@ export default function EmployeeDetail() {
                   placeholder="e.g. 3000000"
                 />
               </div>
-              {isFlatTdsEmployee && (
-                <div>
-                  <label className="block text-sm text-dark-400 mb-1">Monthly Gross (₹) <span className="text-red-400">*</span></label>
-                  <input
-                    type="number"
-                    value={ctcForm.monthlyGrossSalary}
-                    onChange={e => setCtcForm(f => ({ ...f, monthlyGrossSalary: e.target.value }))}
-                    className="w-full bg-dark-900 border border-dark-600 rounded-lg px-3 py-2 text-white text-sm focus:border-rivvra-500 focus:outline-none"
-                    placeholder="e.g. 50000"
-                  />
-                </div>
-              )}
               <div>
                 <label className="block text-sm text-dark-400 mb-1">Effective From</label>
                 <input
@@ -913,7 +897,7 @@ export default function EmployeeDetail() {
               <button onClick={() => setShowSetCtc(false)} className="px-4 py-2 text-sm text-dark-400 hover:text-white transition-colors">Cancel</button>
               <button
                 onClick={handleSetCtc}
-                disabled={!ctcForm.ctcAnnual || !ctcForm.effectiveFrom || (isFlatTdsEmployee && !ctcForm.monthlyGrossSalary) || ctcSaving}
+                disabled={!ctcForm.ctcAnnual || !ctcForm.effectiveFrom || ctcSaving}
                 className="px-4 py-2 bg-rivvra-600 text-white rounded-lg hover:bg-rivvra-700 text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 {ctcSaving && <Loader2 size={14} className="animate-spin" />}
@@ -938,18 +922,7 @@ export default function EmployeeDetail() {
                   <span className="text-dark-400 text-xs">Current CTC</span>
                   <p className="text-white font-medium">{formatCurrency(emp?.ctcAnnual)}</p>
                 </div>
-                {isFlatTdsEmployee && (
-                  <div>
-                    <span className="text-dark-400 text-xs">Current Monthly Gross</span>
-                    <p className="text-white font-medium">{formatCurrency(emp?.monthlyGrossSalary)}</p>
-                  </div>
-                )}
               </div>
-              {isFlatTdsEmployee && (
-                <div className="mt-2 text-xs text-dark-500">
-                  {emp?.employmentType === 'intern' ? 'No deductions (LOP only)' : 'Deduction: Flat 2% TDS only'}
-                </div>
-              )}
             </div>
             <div className="space-y-4">
               <div>
@@ -962,18 +935,6 @@ export default function EmployeeDetail() {
                   placeholder="e.g. 3600000"
                 />
               </div>
-              {isFlatTdsEmployee && (
-                <div>
-                  <label className="block text-sm text-dark-400 mb-1">New Monthly Gross (₹) <span className="text-red-400">*</span></label>
-                  <input
-                    type="number"
-                    value={ctcForm.monthlyGrossSalary}
-                    onChange={e => setCtcForm(f => ({ ...f, monthlyGrossSalary: e.target.value }))}
-                    className="w-full bg-dark-900 border border-dark-600 rounded-lg px-3 py-2 text-white text-sm focus:border-rivvra-500 focus:outline-none"
-                    placeholder="e.g. 55000"
-                  />
-                </div>
-              )}
               <div>
                 <label className="block text-sm text-dark-400 mb-1">Effective From</label>
                 <input
@@ -998,7 +959,7 @@ export default function EmployeeDetail() {
               <button onClick={() => setShowReviseCtc(false)} className="px-4 py-2 text-sm text-dark-400 hover:text-white transition-colors">Cancel</button>
               <button
                 onClick={handleReviseCtc}
-                disabled={!ctcForm.ctcAnnual || !ctcForm.effectiveFrom || !ctcForm.reason || (isFlatTdsEmployee && !ctcForm.monthlyGrossSalary) || ctcSaving}
+                disabled={!ctcForm.ctcAnnual || !ctcForm.effectiveFrom || !ctcForm.reason || ctcSaving}
                 className="px-4 py-2 bg-rivvra-600 text-white rounded-lg hover:bg-rivvra-700 text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 {ctcSaving && <Loader2 size={14} className="animate-spin" />}
